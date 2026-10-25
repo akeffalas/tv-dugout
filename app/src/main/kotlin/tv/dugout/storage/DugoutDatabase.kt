@@ -1,6 +1,8 @@
 package tv.dugout.storage
 
+import android.content.Context
 import androidx.room.Database
+import androidx.room.Room
 import androidx.room.RoomDatabase
 
 const val DATABASE_NAME = "dugout.db"
@@ -13,4 +15,19 @@ const val DATABASE_NAME = "dugout.db"
 )
 abstract class DugoutDatabase : RoomDatabase() {
     abstract fun dao(): DugoutDao
+}
+
+/** Opens the database file [name] (in memory when null), seeding it with [seed] if it is new. */
+fun dugoutDatabase(
+    context: Context,
+    name: String?,
+    seed: Seed,
+): DugoutDatabase {
+    val builder =
+        if (name == null) {
+            Room.inMemoryDatabaseBuilder(context, DugoutDatabase::class.java)
+        } else {
+            Room.databaseBuilder(context, DugoutDatabase::class.java, name)
+        }
+    return builder.addCallback(SeedCallback(seed)).build()
 }
