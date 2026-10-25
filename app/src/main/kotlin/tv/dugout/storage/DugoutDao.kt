@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import androidx.room.Upsert
 
 @Dao
@@ -38,4 +39,44 @@ interface DugoutDao {
 
     @Query("DELETE FROM profile WHERE id = :id")
     suspend fun deleteProfile(id: String)
+
+    @Update
+    suspend fun updateProfile(row: ProfileEntity)
+
+    @Query("DELETE FROM profile_video WHERE profile_id = :profileId")
+    suspend fun deleteProfileVideos(profileId: String)
+
+    /** Gives [profileId] the list [videos] in place of the one they had, all or nothing. */
+    @Transaction
+    suspend fun replaceProfileVideos(
+        profileId: String,
+        videos: List<ProfileVideoEntity>,
+    ) {
+        deleteProfileVideos(profileId)
+        insertProfileVideos(videos)
+    }
+
+    @Query(
+        "UPDATE profile SET position = (SELECT COUNT(*) FROM profile AS earlier WHERE earlier.position < profile.position)",
+    )
+    suspend fun renumberProfiles()
+
+    /** Deletes a child with their list and progress (by cascade), closing the gap in picker positions. */
+    @Transaction
+    suspend fun removeProfile(id: String) {
+        deleteProfile(id)
+        renumberProfiles()
+    }
+
+    @Query("DELETE FROM watch_progress WHERE profile_id = :profileId AND video_id IN (:videoIds)")
+    suspend fun deleteProgress(
+        profileId: String,
+        videoIds: List<String>,
+    )
+
+    @Query("SELECT * FROM parent_lock WHERE id = 1")
+    suspend fun parentLock(): ParentLockEntity?
+
+    @Upsert
+    suspend fun saveParentLock(row: ParentLockEntity)
 }

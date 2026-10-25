@@ -5,7 +5,10 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-/** A saved child. [position] is their place on the picker; [ageRange] and [level] hold enum names. */
+/**
+ * A saved child. [position] is their place on the picker; [ageRange] and [level] hold enum names;
+ * [offeredLibraryVersion] is the newest library version a parent has been shown for them.
+ */
 @Entity(tableName = "profile")
 data class ProfileEntity(
     @PrimaryKey val id: String,
@@ -14,6 +17,7 @@ data class ProfileEntity(
     val position: Int,
     @ColumnInfo(name = "age_range", defaultValue = "'NINE_TO_TEN'") val ageRange: String = "NINE_TO_TEN",
     @ColumnInfo(defaultValue = "'KID_PITCH'") val level: String = "KID_PITCH",
+    @ColumnInfo(name = "offered_library_version", defaultValue = "1") val offeredLibraryVersion: Int = 1,
 )
 
 /** One video on a child's list. [videoId] refers to the bundled library. */
@@ -57,3 +61,39 @@ data class WatchProgressEntity(
     @ColumnInfo(name = "last_played_at") val lastPlayedAt: Long,
     val watched: Boolean,
 )
+
+/**
+ * The parent PIN, kept as one row when a PIN is set. The hashes are never the PIN or code
+ * themselves (see `PinHasher`); [lockWaitMs] is the wait in force after too many wrong tries.
+ */
+@Entity(tableName = "parent_lock")
+data class ParentLockEntity(
+    @PrimaryKey val id: Int = 1,
+    @ColumnInfo(name = "pin_hash") val pinHash: ByteArray,
+    @ColumnInfo(name = "pin_salt") val pinSalt: ByteArray,
+    @ColumnInfo(name = "recovery_hash") val recoveryHash: ByteArray,
+    @ColumnInfo(name = "recovery_salt") val recoverySalt: ByteArray,
+    @ColumnInfo(name = "failed_attempts") val failedAttempts: Int,
+    @ColumnInfo(name = "lock_wait_ms") val lockWaitMs: Long,
+) {
+    override fun equals(other: Any?): Boolean =
+        other is ParentLockEntity &&
+            id == other.id &&
+            pinHash.contentEquals(other.pinHash) &&
+            pinSalt.contentEquals(other.pinSalt) &&
+            recoveryHash.contentEquals(other.recoveryHash) &&
+            recoverySalt.contentEquals(other.recoverySalt) &&
+            failedAttempts == other.failedAttempts &&
+            lockWaitMs == other.lockWaitMs
+
+    override fun hashCode(): Int =
+        listOf(
+            id,
+            pinHash.contentHashCode(),
+            pinSalt.contentHashCode(),
+            recoveryHash.contentHashCode(),
+            recoverySalt.contentHashCode(),
+            failedAttempts,
+            lockWaitMs,
+        ).hashCode()
+}

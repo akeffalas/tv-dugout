@@ -122,4 +122,74 @@ class DugoutDaoTest {
             kotlinx.coroutines.runBlocking { dao.saveProgress(row()) }
         }
     }
+
+    @Test
+    fun replaceProfileVideosSwapsOnlyThatChild() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", 0), profile("b", 1)))
+            dao.insertProfileVideos(
+                listOf(
+                    ProfileVideoEntity("a", "x", 0),
+                    ProfileVideoEntity("a", "y", 1),
+                    ProfileVideoEntity("b", "x", 0),
+                ),
+            )
+
+            dao.replaceProfileVideos("a", listOf(ProfileVideoEntity("a", "z", 0), ProfileVideoEntity("a", "x", 1)))
+
+            assertThat(dao.profileVideos())
+                .containsExactly(
+                    ProfileVideoEntity("a", "z", 0),
+                    ProfileVideoEntity("a", "x", 1),
+                    ProfileVideoEntity("b", "x", 0),
+                )
+        }
+
+    @Test
+    fun removeProfileCascadesAndRenumbers() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", 0), profile("b", 1), profile("c", 2)))
+            dao.insertProfileVideos(listOf(ProfileVideoEntity("b", "x", 0), ProfileVideoEntity("c", "x", 0)))
+            dao.saveProgress(row().copy(profileId = "b"))
+
+            dao.removeProfile("b")
+
+            assertThat(dao.profiles()).containsExactly(profile("a", 0), profile("c", 1)).inOrder()
+            assertThat(dao.profileVideos()).containsExactly(ProfileVideoEntity("c", "x", 0))
+            assertThat(dao.progress()).isEmpty()
+        }
+
+    @Test
+    fun deleteProgressLeavesOtherVideos() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", 0)))
+            listOf("x", "y", "z").forEach { dao.saveProgress(row(videoId = it)) }
+
+            dao.deleteProgress("a", listOf("x", "z"))
+
+            assertThat(dao.progress().map { it.videoId }).containsExactly("y")
+        }
+
+    @Test
+    fun updateProfileChangesItsFields() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", 0)))
+
+            dao.updateProfile(profile("a", 0).copy(name = "Al", level = "TEE_BALL", offeredLibraryVersion = 2))
+
+            assertThat(dao.profiles().single())
+                .isEqualTo(profile("a", 0).copy(name = "Al", level = "TEE_BALL", offeredLibraryVersion = 2))
+        }
+
+    @Test
+    fun parentLockRoundTrips() =
+        runTest {
+            assertThat(dao.parentLock()).isNull()
+            val lock = ParentLockEntity(1, byteArrayOf(1), byteArrayOf(2), byteArrayOf(3), byteArrayOf(4), 5, 60_000L)
+
+            dao.saveParentLock(lock)
+            dao.saveParentLock(lock.copy(failedAttempts = 6))
+
+            assertThat(dao.parentLock()).isEqualTo(lock.copy(failedAttempts = 6))
+        }
 }

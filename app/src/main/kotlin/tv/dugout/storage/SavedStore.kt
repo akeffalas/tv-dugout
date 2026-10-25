@@ -110,6 +110,7 @@ private fun ProfileEntity.toProfile() =
         avatarColor = avatarColor,
         ageRange = AgeRange.valueOf(ageRange),
         level = Level.valueOf(level),
+        offeredVersion = offeredLibraryVersion,
     )
 
 private fun Profile.toEntity(position: Int) =
@@ -120,6 +121,7 @@ private fun Profile.toEntity(position: Int) =
         position = position,
         ageRange = ageRange.name,
         level = level.name,
+        offeredLibraryVersion = offeredVersion,
     )
 
 private fun WatchProgressEntity.toProgress() =
