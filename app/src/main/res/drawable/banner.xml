@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV launcher banner (320x180dp): a baseball on the app's navy, with a gold base path. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path
+        android:fillColor="#FF0F1A2B"
+        android:pathData="M0,0h320v180h-320z" />
+    <path
+        android:fillColor="#FF1D3557"
+        android:pathData="M160,20L240,100L160,180L80,100Z" />
+    <path
+        android:fillColor="#FFF3F1EA"
+        android:pathData="M160,60a40,40 0,1 1,0 80a40,40 0,1 1,0 -80z" />
+    <path
+        android:pathData="M137,68c12,18 12,46 0,64M183,68c-12,18 -12,46 0,64"
+        android:strokeWidth="4"
+        android:strokeColor="#FFE63946" />
+    <path
+        android:fillColor="#FFFFD23F"
+        android:pathData="M20,90h40v20h-40zM260,90h40v20h-40z" />
+</vector>
