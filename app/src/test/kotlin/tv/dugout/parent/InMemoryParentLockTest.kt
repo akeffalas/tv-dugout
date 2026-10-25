@@ -8,10 +8,11 @@ class InMemoryParentLockTest {
     private val key = FixedPinKey()
     private val hasher = PinHasher(key, iterations = 1)
     private var now = 0L
+    private var boot = 1
     private val saved = mutableListOf<LockRecord>()
 
     private fun lock(initial: LockRecord? = null) =
-        InMemoryParentLock(initial, hasher, key, saver = { saved += it }, elapsed = { now })
+        InMemoryParentLock(initial, hasher, key, saver = { saved += it }, elapsed = { now }, bootCount = { boot })
 
     private suspend fun lockWith(pin: String): Pair<InMemoryParentLock, String> {
         val lock = lock()
@@ -153,17 +154,57 @@ class InMemoryParentLockTest {
         }
 
     @Test
-    fun lockSurvivesRestartAtFullLength() =
+    fun lockResumesAfterARestartInTheSameBoot() =
         runTest {
             val (lock, _) = lockWith("1234")
             lock.wrong(5)
             now += 50_000
 
+            val reopened = lock(saved.last())
+
+            assertThat(reopened.lockedForMillis()).isEqualTo(10_000)
+            assertThat(reopened.checkPin("1234")).isEqualTo(Check.Locked(10_000))
+        }
+
+    @Test
+    fun anExpiredLockStaysExpiredAfterARestart() =
+        runTest {
+            val (lock, _) = lockWith("1234")
+            lock.wrong(5)
+            now += 70_000
+
+            val reopened = lock(saved.last())
+
+            assertThat(reopened.lockedForMillis()).isEqualTo(0)
+            assertThat(reopened.checkPin("1234")).isEqualTo(Check.Correct)
+        }
+
+    @Test
+    fun lockSurvivesARebootAtFullLength() =
+        runTest {
+            val (lock, _) = lockWith("1234")
+            lock.wrong(5)
+            now += 50_000
+
+            boot += 1
             now = 0
             val reopened = lock(saved.last())
 
             assertThat(reopened.lockedForMillis()).isEqualTo(60_000)
             assertThat(reopened.checkPin("1234")).isEqualTo(Check.Locked(60_000))
+        }
+
+    @Test
+    fun aRestartNeverLengthensTheWait() =
+        runTest {
+            val (lock, _) = lockWith("1234")
+            now = 1_000_000
+            lock.wrong(5)
+
+            now = 0
+            val reopened = lock(saved.last())
+
+            assertThat(reopened.lockedForMillis()).isEqualTo(60_000)
         }
 
     @Test

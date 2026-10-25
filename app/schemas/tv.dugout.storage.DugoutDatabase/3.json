@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "e7f30d7335656313329a9e98add31485",
+    "identityHash": "6fdae1b7cfdeeb6fa0c020ac5b4a1235",
     "entities": [
       {
         "tableName": "profile",
@@ -175,7 +175,7 @@
       },
       {
         "tableName": "parent_lock",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `pin_hash` BLOB NOT NULL, `pin_salt` BLOB NOT NULL, `recovery_hash` BLOB NOT NULL, `recovery_salt` BLOB NOT NULL, `failed_attempts` INTEGER NOT NULL, `lock_wait_ms` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `pin_hash` BLOB NOT NULL, `pin_salt` BLOB NOT NULL, `recovery_hash` BLOB NOT NULL, `recovery_salt` BLOB NOT NULL, `failed_attempts` INTEGER NOT NULL, `lock_wait_ms` INTEGER NOT NULL, `locked_until` INTEGER NOT NULL, `lock_boot` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -218,6 +218,18 @@
             "columnName": "lock_wait_ms",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "lockedUntil",
+            "columnName": "locked_until",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lockBoot",
+            "columnName": "lock_boot",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -230,7 +242,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e7f30d7335656313329a9e98add31485')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6fdae1b7cfdeeb6fa0c020ac5b4a1235')"
     ]
   }
 }

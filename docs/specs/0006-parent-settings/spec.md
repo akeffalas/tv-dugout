@@ -132,8 +132,10 @@ flowchart LR
 - The count and the length of the current wait are saved, so closing or restarting the
   app does not reset them. The wait is counted down with the device's monotonic clock
   (time since boot), never the wall clock, so changing the TV's date or time cannot skip
-  it. After the app restarts or the TV reboots, a wait still in force starts again at its
-  full length (designer's call: harsher than resuming, but it needs no wall clock).
+  it. The deadline is saved with the TV's boot count: after an app restart in the same boot
+  the wait resumes where it was (so a wait that has run out stays over), and after a reboot
+  a wait still in force starts again at its full length (designer's call, revised after the
+  final review: it needs no wall clock).
 
 ### Recovery code
 

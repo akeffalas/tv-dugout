@@ -50,6 +50,7 @@ class SavedStore(
     private val clock: () -> Long = System::currentTimeMillis,
     private val pinKey: PinKey = KeystorePinKey(),
     private val elapsed: () -> Long = SystemClock::elapsedRealtime,
+    private val bootCount: () -> Int = { 0 },
 ) {
     private val mutableState = MutableStateFlow<StoreState>(StoreState.Loading)
     val state: StateFlow<StoreState> = mutableState.asStateFlow()
@@ -124,6 +125,7 @@ class SavedStore(
                 key = pinKey,
                 saver = { record -> withContext(scope.coroutineContext) { dao.saveParentLock(record.toEntity()) } },
                 elapsed = elapsed,
+                bootCount = bootCount,
             )
         return AppGraph(
             profiles = InMemoryProfileRepository(profiles, profileVideos, saver),
@@ -138,7 +140,7 @@ class SavedStore(
 }
 
 private fun ParentLockEntity.toRecord() =
-    LockRecord(pinHash, pinSalt, recoveryHash, recoverySalt, failedAttempts, lockWaitMs)
+    LockRecord(pinHash, pinSalt, recoveryHash, recoverySalt, failedAttempts, lockWaitMs, lockedUntil, lockBoot)
 
 private fun LockRecord.toEntity() =
     ParentLockEntity(
@@ -148,6 +150,8 @@ private fun LockRecord.toEntity() =
         recoverySalt = recoverySalt,
         failedAttempts = failedAttempts,
         lockWaitMs = lockWaitMs,
+        lockedUntil = lockedUntil,
+        lockBoot = lockBoot,
     )
 
 private fun List<String>.toRows(profileId: String) =

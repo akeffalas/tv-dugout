@@ -20,7 +20,8 @@ val MIGRATION_2_3 =
             db.execSQL(
                 "CREATE TABLE IF NOT EXISTS `parent_lock` (`id` INTEGER NOT NULL, `pin_hash` BLOB NOT NULL, " +
                     "`pin_salt` BLOB NOT NULL, `recovery_hash` BLOB NOT NULL, `recovery_salt` BLOB NOT NULL, " +
-                    "`failed_attempts` INTEGER NOT NULL, `lock_wait_ms` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                    "`failed_attempts` INTEGER NOT NULL, `lock_wait_ms` INTEGER NOT NULL, " +
+                    "`locked_until` INTEGER NOT NULL, `lock_boot` INTEGER NOT NULL, PRIMARY KEY(`id`))",
             )
         }
     }

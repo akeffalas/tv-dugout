@@ -1,6 +1,7 @@
 package tv.dugout
 
 import android.app.Application
+import android.provider.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,6 +37,7 @@ open class DugoutApplication : Application() {
                 // ProgressWriter and SavedStore need one coroutine at a time.
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1)),
                 pinKey = pinKey(),
+                bootCount = { Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT, 0) },
             )
         store.start()
     }

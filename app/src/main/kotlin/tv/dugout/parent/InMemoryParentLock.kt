@@ -13,8 +13,9 @@ import kotlin.coroutines.CoroutineContext
 
 /**
  * The parent lock served from memory and written through [saver]. Waits are timed on [elapsed],
- * time since boot, so changing the TV's clock cannot shorten them; a wait still in force when the
- * app starts begins again at its full length. Hashing, which is slow on purpose, runs on [hashing].
+ * time since boot, so changing the TV's clock cannot shorten them. A restart within the same boot
+ * ([bootCount]) resumes a wait where it was; after a reboot a wait still in force starts again at
+ * its full length. Hashing, which is slow on purpose, runs on [hashing].
  */
 class InMemoryParentLock(
     initial: LockRecord?,
@@ -24,14 +25,27 @@ class InMemoryParentLock(
     private val elapsed: () -> Long = SystemClock::elapsedRealtime,
     private val random: SecureRandom = SecureRandom(),
     private val hashing: CoroutineContext = Dispatchers.Default,
+    private val bootCount: () -> Int = { 0 },
 ) : ParentLock {
     private var record: LockRecord? = initial
-    private var lockedUntil: Long? = initial?.lockWaitMs?.takeIf { it > 0 }?.let { elapsed() + it }
+    private var lockedUntil: Long? = initial?.let(::resumeWait)
 
     // One entry at a time, so a held OK button cannot check twice against a stale count.
     private val checking = Mutex()
     private val mutableStatus = MutableStateFlow(statusOf(initial))
     override val status: StateFlow<LockStatus> = mutableStatus.asStateFlow()
+
+    // Never longer than the wait itself, whatever the saved deadline says.
+    private fun resumeWait(saved: LockRecord): Long? {
+        if (saved.lockWaitMs <= 0) return null
+        val left =
+            if (saved.lockBoot == bootCount()) {
+                (saved.lockedUntil - elapsed()).coerceIn(0, saved.lockWaitMs)
+            } else {
+                saved.lockWaitMs
+            }
+        return if (left > 0) elapsed() + left else null
+    }
 
     private fun statusOf(record: LockRecord?) =
         when {
@@ -56,10 +70,11 @@ class InMemoryParentLock(
             val correct = withContext(hashing) { matches(current) }
             val failures = if (correct) 0 else current.failedAttempts + 1
             val wait = lockWaitMillis(failures)
-            val updated = current.withAttempts(failures, wait)
+            val until = if (wait > 0) elapsed() + wait else 0
+            val updated = current.withAttempts(failures, wait, until, bootCount())
             saver.save(updated)
             record = updated
-            if (wait > 0) lockedUntil = elapsed() + wait
+            if (wait > 0) lockedUntil = until
             when {
                 correct -> Check.Correct
                 wait > 0 -> Check.Locked(wait)

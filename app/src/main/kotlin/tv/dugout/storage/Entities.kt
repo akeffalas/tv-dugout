@@ -64,7 +64,8 @@ data class WatchProgressEntity(
 
 /**
  * The parent PIN, kept as one row when a PIN is set. The hashes are never the PIN or code
- * themselves (see `PinHasher`); [lockWaitMs] is the wait in force after too many wrong tries.
+ * themselves (see `PinHasher`); [lockWaitMs] is the wait in force after too many wrong tries,
+ * ending at [lockedUntil] on the monotonic clock of boot number [lockBoot].
  */
 @Entity(tableName = "parent_lock")
 data class ParentLockEntity(
@@ -75,6 +76,8 @@ data class ParentLockEntity(
     @ColumnInfo(name = "recovery_salt") val recoverySalt: ByteArray,
     @ColumnInfo(name = "failed_attempts") val failedAttempts: Int,
     @ColumnInfo(name = "lock_wait_ms") val lockWaitMs: Long,
+    @ColumnInfo(name = "locked_until") val lockedUntil: Long = 0,
+    @ColumnInfo(name = "lock_boot") val lockBoot: Int = 0,
 ) {
     override fun equals(other: Any?): Boolean =
         other is ParentLockEntity &&
@@ -84,7 +87,9 @@ data class ParentLockEntity(
             recoveryHash.contentEquals(other.recoveryHash) &&
             recoverySalt.contentEquals(other.recoverySalt) &&
             failedAttempts == other.failedAttempts &&
-            lockWaitMs == other.lockWaitMs
+            lockWaitMs == other.lockWaitMs &&
+            lockedUntil == other.lockedUntil &&
+            lockBoot == other.lockBoot
 
     override fun hashCode(): Int =
         listOf(
@@ -95,5 +100,7 @@ data class ParentLockEntity(
             recoverySalt.contentHashCode(),
             failedAttempts,
             lockWaitMs,
+            lockedUntil,
+            lockBoot,
         ).hashCode()
 }

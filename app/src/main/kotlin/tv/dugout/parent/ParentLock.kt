@@ -22,7 +22,10 @@ sealed interface Check {
     ) : Check
 }
 
-/** What is saved for the parent PIN. The hashes come from [PinHasher]; [lockWaitMs] is the wait in force. */
+/**
+ * What is saved for the parent PIN. The hashes come from [PinHasher]. [lockWaitMs] is the length of
+ * the wait in force; it ends at [lockedUntil] on the monotonic clock of boot number [lockBoot].
+ */
 class LockRecord(
     val pinHash: ByteArray,
     val pinSalt: ByteArray,
@@ -30,11 +33,15 @@ class LockRecord(
     val recoverySalt: ByteArray,
     val failedAttempts: Int,
     val lockWaitMs: Long,
+    val lockedUntil: Long = 0,
+    val lockBoot: Int = 0,
 ) {
     fun withAttempts(
         failedAttempts: Int,
         lockWaitMs: Long,
-    ) = LockRecord(pinHash, pinSalt, recoveryHash, recoverySalt, failedAttempts, lockWaitMs)
+        lockedUntil: Long,
+        lockBoot: Int,
+    ) = LockRecord(pinHash, pinSalt, recoveryHash, recoverySalt, failedAttempts, lockWaitMs, lockedUntil, lockBoot)
 }
 
 /** Writes the lock somewhere lasting. */
