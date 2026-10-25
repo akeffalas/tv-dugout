@@ -25,6 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.Skill
+import tv.dugout.parent.FixedPinKey
 import tv.dugout.storage.SavedStore
 import tv.dugout.storage.StoreState
 import tv.dugout.storage.dugoutDatabase
@@ -57,12 +58,18 @@ class SetupWizardAcceptanceTest {
         compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
 
     @Test
-    fun addAPlayerWithTheRemote() {
+    fun chooseAPinThenAddAPlayerWithTheRemote() {
         context.deleteDatabase(name)
         val graph =
             runBlocking {
                 val store =
-                    SavedStore({ dugoutDatabase(context, name) }, BundledVideoLibrary(), AcceptanceSurface(), scope)
+                    SavedStore(
+                        { dugoutDatabase(context, name) },
+                        BundledVideoLibrary(),
+                        AcceptanceSurface(),
+                        scope,
+                        pinKey = FixedPinKey(),
+                    )
                 store.start()
                 val settled = withTimeout(10_000) { store.state.first { it != StoreState.Loading } }
                 check(settled is StoreState.Ready) { "Store failed to load" }
@@ -70,6 +77,18 @@ class SetupWizardAcceptanceTest {
             }
         compose.setContent { DugoutTheme { DugoutApp(graph) } }
 
+        // A fresh install chooses the parent PIN first, typed with the remote's number keys.
+        compose.onNodeWithText("Choose a parent PIN").assertIsDisplayed()
+        repeat(2) {
+            listOf(KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_4).forEach {
+                remote { pressKeyCode(it) }
+            }
+        }
+        waitForTag("code_saved")
+        compose.onNodeWithTag("code_saved").assertIsFocused()
+        remote { pressDPadCenter() }
+
+        waitForTag("name_field")
         compose.onNodeWithTag("name_field").assertIsFocused()
         remote { pressDPadCenter() }
         // Raw key events carry no auto-capitalization, so Shift goes with the first letter.

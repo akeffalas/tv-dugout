@@ -22,6 +22,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.library.BundledVideoLibrary
+import tv.dugout.parent.FixedPinKey
 import tv.dugout.storage.SavedStore
 import tv.dugout.storage.Seed
 import tv.dugout.storage.StoreState
@@ -48,7 +49,14 @@ class SavedDataAcceptanceTest {
     fun stop() = scope.cancel()
 
     private suspend fun readyStore(): AppGraph {
-        val store = SavedStore({ dugoutDatabase(context, name, seed) }, library, AcceptanceSurface(), scope)
+        val store =
+            SavedStore(
+                { dugoutDatabase(context, name, seed) },
+                library,
+                AcceptanceSurface(),
+                scope,
+                pinKey = FixedPinKey(),
+            )
         store.start()
         val settled = withTimeout(10_000) { store.state.first { it != StoreState.Loading } }
         check(settled is StoreState.Ready) { "Store failed to load" }

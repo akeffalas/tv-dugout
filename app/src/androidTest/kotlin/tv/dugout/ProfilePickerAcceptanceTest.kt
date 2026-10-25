@@ -68,7 +68,7 @@ class ProfilePickerAcceptanceTest {
 
         remote { pressDPadDown() }
         remote { pressDPadCenter() }
-        compose.onNodeWithText("Parent settings are coming soon.").assertIsDisplayed()
+        compose.onNodeWithText("Choose a parent PIN").assertIsDisplayed()
 
         remote { pressBack() }
         compose.onNodeWithTag("parent_button").assertIsFocused()

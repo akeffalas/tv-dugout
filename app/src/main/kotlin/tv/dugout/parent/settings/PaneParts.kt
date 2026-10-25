@@ -2,11 +2,13 @@ package tv.dugout.parent.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -54,9 +56,11 @@ internal fun SkillChips(
     onSkillFocused: (Skill) -> Unit,
 ) {
     val requesters = skills.associateWith { remember(it) { FocusRequester() } }
+    // Scrolls sideways rather than squeezing chips, whose labels would then wrap into tall columns.
     Row(
         modifier =
             Modifier
+                .horizontalScroll(rememberScrollState())
                 .focusProperties { onEnter = { selected?.let(requesters::get)?.requestFocus() } }
                 .focusGroup(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -86,6 +90,8 @@ internal fun SkillChips(
             ) {
                 Text(
                     label(skill),
+                    maxLines = 1,
+                    softWrap = false,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
