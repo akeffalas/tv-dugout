@@ -22,6 +22,8 @@ import tv.dugout.parent.pin.PinFlowScreen
 import tv.dugout.parent.pin.PinFlowViewModel
 import tv.dugout.parent.settings.ParentSettingsScreen
 import tv.dugout.parent.settings.ParentSettingsViewModel
+import tv.dugout.parent.settings.ParentTab
+import tv.dugout.parent.settings.ProgressPane
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
 import tv.dugout.player.PlayerScreen
@@ -210,7 +212,25 @@ private fun ParentSettingsDestination(
                 navController.navigate(CHANGE_PIN_ROUTE)
             }
         },
-    ) { _, _ -> }
+    ) { child, tab ->
+        when (tab) {
+            ParentTab.PROGRESS -> {
+                ProgressPane(
+                    state = state,
+                    childName = child.name,
+                    onSkillFocused = settingsViewModel::onProgressSkillFocused,
+                    onResetVideo = settingsViewModel::onResetVideoRequested,
+                    onResetSkill = settingsViewModel::onResetSkillRequested,
+                    onConfirm = settingsViewModel::onConfirm,
+                    onCancel = settingsViewModel::onCancelConfirm,
+                )
+            }
+
+            else -> {
+                Unit
+            }
+        }
+    }
 }
 
 /** The wizard; [fromParent] when opened from parent settings, so finishing returns there. */
