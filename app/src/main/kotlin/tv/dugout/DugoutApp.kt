@@ -17,10 +17,11 @@ import tv.dugout.home.HomeScreen
 import tv.dugout.home.HomeViewModel
 import tv.dugout.library.Skill
 import tv.dugout.parent.LockStatus
-import tv.dugout.parent.ParentPlaceholderScreen
 import tv.dugout.parent.pin.PinFlow
 import tv.dugout.parent.pin.PinFlowScreen
 import tv.dugout.parent.pin.PinFlowViewModel
+import tv.dugout.parent.settings.ParentSettingsScreen
+import tv.dugout.parent.settings.ParentSettingsViewModel
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
 import tv.dugout.player.PlayerScreen
@@ -37,6 +38,7 @@ const val SETUP_ROUTE = "setup"
 const val FIRST_PIN_ROUTE = "first-pin"
 const val PARENT_SETTINGS_ROUTE = "parent/settings"
 const val CHANGE_PIN_ROUTE = "parent/change-pin"
+const val PARENT_SETUP_ROUTE = "parent/setup"
 private const val PROFILE_ID_ARG = "profileId"
 private const val VIDEO_ID_ARG = "videoId"
 
@@ -136,8 +138,9 @@ fun DugoutApp(
         composable(CHANGE_PIN_ROUTE) { entry ->
             PinDestination(graph, navController, entry, PinFlow.CHANGE) { navController.popBackStack() }
         }
-        composable(PARENT_SETTINGS_ROUTE) { ParentPlaceholderScreen() }
-        composable(SETUP_ROUTE) { entry -> SetupDestination(graph, navController, entry) }
+        composable(PARENT_SETTINGS_ROUTE) { entry -> ParentSettingsDestination(graph, navController, entry) }
+        composable(SETUP_ROUTE) { entry -> SetupDestination(graph, navController, entry, fromParent = false) }
+        composable(PARENT_SETUP_ROUTE) { entry -> SetupDestination(graph, navController, entry, fromParent = true) }
     }
 }
 
@@ -172,10 +175,51 @@ private fun PinDestination(
 }
 
 @Composable
+private fun ParentSettingsDestination(
+    graph: AppGraph,
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+) {
+    val settingsViewModel = viewModel { ParentSettingsViewModel(graph) }
+    val state by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val added by entry.savedStateHandle
+        .getStateFlow<String?>(RESULT_ADDED_PROFILE, null)
+        .collectAsStateWithLifecycle()
+    LaunchedEffect(added) {
+        val profileId = added ?: return@LaunchedEffect
+        entry.savedStateHandle[RESULT_ADDED_PROFILE] = null
+        settingsViewModel.onReturnedWithAdded(profileId)
+    }
+
+    fun fromSettings(action: () -> Unit) {
+        if (navController.currentBackStackEntry == entry) action()
+    }
+    ParentSettingsScreen(
+        state = state,
+        onChildFocused = settingsViewModel::onChildFocused,
+        onTabFocused = settingsViewModel::onTabFocused,
+        onAddPlayer = {
+            fromSettings {
+                settingsViewModel.onAddPlayerSelected()
+                navController.navigate(PARENT_SETUP_ROUTE)
+            }
+        },
+        onChangePin = {
+            fromSettings {
+                settingsViewModel.onChangePinSelected()
+                navController.navigate(CHANGE_PIN_ROUTE)
+            }
+        },
+    ) { _, _ -> }
+}
+
+/** The wizard; [fromParent] when opened from parent settings, so finishing returns there. */
+@Composable
 private fun SetupDestination(
     graph: AppGraph,
     navController: NavHostController,
     entry: NavBackStackEntry,
+    fromParent: Boolean,
 ) {
     val setupViewModel = viewModel { SetupViewModel(graph.profiles, graph.library) }
     val state by setupViewModel.uiState.collectAsStateWithLifecycle()
@@ -193,11 +237,21 @@ private fun SetupDestination(
         navController.getBackStackEntry(PICKER_ROUTE).savedStateHandle[RESULT_ADDED_PROFILE] = addedId
     }
 
+    // Back from the ready screen shows the new child where the wizard was opened from.
+    fun leaveReady(addedId: String) {
+        if (fromParent) {
+            navController.popBackStack(PARENT_SETTINGS_ROUTE, inclusive = false)
+            navController.getBackStackEntry(PARENT_SETTINGS_ROUTE).savedStateHandle[RESULT_ADDED_PROFILE] = addedId
+        } else {
+            toPicker(addedId)
+        }
+    }
+
     // On the first step and the ready screen, Back is left to the NavHost or, on a fresh install, the activity.
     BackHandler(enabled = state.step != SetupStep.NAME) {
         fromSetup {
             val saved = state.saved
-            if (state.step == SetupStep.READY && saved != null) toPicker(saved.id) else setupViewModel.onBack()
+            if (state.step == SetupStep.READY && saved != null) leaveReady(saved.id) else setupViewModel.onBack()
         }
     }
     SetupScreen(
@@ -225,8 +279,13 @@ private fun SetupDestination(
             if (saved != null) {
                 // A fresh wizard over the picker, so Back on its first step returns there even on a fresh install.
                 fromSetup {
-                    toPicker(saved.id)
-                    navController.navigate(SETUP_ROUTE)
+                    if (fromParent) {
+                        leaveReady(saved.id)
+                        navController.navigate(PARENT_SETUP_ROUTE)
+                    } else {
+                        toPicker(saved.id)
+                        navController.navigate(SETUP_ROUTE)
+                    }
                 }
             }
         },
