@@ -1,0 +1,31 @@
+# prek git hooks (ADR-0005). The fast format check runs at pre-commit; Android Lint and
+# the unit tests with the 90% coverage floor run at pre-push, so individual commits stay
+# quick while the full gate still runs before code leaves the machine. The emulator
+# acceptance suite is too slow for a hook and stays on demand (just acceptance). Each
+# hook calls the same just recipe used by hand, so the commands never drift. Install
+# with `just hooks`.
+default_install_hook_types: [pre-commit, pre-push]
+repos:
+  - repo: local
+    hooks:
+      - id: lint
+        name: Spotless (ktlint) format check
+        entry: just lint
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+      - id: lint-android
+        name: Android Lint (warnings as errors)
+        entry: just lint-android
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: test
+        name: Unit tests with 90% coverage
+        entry: just test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

@@ -29,6 +29,13 @@ lint-android:
 test:
     ./gradlew :app:testDebugUnitTest :app:koverVerifyDebug
 
+# The full local gate (format check, Android Lint, unit tests with coverage).
+check: lint lint-android test
+
+# Install the prek git hooks (once per clone). See ADR-0005.
+hooks:
+    prek install
+
 # Device
 # Acceptance tests on a headless Google TV emulator (booted and shut down by the script).
 acceptance:
