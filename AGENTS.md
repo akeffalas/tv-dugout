@@ -18,7 +18,7 @@ relevant part when a task touches it.
   (packages, data flow, navigation, focus) and the development workflow, including
   deploying to a TV.
 - [docs/adr/](./docs/adr/README.md): accepted decisions and their rationale (ADR-0001 to
-  0005).
+  0006).
 - [docs/specs/](./docs/specs/): one numbered `NNNN-topic/` directory per feature
   (`spec.md` plus `plan.md`). The directory names are the feature index; `git log` holds
   the rest.
@@ -28,8 +28,8 @@ relevant part when a task touches it.
 
 ```text
 app/                    the single Android module (package tv.dugout)
-  src/main/kotlin/      MainActivity, DugoutApp (NavHost), profile/, picker/, home/,
-                        parent/, ui/theme/
+  src/main/kotlin/      MainActivity, AppGraph, DugoutApp (NavHost), library/, history/,
+                        profile/, picker/, home/, player/, upnext/, parent/, ui/theme/
   src/test/             JVM unit tests and Compose UI tests under Robolectric
   src/androidTest/      emulator acceptance tests (real D-pad key events)
 scripts/acceptance.sh   boots a headless Google TV emulator, runs acceptance, shuts it down
@@ -44,14 +44,16 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 ### What exists
 
 ```text
-screens   picker (start), home placeholder ("Hi, <name>"), parent placeholder
-data      ProfileRepository with an in-memory Sam and Jack
+screens   picker (start), home (skill tabs with progress), player (YouTube embed),
+          up next, parent placeholder
+data      31-video bundled library, in-memory watch history, sample profiles
+          (Sam and Jack) until the setup wizard
 recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```
 
-Not built yet: the real home screen, video playback, streaks, My List, parent settings
-and the PIN, persistence, networking, CI, and integration tests (Testcontainers is
+Not built yet: saving progress and profiles (spec 0003), the per-child setup wizard
+(0004), My List, parent settings and the PIN, CI, and integration tests (Testcontainers is
 deferred until there is something to integrate against, ADR-0003).
 
 ## Commands
@@ -94,6 +96,10 @@ The canonical slice to copy is `picker/`: `ProfilePickerViewModel.kt` with its t
   navigation settles reaches the activity and finishes it.
 - **tv-material `Text` outside a `Surface` defaults to black.** Screens wrap content in
   `DugoutBackground`, which provides the chalk content color.
+- **The YouTube player needs a WebView, which Robolectric cannot run.** Tests inject a fake
+  `PlayerSurface` through `AppGraph`; real playback is checked on a TV (ADR-0006).
+- **Nothing may be drawn over the YouTube player**, and remote focus must stay out of it
+  (its view blocks descendant focus). Controls go below the video.
 - `@Composable` functions are exempt from ktlint's lowercase naming rule
   (`.editorconfig`).
 
