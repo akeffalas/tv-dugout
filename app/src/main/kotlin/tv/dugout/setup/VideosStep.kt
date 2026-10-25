@@ -166,10 +166,10 @@ private fun VideoRow(
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
+                // Takes the free width, so length and badge line up at the right edge on every row.
+                modifier = Modifier.weight(1f),
             )
             Text(formatDuration(video.durationSeconds), style = MaterialTheme.typography.bodySmall, color = Slate)
-            Box(modifier = Modifier.weight(1f, fill = true))
             if (choice.recommended) {
                 Text(
                     "Recommended",
