@@ -21,17 +21,24 @@ import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
 import tv.dugout.player.PlayerScreen
 import tv.dugout.player.PlayerViewModel
+import tv.dugout.setup.SetupScreen
+import tv.dugout.setup.SetupStep
+import tv.dugout.setup.SetupViewModel
 import tv.dugout.upnext.UpNextScreen
 import tv.dugout.upnext.nextVideo
 
 const val PICKER_ROUTE = "picker"
 const val PARENT_ROUTE = "parent"
+const val SETUP_ROUTE = "setup"
 private const val PROFILE_ID_ARG = "profileId"
 private const val VIDEO_ID_ARG = "videoId"
 
 /** Set on Home's back stack entry by the player and Up next, so Home can put focus back. */
 const val RESULT_LAST_VIDEO = "lastVideoId"
 const val RESULT_OPEN_SKILL = "openSkill"
+
+/** Set on the picker's back stack entry when the wizard adds a child, so focus lands on them. */
+const val RESULT_ADDED_PROFILE = "addedProfileId"
 
 fun homeRoute(profileId: String): String = "home/$profileId"
 
@@ -53,11 +60,30 @@ fun DugoutApp(
     graph: AppGraph,
     navController: NavHostController = rememberNavController(),
 ) {
-    NavHost(navController = navController, startDestination = PICKER_ROUTE) {
-        composable(PICKER_ROUTE) {
+    // A fresh install has no children yet, so it starts by adding one.
+    val start =
+        remember {
+            if (graph.profiles.profiles.value
+                    .isEmpty()
+            ) {
+                SETUP_ROUTE
+            } else {
+                PICKER_ROUTE
+            }
+        }
+    NavHost(navController = navController, startDestination = start) {
+        composable(PICKER_ROUTE) { entry ->
             val pickerViewModel =
                 viewModel { ProfilePickerViewModel(graph.profiles, graph.profileVideos, graph.history) }
             val state by pickerViewModel.uiState.collectAsStateWithLifecycle()
+            val added by entry.savedStateHandle
+                .getStateFlow<String?>(RESULT_ADDED_PROFILE, null)
+                .collectAsStateWithLifecycle()
+            LaunchedEffect(added) {
+                val profileId = added ?: return@LaunchedEffect
+                entry.savedStateHandle[RESULT_ADDED_PROFILE] = null
+                pickerViewModel.onProfileAdded(profileId)
+            }
 
             // The picker stays on screen and focusable while it fades out, so a fast second press
             // could push another screen. Only navigate while the picker is the current destination.
@@ -72,7 +98,12 @@ fun DugoutApp(
                         navController.navigate(homeRoute(profileId)) { launchSingleTop = true }
                     }
                 },
-                onAddSelected = { fromPicker { pickerViewModel.onAddSelected() } },
+                onAddSelected = {
+                    fromPicker {
+                        pickerViewModel.onAddSelected()
+                        navController.navigate(SETUP_ROUTE) { launchSingleTop = true }
+                    }
+                },
                 onParentSelected = {
                     fromPicker {
                         pickerViewModel.onParentSelected()
@@ -85,7 +116,61 @@ fun DugoutApp(
         composable(PLAYER_ROUTE_PATTERN) { entry -> PlayerDestination(graph, navController, entry) }
         composable(UP_NEXT_ROUTE_PATTERN) { entry -> UpNextDestination(graph, navController, entry) }
         composable(PARENT_ROUTE) { ParentPlaceholderScreen() }
+        composable(SETUP_ROUTE) { entry -> SetupDestination(graph, navController, entry) }
     }
+}
+
+@Composable
+private fun SetupDestination(
+    graph: AppGraph,
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+) {
+    val setupViewModel = viewModel { SetupViewModel(graph.profiles, graph.library) }
+    val state by setupViewModel.uiState.collectAsStateWithLifecycle()
+
+    // Only while the wizard is the current screen, so a fast double press cannot navigate twice.
+    fun fromSetup(action: () -> Unit) {
+        if (navController.currentBackStackEntry == entry) action()
+    }
+
+    // Leaves the wizard for the picker, which may not exist yet on a fresh install, focusing [addedId].
+    fun toPicker(addedId: String) {
+        if (!navController.popBackStack(PICKER_ROUTE, inclusive = false)) {
+            navController.navigate(PICKER_ROUTE) { popUpTo(SETUP_ROUTE) { inclusive = true } }
+        }
+        navController.getBackStackEntry(PICKER_ROUTE).savedStateHandle[RESULT_ADDED_PROFILE] = addedId
+    }
+
+    // On the first step and the ready screen, Back is left to the NavHost or, on a fresh install, the activity.
+    BackHandler(enabled = state.step != SetupStep.NAME) {
+        fromSetup {
+            val saved = state.saved
+            if (state.step == SetupStep.READY && saved != null) toPicker(saved.id) else setupViewModel.onBack()
+        }
+    }
+    SetupScreen(
+        state = state,
+        onNameChanged = setupViewModel::onNameChanged,
+        onNameSubmitted = setupViewModel::onNameSubmitted,
+        onAgeSelected = setupViewModel::onAgeSelected,
+        onLevelSelected = setupViewModel::onLevelSelected,
+        onSkillToggled = setupViewModel::onSkillToggled,
+        onSkillsSubmitted = setupViewModel::onSkillsSubmitted,
+        onVideoSkillFocused = setupViewModel::onVideoSkillFocused,
+        onVideoToggled = setupViewModel::onVideoToggled,
+        onDone = setupViewModel::onDone,
+        onStartWatching = {
+            val saved = state.saved
+            if (saved != null) {
+                fromSetup {
+                    toPicker(saved.id)
+                    navController.navigate(homeRoute(saved.id))
+                }
+            }
+        },
+        onAddAnother = { fromSetup(setupViewModel::onAddAnother) },
+    )
 }
 
 @Composable
