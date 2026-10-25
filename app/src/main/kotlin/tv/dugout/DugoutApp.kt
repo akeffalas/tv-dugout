@@ -33,15 +33,25 @@ fun DugoutApp(
             val pickerViewModel: ProfilePickerViewModel =
                 viewModel(factory = viewModelFactory { initializer { ProfilePickerViewModel(repository) } })
             val state by pickerViewModel.uiState.collectAsStateWithLifecycle()
+
+            // The picker stays on screen and focusable while it fades out, so a fast second press
+            // could push another screen. Only navigate while the picker is the current destination.
+            fun fromPicker(action: () -> Unit) {
+                if (navController.currentDestination?.route == PICKER_ROUTE) action()
+            }
             ProfilePickerScreen(
                 state = state,
                 onProfileSelected = { profileId ->
-                    pickerViewModel.onProfileSelected(profileId)
-                    navController.navigate(homeRoute(profileId)) { launchSingleTop = true }
+                    fromPicker {
+                        pickerViewModel.onProfileSelected(profileId)
+                        navController.navigate(homeRoute(profileId)) { launchSingleTop = true }
+                    }
                 },
                 onParentSelected = {
-                    pickerViewModel.onParentSelected()
-                    navController.navigate(PARENT_ROUTE) { launchSingleTop = true }
+                    fromPicker {
+                        pickerViewModel.onParentSelected()
+                        navController.navigate(PARENT_ROUTE) { launchSingleTop = true }
+                    }
                 },
             )
         }

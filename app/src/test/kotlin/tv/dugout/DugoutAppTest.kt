@@ -66,6 +66,19 @@ class DugoutAppTest {
     }
 
     @Test
+    fun selectThenQuickParentSelectThenBackReturnsToPicker() {
+        // A child mashing the remote: select Sam, then reach the parent button before the transition ends.
+        compose.mainClock.autoAdvance = false
+        press(Key.DirectionCenter)
+        press(Key.DirectionDown)
+        press(Key.DirectionCenter)
+        compose.mainClock.autoAdvance = true
+        back()
+
+        compose.onNodeWithText("Who's up to bat?").assertIsDisplayed()
+    }
+
+    @Test
     fun doubleSelectThenBackReturnsToPicker() {
         // Freeze the clock so the second press lands while the picker is still on screen mid-transition.
         compose.mainClock.autoAdvance = false
