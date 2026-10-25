@@ -15,7 +15,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import tv.dugout.profile.DEFAULT_PROFILES
+import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.ui.theme.DugoutTheme
 
 @OptIn(ExperimentalTestApi::class)
@@ -29,7 +29,7 @@ class ProfilePickerScreenTest {
 
     private fun show(
         state: ProfilePickerUiState =
-            ProfilePickerUiState(DEFAULT_PROFILES, mapOf("sam" to 0, "jack" to 3), lastSelection = null),
+            ProfilePickerUiState(SAMPLE_PROFILES, mapOf("sam" to 0, "jack" to 3), lastSelection = null),
     ) {
         compose.setContent {
             DugoutTheme {
@@ -99,21 +99,21 @@ class ProfilePickerScreenTest {
 
     @Test
     fun lastSelectedProfileIsFocusedOnReturn() {
-        show(ProfilePickerUiState(DEFAULT_PROFILES, lastSelection = PickerSelection.Kid("jack")))
+        show(ProfilePickerUiState(SAMPLE_PROFILES, lastSelection = PickerSelection.Kid("jack")))
 
         compose.onNodeWithTag("profile_tile_jack").assertIsFocused()
     }
 
     @Test
     fun parentButtonIsFocusedOnReturnFromParent() {
-        show(ProfilePickerUiState(DEFAULT_PROFILES, lastSelection = PickerSelection.Parent))
+        show(ProfilePickerUiState(SAMPLE_PROFILES, lastSelection = PickerSelection.Parent))
 
         compose.onNodeWithTag("parent_button").assertIsFocused()
     }
 
     @Test
     fun unknownLastSelectionFallsBackToFirstProfile() {
-        show(ProfilePickerUiState(DEFAULT_PROFILES, lastSelection = PickerSelection.Kid("nobody")))
+        show(ProfilePickerUiState(SAMPLE_PROFILES, lastSelection = PickerSelection.Kid("nobody")))
 
         compose.onNodeWithTag("profile_tile_sam").assertIsFocused()
     }

@@ -8,6 +8,7 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import tv.dugout.storage.DATABASE_NAME
 import tv.dugout.storage.Seed
 import tv.dugout.storage.dugoutDatabase
@@ -16,6 +17,7 @@ import tv.dugout.storage.dugoutDatabase
 fun MainActivity.awaitGraph(): AppGraph = runBlocking { store.ready() }
 
 @RunWith(AndroidJUnit4::class)
+@Config(application = SampleDugoutApplication::class)
 class MainActivityGraphTest {
     @Test
     fun progressSurvivesLeavingAndReopeningTheApp() {

@@ -10,7 +10,9 @@ import kotlinx.coroutines.launch
 import tv.dugout.AppGraph
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.history.WatchProgress
+import tv.dugout.library.AgeRange
 import tv.dugout.library.FixedProfileVideos
+import tv.dugout.library.Level
 import tv.dugout.library.VideoLibrary
 import tv.dugout.player.PlayerSurface
 import tv.dugout.profile.InMemoryProfileRepository
@@ -63,7 +65,7 @@ class SavedStore(
 
     private suspend fun load(): AppGraph {
         val dao = open().dao()
-        val profiles = dao.profiles().map { Profile(it.id, it.name, it.avatarColor) }
+        val profiles = dao.profiles().map { it.toProfile() }
         val lists = dao.profileVideos().groupBy({ it.profileId }, { it.videoId })
         // Progress for a video the library no longer has would still count toward "N watched".
         val known = library.videos().mapTo(HashSet()) { it.id }
@@ -87,6 +89,15 @@ class SavedStore(
         )
     }
 }
+
+private fun ProfileEntity.toProfile() =
+    Profile(
+        id = id,
+        name = name,
+        avatarColor = avatarColor,
+        ageRange = AgeRange.valueOf(ageRange),
+        level = Level.valueOf(level),
+    )
 
 private fun WatchProgressEntity.toProgress() =
     WatchProgress(

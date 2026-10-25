@@ -25,10 +25,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.DugoutApp
+import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.eventually
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.player.FakePlayerSurface
-import tv.dugout.profile.DEFAULT_PROFILES
 import tv.dugout.ready
 import tv.dugout.ui.theme.DugoutTheme
 
@@ -41,7 +41,7 @@ class RestartTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val library = BundledVideoLibrary()
-    private val seed = Seed(DEFAULT_PROFILES, library.videos().map { it.id })
+    private val seed = Seed(SAMPLE_PROFILES, library.videos().map { it.id })
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
     private val name = "restart-test.db"
 

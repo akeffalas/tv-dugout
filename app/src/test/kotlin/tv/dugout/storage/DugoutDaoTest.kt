@@ -85,6 +85,38 @@ class DugoutDaoTest {
         }
 
     @Test
+    fun addProfileSavesTheChildAndList() =
+        runTest {
+            dao.addProfile(profile("a", position = 0), listOf(ProfileVideoEntity("a", "v", 0)))
+
+            assertThat(dao.profiles()).containsExactly(profile("a", position = 0))
+            assertThat(dao.profileVideos()).containsExactly(ProfileVideoEntity("a", "v", 0))
+        }
+
+    @Test
+    fun failedAddLeavesNothingBehind() {
+        val duplicate = listOf(ProfileVideoEntity("a", "v", 0), ProfileVideoEntity("a", "v", 1))
+
+        assertThrows(SQLiteConstraintException::class.java) {
+            kotlinx.coroutines.runBlocking { dao.addProfile(profile("a", position = 0), duplicate) }
+        }
+
+        kotlinx.coroutines.runBlocking {
+            assertThat(dao.profiles()).isEmpty()
+            assertThat(dao.profileVideos()).isEmpty()
+        }
+    }
+
+    @Test
+    fun ageRangeAndLevelAreSaved() =
+        runTest {
+            val child = profile("a", position = 0).copy(ageRange = "SEVEN_TO_EIGHT", level = "COACH_PITCH")
+            dao.insertProfiles(listOf(child))
+
+            assertThat(dao.profiles()).containsExactly(child)
+        }
+
+    @Test
     fun progressNeedsAnExistingProfile() {
         assertThrows(SQLiteConstraintException::class.java) {
             kotlinx.coroutines.runBlocking { dao.saveProgress(row()) }

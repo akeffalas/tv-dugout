@@ -13,7 +13,7 @@ import tv.dugout.profile.ProfileRepository
 
 /** An all-in-memory graph for tests; override any part. */
 fun testGraph(
-    profiles: ProfileRepository = InMemoryProfileRepository(),
+    profiles: ProfileRepository = InMemoryProfileRepository(SAMPLE_PROFILES),
     library: VideoLibrary = BundledVideoLibrary(),
     profileVideos: ProfileVideos = EveryVideoForEveryProfile(library),
     history: WatchHistory = InMemoryWatchHistory(),

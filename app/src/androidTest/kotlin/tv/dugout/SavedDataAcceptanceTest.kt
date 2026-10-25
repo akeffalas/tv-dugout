@@ -22,7 +22,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.library.BundledVideoLibrary
-import tv.dugout.profile.DEFAULT_PROFILES
 import tv.dugout.storage.SavedStore
 import tv.dugout.storage.Seed
 import tv.dugout.storage.StoreState
@@ -41,7 +40,7 @@ class SavedDataAcceptanceTest {
     private val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
     private val library = BundledVideoLibrary()
-    private val seed = Seed(DEFAULT_PROFILES, library.videos().map { it.id })
+    private val seed = Seed(SAMPLE_PROFILES, library.videos().map { it.id })
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
     private val name = "acceptance-restart.db"
 

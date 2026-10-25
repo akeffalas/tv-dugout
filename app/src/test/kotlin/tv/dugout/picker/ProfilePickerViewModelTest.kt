@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import tv.dugout.MainDispatcherRule
+import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.profile.InMemoryProfileRepository
 
@@ -15,7 +16,7 @@ class ProfilePickerViewModelTest {
 
     @Test
     fun initialStateHasProfilesAndNoSelection() {
-        val state = ProfilePickerViewModel(InMemoryProfileRepository(), history).uiState.value
+        val state = ProfilePickerViewModel(InMemoryProfileRepository(SAMPLE_PROFILES), history).uiState.value
 
         assertThat(state.profiles.map { it.id }).containsExactly("sam", "jack").inOrder()
         assertThat(state.lastSelection).isNull()
@@ -23,7 +24,7 @@ class ProfilePickerViewModelTest {
 
     @Test
     fun selectingAProfileRecordsIt() {
-        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(), history)
+        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(SAMPLE_PROFILES), history)
 
         viewModel.onProfileSelected("jack")
 
@@ -32,7 +33,7 @@ class ProfilePickerViewModelTest {
 
     @Test
     fun selectingParentRecordsIt() {
-        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(), history)
+        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(SAMPLE_PROFILES), history)
 
         viewModel.onParentSelected()
 
@@ -41,7 +42,7 @@ class ProfilePickerViewModelTest {
 
     @Test
     fun latestSelectionReplacesThePreviousOne() {
-        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(), history)
+        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(SAMPLE_PROFILES), history)
 
         viewModel.onParentSelected()
         viewModel.onProfileSelected("sam")
@@ -58,14 +59,14 @@ class ProfilePickerViewModelTest {
 
     @Test
     fun watchedCountsStartAtZero() {
-        val state = ProfilePickerViewModel(InMemoryProfileRepository(), history).uiState.value
+        val state = ProfilePickerViewModel(InMemoryProfileRepository(SAMPLE_PROFILES), history).uiState.value
 
         assertThat(state.watchedCounts).containsExactly("sam", 0, "jack", 0)
     }
 
     @Test
     fun watchedCountFollowsHistory() {
-        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(), history)
+        val viewModel = ProfilePickerViewModel(InMemoryProfileRepository(SAMPLE_PROFILES), history)
 
         history.markWatched("jack", "TjH37PpeX7k", durationSeconds = 193f, now = 0)
         history.record("jack", "ocJ8O_Rs6Es", positionSeconds = 20f, durationSeconds = 157f, now = 1)

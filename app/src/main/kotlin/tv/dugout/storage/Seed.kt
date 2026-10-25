@@ -10,7 +10,12 @@ import tv.dugout.profile.Profile
 data class Seed(
     val profiles: List<Profile>,
     val videoIds: List<String>,
-)
+) {
+    companion object {
+        /** The app's own start: no children until a parent adds one. */
+        val NONE = Seed(emptyList(), emptyList())
+    }
+}
 
 /** Fills the database once, when its file is first created, so deleted profiles never come back. */
 internal class SeedCallback(
@@ -27,6 +32,8 @@ internal class SeedCallback(
                     put("name", profile.name)
                     put("avatar_color", profile.avatarColor)
                     put("position", index)
+                    put("age_range", profile.ageRange.name)
+                    put("level", profile.level.name)
                 },
             )
             seed.videoIds.forEachIndexed { position, videoId ->

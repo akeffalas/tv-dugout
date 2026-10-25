@@ -7,12 +7,14 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
-import tv.dugout.profile.DEFAULT_PROFILES
+import tv.dugout.SAMPLE_PROFILES
+import tv.dugout.library.AgeRange
+import tv.dugout.library.Level
 
 @RunWith(AndroidJUnit4::class)
 class SeedTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val seed = Seed(DEFAULT_PROFILES, listOf("a", "b", "c"))
+    private val seed = Seed(SAMPLE_PROFILES, listOf("a", "b", "c"))
 
     @Test
     fun newDatabaseHoldsTheSeedProfilesInOrder() =
@@ -24,7 +26,7 @@ class SeedTest {
             assertThat(profiles.map { it.id }).containsExactly("sam", "jack").inOrder()
             assertThat(profiles.map { it.name }).containsExactly("Sam", "Jack").inOrder()
             assertThat(profiles.map { it.avatarColor })
-                .containsExactly(DEFAULT_PROFILES[0].avatarColor, DEFAULT_PROFILES[1].avatarColor)
+                .containsExactly(SAMPLE_PROFILES[0].avatarColor, SAMPLE_PROFILES[1].avatarColor)
                 .inOrder()
             database.close()
         }
@@ -37,6 +39,29 @@ class SeedTest {
             val lists = database.dao().profileVideos().groupBy({ it.profileId }, { it.videoId })
 
             assertThat(lists).containsExactly("sam", listOf("a", "b", "c"), "jack", listOf("a", "b", "c"))
+            database.close()
+        }
+
+    @Test
+    fun newDatabaseStartsEmptyWithoutASeed() =
+        runTest {
+            val database = dugoutDatabase(context, name = null)
+
+            assertThat(database.dao().profiles()).isEmpty()
+            assertThat(database.dao().profileVideos()).isEmpty()
+            database.close()
+        }
+
+    @Test
+    fun seedKeepsAgeRangeAndLevel() =
+        runTest {
+            val child = SAMPLE_PROFILES[0].copy(ageRange = AgeRange.FOUR_TO_SIX, level = Level.TEE_BALL)
+            val database = dugoutDatabase(context, name = null, Seed(listOf(child), emptyList()))
+
+            val saved = database.dao().profiles().single()
+
+            assertThat(saved.ageRange).isEqualTo("FOUR_TO_SIX")
+            assertThat(saved.level).isEqualTo("TEE_BALL")
             database.close()
         }
 

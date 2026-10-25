@@ -12,17 +12,19 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
+import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.eventually
+import tv.dugout.library.AgeRange
 import tv.dugout.library.BundledVideoLibrary
+import tv.dugout.library.Level
 import tv.dugout.player.FakePlayerSurface
-import tv.dugout.profile.DEFAULT_PROFILES
 import tv.dugout.ready
 
 @RunWith(AndroidJUnit4::class)
 class SavedStoreTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val library = BundledVideoLibrary()
-    private val seed = Seed(DEFAULT_PROFILES, library.videos().map { it.id })
+    private val seed = Seed(SAMPLE_PROFILES, library.videos().map { it.id })
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
 
     @After
@@ -42,8 +44,20 @@ class SavedStoreTest {
             val graph = store().apply { start() }.ready()
 
             assertThat(graph.profiles.profiles().map { it.id }).containsExactly("sam", "jack").inOrder()
-            assertThat(graph.profiles.profile("jack")).isEqualTo(DEFAULT_PROFILES[1])
+            assertThat(graph.profiles.profile("jack")).isEqualTo(SAMPLE_PROFILES[1])
             assertThat(graph.profileVideos.videoIds("sam")).isEqualTo(library.videos().map { it.id })
+        }
+
+    @Test
+    fun ageRangeAndLevelComeBack() =
+        runBlocking<Unit> {
+            val child = SAMPLE_PROFILES[0].copy(ageRange = AgeRange.SEVEN_TO_EIGHT, level = Level.COACH_PITCH)
+            val graph =
+                store(open = { dugoutDatabase(context, name = null, Seed(listOf(child), emptyList())) })
+                    .apply { start() }
+                    .ready()
+
+            assertThat(graph.profiles.profile("sam")).isEqualTo(child)
         }
 
     @Test

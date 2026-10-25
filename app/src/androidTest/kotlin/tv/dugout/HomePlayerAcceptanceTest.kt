@@ -39,7 +39,7 @@ class HomePlayerAcceptanceTest {
         val library = BundledVideoLibrary()
         val graph =
             AppGraph(
-                profiles = InMemoryProfileRepository(),
+                profiles = InMemoryProfileRepository(SAMPLE_PROFILES),
                 library = library,
                 profileVideos = EveryVideoForEveryProfile(library),
                 history = InMemoryWatchHistory(),

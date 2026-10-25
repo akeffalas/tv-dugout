@@ -5,13 +5,15 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-/** A saved child. [position] is their place on the picker. */
+/** A saved child. [position] is their place on the picker; [ageRange] and [level] hold enum names. */
 @Entity(tableName = "profile")
 data class ProfileEntity(
     @PrimaryKey val id: String,
     val name: String,
     @ColumnInfo(name = "avatar_color") val avatarColor: Long,
     val position: Int,
+    @ColumnInfo(name = "age_range", defaultValue = "'NINE_TO_TEN'") val ageRange: String = "NINE_TO_TEN",
+    @ColumnInfo(defaultValue = "'KID_PITCH'") val level: String = "KID_PITCH",
 )
 
 /** One video on a child's list. [videoId] refers to the bundled library. */

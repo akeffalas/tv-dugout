@@ -3,6 +3,7 @@ package tv.dugout.storage
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 
 @Dao
@@ -24,6 +25,16 @@ interface DugoutDao {
 
     @Insert
     suspend fun insertProfileVideos(rows: List<ProfileVideoEntity>)
+
+    /** Saves a new child with their video list, all or nothing. */
+    @Transaction
+    suspend fun addProfile(
+        profile: ProfileEntity,
+        videos: List<ProfileVideoEntity>,
+    ) {
+        insertProfiles(listOf(profile))
+        insertProfileVideos(videos)
+    }
 
     @Query("DELETE FROM profile WHERE id = :id")
     suspend fun deleteProfile(id: String)

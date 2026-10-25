@@ -27,6 +27,12 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
 
+    sourceSets {
+        // Sample children live only in test code, shared by the JVM and emulator suites.
+        getByName("test").kotlin.directories.add("src/sharedTest/kotlin")
+        getByName("androidTest").kotlin.directories.add("src/sharedTest/kotlin")
+    }
+
     lint {
         abortOnError = true
         warningsAsErrors = true

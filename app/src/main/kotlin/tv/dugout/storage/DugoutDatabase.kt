@@ -10,7 +10,7 @@ const val DATABASE_NAME = "dugout.db"
 /** Everything the app saves on the TV (ADR-0007). */
 @Database(
     entities = [ProfileEntity::class, ProfileVideoEntity::class, WatchProgressEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class DugoutDatabase : RoomDatabase() {
@@ -21,7 +21,7 @@ abstract class DugoutDatabase : RoomDatabase() {
 fun dugoutDatabase(
     context: Context,
     name: String?,
-    seed: Seed,
+    seed: Seed = Seed.NONE,
 ): DugoutDatabase {
     val builder =
         if (name == null) {
@@ -29,5 +29,5 @@ fun dugoutDatabase(
         } else {
             Room.databaseBuilder(context, DugoutDatabase::class.java, name)
         }
-    return builder.addCallback(SeedCallback(seed)).build()
+    return builder.addMigrations(MIGRATION_1_2).addCallback(SeedCallback(seed)).build()
 }
