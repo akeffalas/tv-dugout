@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Add a player</title>
+<style>
+  body { background: #e9e7e2; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: #222; padding: 28px; margin: 0; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #555; margin: 0 0 22px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 28px; }
+  .cap { font-size: 13px; color: #333; margin: 8px 2px 0; line-height: 1.45; }
+  .cap b { color: #000; }
+  .tv { aspect-ratio: 16/9; background: radial-gradient(ellipse at top, #1d3557 0%, #0f1a2b 70%); border: 10px solid #111;
+        border-radius: 8px; color: #f3f1ea; position: relative; overflow: hidden; padding: 22px 28px; box-sizing: border-box;
+        box-shadow: 0 10px 24px rgba(0,0,0,.3); }
+  .focus { outline: 3px solid #ffd23f; outline-offset: 3px; transform: scale(1.05); }
+  .step { font-size: 11px; color: #9fb0c8; letter-spacing: .08em; text-transform: uppercase; }
+  .q { font-size: 22px; font-weight: 800; margin: 4px 0 16px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .chip { background: #1b2a44; border-radius: 10px; padding: 12px 16px; font-weight: 700; font-size: 14px; }
+  .chip small { display: block; font-weight: 500; color: #9fb0c8; font-size: 11px; margin-top: 3px; }
+  .chip.on { background: #f3f1ea; color: #0f1a2b; }
+  .chip.on small { color: #45556c; }
+  .btn { display: inline-block; background: #ffd23f; color: #0f1a2b; font-weight: 800; padding: 8px 18px; border-radius: 20px; font-size: 13px; }
+  .btn.ghost { background: transparent; color: #9fb0c8; border: 1px solid #2b3f63; }
+  .foot { position: absolute; left: 28px; right: 28px; bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
+  .dots i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2b3f63; margin-right: 5px; }
+  .dots i.on { background: #ffd23f; }
+  .kids { display: flex; gap: 34px; justify-content: center; margin-top: 30px; }
+  .kid { text-align: center; }
+  .av { width: 86px; height: 86px; border-radius: 50%; display: grid; place-items: center; font-size: 36px; font-weight: 800; margin: 0 auto 8px; }
+  .add { border: 3px dashed #45556c; color: #9fb0c8; background: transparent; }
+  .kid span { font-size: 11px; color: #9fb0c8; display: block; }
+  .field { background: #0b1422; border: 2px solid #ffd23f; border-radius: 8px; padding: 10px 14px; font-size: 20px; font-weight: 700; width: 280px; }
+  .kbd { position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: #2a2d33; color: #ccc; display: grid; place-items: center; font-size: 12px; }
+  .vid { display: grid; grid-template-columns: 150px 1fr; gap: 16px; height: 62%; }
+  .skills div { padding: 7px 10px; border-radius: 6px; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .skills div small { display: block; font-weight: 500; font-size: 10px; color: #9fb0c8; }
+  .skills .cur { background: #1b2a44; }
+  .list div { display: flex; align-items: center; gap: 10px; background: #1b2a44; border-radius: 6px; padding: 6px 10px; margin-bottom: 5px; font-size: 12px; }
+  .box { width: 16px; height: 16px; border-radius: 4px; border: 2px solid #9fb0c8; flex-shrink: 0; display: grid; place-items: center; font-size: 11px; font-weight: 900; }
+  .box.on { background: #3ecf8e; border-color: #3ecf8e; color: #062; }
+  .rec { background: #2b3f63; color: #cfe0ff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; margin-left: auto; }
+  .len { color: #9fb0c8; font-size: 10px; }
+</style></head>
+<body>
+<h1>Add a player: the wizard, screen by screen</h1>
+<p class="sub">My proposal. Gold outline is where remote focus sits. Back always returns to the previous screen; Back on screen 1 cancels.</p>
+<div class="grid">
+
+<div><div class="tv">
+  <div style="text-align:center;font-size:22px;font-weight:800;margin-top:10px">Who's watching?</div>
+  <div class="kids">
+    <div class="kid"><div class="av" style="background:#e63946">S</div><b>Sam</b><span>12 watched</span></div>
+    <div class="kid"><div class="av" style="background:#2a9d8f">J</div><b>Jack</b><span>7 watched</span></div>
+    <div class="kid"><div class="av add focus">+</div><b>Add a player</b></div>
+  </div>
+  <div style="text-align:center;margin-top:26px;font-size:12px;color:#9fb0c8">Parent: manage videos (PIN)</div>
+</div><p class="cap"><b>Picker.</b> A "+ Add a player" tile sits after the children. On a fresh install with no children, the app skips this and opens screen 1 directly.</p></div>
+
+<div><div class="tv">
+  <div class="step">Add a player · 1 of 5</div>
+  <div class="q">What's the player's name?</div>
+  <div class="field">Maya|</div>
+  <div class="kbd">TV's own on-screen keyboard (Gboard for TV)</div>
+</div><p class="cap"><b>1. Name.</b> Uses the TV's keyboard; a phone can type into it too. Avatar color is picked for them. Up to about 12 characters.</p></div>
+
+<div><div class="tv">
+  <div class="step">Add a player · 2 of 5</div>
+  <div class="q">How old is Maya?</div>
+  <div class="row">
+    <div class="chip">4 to 6</div><div class="chip focus">7 to 8</div><div class="chip">9 to 10</div><div class="chip">11 to 12</div><div class="chip">13+</div>
+  </div>
+  <div class="foot"><div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div>
+</div><p class="cap"><b>2. Age.</b> One press picks and moves on.</p></div>
+
+<div><div class="tv">
+  <div class="step">Add a player · 3 of 5</div>
+  <div class="q">What kind of baseball does Maya play?</div>
+  <div class="row">
+    <div class="chip">Tee ball<small>Hits off a tee</small></div>
+    <div class="chip focus">Coach pitch<small>A coach throws</small></div>
+    <div class="chip">Kid pitch<small>Kids pitch</small></div>
+  </div>
+  <div class="foot"><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+</div><p class="cap"><b>3. Level.</b> Pre-focused on the usual level for the age chosen (4 to 6 → tee ball, 7 to 8 → coach pitch, 9+ → kid pitch).</p></div>
+
+<div><div class="tv">
+  <div class="step">Add a player · 4 of 5</div>
+  <div class="q">Which skills should Maya work on?</div>
+  <div class="row">
+    <div class="chip on">✓ Hitting</div><div class="chip on">✓ Fielding</div><div class="chip on">✓ Baserunning</div>
+    <div class="chip focus">Pitching</div><div class="chip on">✓ Catching</div>
+  </div>
+  <div class="foot"><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div><span class="btn">Next</span></div>
+</div><p class="cap"><b>4. Skills.</b> All on to start; select toggles. Here the parent turned Pitching off. At least one must stay on.</p></div>
+
+<div><div class="tv">
+  <div class="step">Add a player · 5 of 5</div>
+  <div class="q" style="margin-bottom:10px">Pick Maya's videos</div>
+  <div class="vid">
+    <div class="skills">
+      <div class="cur">Hitting<small>3 of 7 chosen</small></div>
+      <div>Fielding<small>4 of 7 chosen</small></div>
+      <div>Baserunning<small>2 of 6 chosen</small></div>
+      <div>Catching<small>2 of 5 chosen</small></div>
+    </div>
+    <div class="list">
+      <div class="focus"><span class="box on">✓</span>Why Practice with a Tee <span class="len">3 min</span><span class="rec">RECOMMENDED</span></div>
+      <div><span class="box on">✓</span>Hitting Stance <span class="len">2 min</span><span class="rec">RECOMMENDED</span></div>
+      <div><span class="box on">✓</span>Approach to Hitting <span class="len">3 min</span><span class="rec">RECOMMENDED</span></div>
+      <div><span class="box"></span>5 Essential Hitting Drills <span class="len">8 min</span></div>
+      <div><span class="box"></span>How to Hit a Baseball <span class="len">6 min</span></div>
+    </div>
+  </div>
+  <div class="foot"><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><span class="btn">Done</span></div>
+</div><p class="cap"><b>5. Videos.</b> Skills on the left, that skill's videos on the right with recommended ones pre-checked. Select toggles. Every chosen skill needs at least one video before Done.</p></div>
+
+<div><div class="tv">
+  <div style="text-align:center;margin-top:28px">
+    <div class="av" style="background:#f4a261;width:96px;height:96px">M</div>
+    <div style="font-size:22px;font-weight:800">Maya is ready!</div>
+    <div style="color:#9fb0c8;font-size:13px;margin:6px 0 22px">4 skills · 11 videos</div>
+    <span class="btn focus">Start watching</span>&nbsp;&nbsp;&nbsp;<span class="btn ghost">Add another player</span>
+  </div>
+</div><p class="cap"><b>Done.</b> Saves the child. "Start watching" goes to Maya's Home; "Add another player" restarts at screen 1. Back here returns to the picker.</p></div>
+
+</div>
+</body></html>
