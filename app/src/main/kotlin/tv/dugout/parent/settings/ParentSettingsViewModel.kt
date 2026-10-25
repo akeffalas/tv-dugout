@@ -88,6 +88,10 @@ class ParentSettingsViewModel(
                 tab = if (changed) ParentTab.PROGRESS else it.tab,
                 focus = ParentFocus.Child(profileId),
                 progressSkill = if (changed) null else it.progressSkill,
+                // A dialog or editor belongs to the child it was opened for.
+                confirm = if (changed) null else it.confirm,
+                editing = if (changed) null else it.editing,
+                nameError = if (changed) null else it.nameError,
             )
         }
         if (changed) refreshProgress()
@@ -214,7 +218,13 @@ class ParentSettingsViewModel(
     fun onTabFocused(tab: ParentTab) {
         val from = state.value.tab
         if (from == ParentTab.VIDEOS && tab != ParentTab.VIDEOS) markOffered()
-        state.update { it.copy(tab = tab, videosMessage = null) }
+        state.update {
+            if (tab == from) {
+                it
+            } else {
+                it.copy(tab = tab, videosMessage = null, confirm = null, editing = null, nameError = null)
+            }
+        }
         if (tab == ParentTab.VIDEOS && from != ParentTab.VIDEOS) {
             chosen =
                 state.value.selectedId

@@ -457,4 +457,29 @@ class ParentSettingsViewModelTest {
         assertThat(graph.profiles.profiles.value).isEmpty()
         assertThat(viewModel.state.allRemoved).isTrue()
     }
+
+    @Test
+    fun openDialogOrEditorDoesNotFollowToAnotherChildOrTab() {
+        watch(hitting[0], 95f)
+        val viewModel = viewModel()
+
+        viewModel.onResetSkillRequested(Skill.HITTING)
+        viewModel.onChildFocused("jack")
+        assertThat(viewModel.state.confirm).isNull()
+
+        viewModel.onTabFocused(ParentTab.PROFILE)
+        viewModel.onEditField(ProfileField.AGE)
+        viewModel.onTabFocused(ParentTab.VIDEOS)
+        assertThat(viewModel.state.editing).isNull()
+
+        viewModel.onTabFocused(ParentTab.PROGRESS)
+        viewModel.onResetVideoRequested(
+            viewModel.state.progressRows
+                .first()
+                .video.id,
+        )
+        viewModel.onChildFocused("jack")
+        viewModel.onTabFocused(ParentTab.PROFILE)
+        assertThat(viewModel.state.confirm).isNull()
+    }
 }
