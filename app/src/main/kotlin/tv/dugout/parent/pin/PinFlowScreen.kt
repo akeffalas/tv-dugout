@@ -27,7 +27,7 @@ fun PinFlowScreen(
             Text(state.title, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
             when (state.step) {
                 PinStep.ENTER, PinStep.CHOOSE, PinStep.CONFIRM -> PinPad(state, onDigit, onDelete, onOk, onForgot)
-                PinStep.SHOW_CODE -> RecoveryCodeShown(state.recoveryCode.orEmpty(), onSaved)
+                PinStep.SHOW_CODE -> RecoveryCodeShown(state.recoveryCode.orEmpty(), state.message, onSaved)
                 PinStep.RECOVER -> RecoverEntry(state, onCodeChanged, onCodeSubmitted)
                 PinStep.KEY_LOST -> LostCodeNote()
             }

@@ -1,7 +1,9 @@
 package tv.dugout.parent.pin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +15,8 @@ import tv.dugout.parent.ParentLock
 import tv.dugout.parent.PendingPin
 
 private const val MINUTE_MILLIS = 60_000L
+private const val TAG = "PinFlow"
+private const val SOMETHING_WENT_WRONG = "Something went wrong. Try again."
 
 /** Runs one trip through the PIN screens for [flow]. A new PIN is only saved by [onSaved]. */
 class PinFlowViewModel(
@@ -123,7 +127,11 @@ class PinFlowViewModel(
                 } else {
                     state.update { it.copy(digits = 0, busy = true) }
                     viewModelScope.launch {
-                        val prepared = lock.prepare(pin)
+                        val prepared = guarded { lock.prepare(pin) }
+                        if (prepared == null) {
+                            state.value = stateFor(PinStep.CHOOSE, SOMETHING_WENT_WRONG)
+                            return@launch
+                        }
                         pending = prepared
                         state.value = stateFor(PinStep.SHOW_CODE).copy(recoveryCode = prepared.recoveryCode)
                     }
@@ -141,7 +149,11 @@ class PinFlowViewModel(
         val step = state.value.step
         state.update { it.copy(digits = 0, busy = true) }
         viewModelScope.launch {
-            when (val result = check()) {
+            when (guarded { check() }) {
+                null -> {
+                    state.update { it.copy(busy = false, message = SOMETHING_WENT_WRONG) }
+                }
+
                 Check.Correct -> {
                     when {
                         step == PinStep.RECOVER -> toNewPin(NewPinFrom.RECOVERY)
@@ -161,6 +173,17 @@ class PinFlowViewModel(
             }
         }
     }
+
+    // A Keystore or database failure becomes null, so the screen can say so instead of the app crashing.
+    private suspend fun <T> guarded(block: suspend () -> T): T? =
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Parent PIN step failed", e)
+            null
+        }
 
     private fun toNewPin(from: NewPinFrom) {
         newPinFrom = from
@@ -189,7 +212,10 @@ class PinFlowViewModel(
         if (state.value.step != PinStep.SHOW_CODE || state.value.busy) return
         state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            lock.commit(ready)
+            if (guarded { lock.commit(ready) } == null) {
+                state.update { it.copy(busy = false, message = SOMETHING_WENT_WRONG) }
+                return@launch
+            }
             pending = null
             state.update { it.copy(busy = false, finished = true) }
         }

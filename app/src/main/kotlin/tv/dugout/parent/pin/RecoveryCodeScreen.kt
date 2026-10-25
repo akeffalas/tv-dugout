@@ -16,12 +16,14 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.dugout.setup.Choice
+import tv.dugout.setup.SetupMessage
 import tv.dugout.ui.theme.FocusGold
 
 /** Shows a new recovery code once. Focus starts on "I've saved it". */
 @Composable
 internal fun RecoveryCodeShown(
     code: String,
+    message: String?,
     onSaved: () -> Unit,
 ) {
     val saved = remember { FocusRequester() }
@@ -32,6 +34,7 @@ internal fun RecoveryCodeShown(
             "Write this down or take a photo. You need it if you forget the PIN.",
             style = MaterialTheme.typography.titleMedium,
         )
+        message?.let { SetupMessage(it) }
         Choice(
             label = "I've saved it",
             highlight = true,
