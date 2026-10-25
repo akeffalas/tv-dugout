@@ -6,6 +6,8 @@ import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.FixedProfileVideos
 import tv.dugout.library.ProfileVideos
 import tv.dugout.library.VideoLibrary
+import tv.dugout.parent.ParentLock
+import tv.dugout.parent.noPinLock
 import tv.dugout.player.FakePlayerSurface
 import tv.dugout.player.PlayerSurface
 import tv.dugout.profile.InMemoryProfileRepository
@@ -27,4 +29,5 @@ fun testGraph(
     history: WatchHistory = InMemoryWatchHistory(),
     playerSurface: PlayerSurface = FakePlayerSurface(),
     clock: () -> Long = { 0L },
-) = AppGraph(profiles, library, profileVideos, history, playerSurface, clock)
+    lock: ParentLock = noPinLock(),
+) = AppGraph(profiles, library, profileVideos, history, playerSurface, clock, lock)

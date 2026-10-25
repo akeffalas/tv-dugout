@@ -16,6 +16,7 @@ import org.junit.runner.RunWith
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.FixedProfileVideos
+import tv.dugout.parent.noPinLock
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.ui.theme.DugoutTheme
 
@@ -50,6 +51,7 @@ class HomePlayerAcceptanceTest {
                     ),
                 history = InMemoryWatchHistory(),
                 playerSurface = surface,
+                lock = noPinLock(),
             )
         compose.setContent { DugoutTheme { DugoutApp(graph) } }
 

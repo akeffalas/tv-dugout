@@ -1,5 +1,6 @@
 package tv.dugout.storage
 
+import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +16,11 @@ import tv.dugout.library.AgeRange
 import tv.dugout.library.FixedProfileVideos
 import tv.dugout.library.Level
 import tv.dugout.library.VideoLibrary
+import tv.dugout.parent.InMemoryParentLock
+import tv.dugout.parent.KeystorePinKey
+import tv.dugout.parent.LockRecord
+import tv.dugout.parent.PinHasher
+import tv.dugout.parent.PinKey
 import tv.dugout.player.PlayerSurface
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.profile.Profile
@@ -42,6 +48,8 @@ class SavedStore(
     private val playerSurface: PlayerSurface,
     private val scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val pinKey: PinKey = KeystorePinKey(),
+    private val elapsed: () -> Long = SystemClock::elapsedRealtime,
 ) {
     private val mutableState = MutableStateFlow<StoreState>(StoreState.Loading)
     val state: StateFlow<StoreState> = mutableState.asStateFlow()
@@ -109,6 +117,14 @@ class SavedStore(
 
                 override suspend fun remove(profileId: String) = write { dao.removeProfile(profileId) }
             }
+        val lock =
+            InMemoryParentLock(
+                initial = dao.parentLock()?.toRecord(),
+                hasher = PinHasher(pinKey),
+                key = pinKey,
+                saver = { record -> withContext(scope.coroutineContext) { dao.saveParentLock(record.toEntity()) } },
+                elapsed = elapsed,
+            )
         return AppGraph(
             profiles = InMemoryProfileRepository(profiles, profileVideos, saver),
             library = library,
@@ -116,9 +132,23 @@ class SavedStore(
             history = InMemoryWatchHistory(progress, writer),
             playerSurface = playerSurface,
             clock = clock,
+            lock = lock,
         )
     }
 }
+
+private fun ParentLockEntity.toRecord() =
+    LockRecord(pinHash, pinSalt, recoveryHash, recoverySalt, failedAttempts, lockWaitMs)
+
+private fun LockRecord.toEntity() =
+    ParentLockEntity(
+        pinHash = pinHash,
+        pinSalt = pinSalt,
+        recoveryHash = recoveryHash,
+        recoverySalt = recoverySalt,
+        failedAttempts = failedAttempts,
+        lockWaitMs = lockWaitMs,
+    )
 
 private fun List<String>.toRows(profileId: String) =
     mapIndexed { index, videoId -> ProfileVideoEntity(profileId, videoId, index) }

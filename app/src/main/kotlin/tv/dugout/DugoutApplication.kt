@@ -6,6 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.VideoLibrary
+import tv.dugout.parent.KeystorePinKey
+import tv.dugout.parent.PinKey
 import tv.dugout.player.YouTubePlayerSurface
 import tv.dugout.storage.DATABASE_NAME
 import tv.dugout.storage.SavedStore
@@ -20,6 +22,9 @@ open class DugoutApplication : Application() {
     /** What a brand-new database starts with. The app starts empty; tests give it sample children. */
     protected open fun seed(library: VideoLibrary): Seed = Seed.NONE
 
+    /** The key behind the parent PIN. Tests swap in one that needs no Android Keystore. */
+    protected open fun pinKey(): PinKey = KeystorePinKey()
+
     override fun onCreate() {
         super.onCreate()
         val library = BundledVideoLibrary()
@@ -30,6 +35,7 @@ open class DugoutApplication : Application() {
                 playerSurface = YouTubePlayerSurface,
                 // ProgressWriter and SavedStore need one coroutine at a time.
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1)),
+                pinKey = pinKey(),
             )
         store.start()
     }

@@ -17,6 +17,9 @@ import tv.dugout.eventually
 import tv.dugout.library.AgeRange
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.Level
+import tv.dugout.parent.Check
+import tv.dugout.parent.FixedPinKey
+import tv.dugout.parent.LockStatus
 import tv.dugout.player.FakePlayerSurface
 import tv.dugout.profile.Profile
 import tv.dugout.ready
@@ -31,8 +34,10 @@ class SavedStoreTest {
     @After
     fun stop() = scope.cancel()
 
+    private val pinKey = FixedPinKey()
+
     private fun store(open: () -> DugoutDatabase = { dugoutDatabase(context, name = null, seed) }) =
-        SavedStore(open, library, FakePlayerSurface(), scope, clock = { 0L })
+        SavedStore(open, library, FakePlayerSurface(), scope, clock = { 0L }, pinKey = pinKey, elapsed = { 0L })
 
     @Test
     fun startsLoading() {
@@ -102,6 +107,23 @@ class SavedStoreTest {
             assertThat(reopened.profiles.profiles.value).containsExactly(renamed)
             assertThat(reopened.profileVideos.videoIds("jack")).containsExactly("b", "a").inOrder()
             assertThat(reopened.profileVideos.videoIds("sam")).isEmpty()
+        }
+
+    @Test
+    fun lockLoadsFromDatabase() =
+        runBlocking<Unit> {
+            val name = "lock-test.db"
+            context.deleteDatabase(name)
+            val open = { dugoutDatabase(context, name, seed) }
+            val lock = store(open = open).apply { start() }.ready().lock
+            assertThat(lock.status.value).isEqualTo(LockStatus.NO_PIN)
+
+            lock.commit(lock.prepare("1234"))
+            lock.checkPin("0000")
+
+            val reopened = store(open = open).apply { start() }.ready().lock
+            assertThat(reopened.status.value).isEqualTo(LockStatus.SET)
+            assertThat(reopened.checkPin("1234")).isEqualTo(Check.Correct)
         }
 
     @Test

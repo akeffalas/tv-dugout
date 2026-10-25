@@ -3,6 +3,7 @@ package tv.dugout
 import tv.dugout.history.WatchHistory
 import tv.dugout.library.ProfileVideos
 import tv.dugout.library.VideoLibrary
+import tv.dugout.parent.ParentLock
 import tv.dugout.player.PlayerSurface
 import tv.dugout.profile.ProfileRepository
 
@@ -14,4 +15,5 @@ data class AppGraph(
     val history: WatchHistory,
     val playerSurface: PlayerSurface,
     val clock: () -> Long = System::currentTimeMillis,
+    val lock: ParentLock,
 )
