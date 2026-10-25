@@ -41,16 +41,23 @@ hooks:
 acceptance:
     scripts/acceptance.sh
 
+# Pair once with a TV that uses Wireless debugging (Android 11 and later); prompts for the code.
+tv-pair address:
+    "{{adb}}" pair "{{address}}"
+
 # The address comes from the argument or DUGOUT_TV_IP in .env, never from a tracked file.
-# Connect adb to a Google TV over the network (developer options, network debugging).
-tv-connect ip=env("DUGOUT_TV_IP", ""):
+# A bare IP gets the legacy network debugging port 5555; Wireless debugging needs ip:port.
+# Connect adb to a Google TV over the network.
+tv-connect address=env("DUGOUT_TV_IP", ""):
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -z "{{ip}}" ]; then
-        echo "usage: just tv-connect <tv-ip>   (or set DUGOUT_TV_IP in .env)" >&2
+    address="{{address}}"
+    if [ -z "$address" ]; then
+        echo "usage: just tv-connect <tv-ip>[:port]   (or set DUGOUT_TV_IP in .env)" >&2
         exit 1
     fi
-    "{{adb}}" connect "{{ip}}:5555"
+    case "$address" in *:*) ;; *) address="$address:5555" ;; esac
+    "{{adb}}" connect "$address"
 
 # Gradle installs on every connected device, so the target is explicit: the argument,
 # else ANDROID_SERIAL, else the only connected device.
