@@ -4,11 +4,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
-/** Progress held only for the life of the app process, until saving arrives in spec 0003. */
-class InMemoryWatchHistory : WatchHistory {
-    private val profiles = mutableMapOf<String, MutableStateFlow<Map<String, WatchProgress>>>()
+/** Progress served from memory, starting from [initial] and reporting every change to [sink]. */
+class InMemoryWatchHistory(
+    initial: Map<String, Map<String, WatchProgress>> = emptyMap(),
+    private val sink: ProgressSink = ProgressSink.NONE,
+) : WatchHistory {
+    private val profiles = initial.mapValuesTo(mutableMapOf()) { (_, progress) -> MutableStateFlow(progress) }
 
     private fun flow(profileId: String) = profiles.getOrPut(profileId) { MutableStateFlow(emptyMap()) }
+
+    private fun report(
+        profileId: String,
+        videoId: String,
+    ) = sink.changed(profileId, videoId, flow(profileId).value.getValue(videoId))
 
     override fun progress(profileId: String): StateFlow<Map<String, WatchProgress>> = flow(profileId)
 
@@ -35,6 +43,7 @@ class InMemoryWatchHistory : WatchHistory {
                         )
                 )
         }
+        report(profileId, videoId)
     }
 
     override fun markWatched(
@@ -50,5 +59,9 @@ class InMemoryWatchHistory : WatchHistory {
                     ?: WatchProgress(durationSeconds, durationSeconds, durationSeconds, now, watched = true)
             all + (videoId to updated)
         }
+        report(profileId, videoId)
+        sink.flush()
     }
+
+    override fun flush() = sink.flush()
 }

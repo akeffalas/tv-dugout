@@ -118,5 +118,6 @@ class PlayerViewModel(
 
     fun onLeave() {
         player?.pause()
+        history.flush()
     }
 }

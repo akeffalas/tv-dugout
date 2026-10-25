@@ -10,6 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 import tv.dugout.MainDispatcherRule
 import tv.dugout.history.InMemoryWatchHistory
+import tv.dugout.history.RecordingSink
 import tv.dugout.library.Skill
 import tv.dugout.testVideo
 
@@ -200,6 +201,17 @@ class PlayerViewModelTest {
         vm.onLeave()
 
         assertThat(player.pauses).isEqualTo(1)
+    }
+
+    @Test
+    fun leavingFlushesProgress() {
+        val sink = RecordingSink()
+        val vm = PlayerViewModel("sam", video, InMemoryWatchHistory(sink = sink), clock = { 7L })
+        vm.attach(player)
+
+        vm.onLeave()
+
+        assertThat(sink.flushes).isEqualTo(1)
     }
 
     @Test

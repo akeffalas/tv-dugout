@@ -64,4 +64,61 @@ class InMemoryWatchHistoryTest {
 
         assertThat(progress().watched).isTrue()
     }
+
+    @Test
+    fun startsFromInitialProgress() {
+        val saved = WatchProgress(30f, 20f, 100f, lastPlayedAt = 9, watched = false)
+        val restored = InMemoryWatchHistory(initial = mapOf("kid" to mapOf("v" to saved)))
+
+        assertThat(restored.progress("kid").value).containsExactly("v", saved)
+    }
+
+    @Test
+    fun furthestAndWatchedHoldAgainstInitialProgress() {
+        val saved = WatchProgress(95f, 95f, 100f, lastPlayedAt = 1, watched = true)
+        val restored = InMemoryWatchHistory(initial = mapOf("kid" to mapOf("v" to saved)))
+
+        restored.record("kid", "v", positionSeconds = 5f, durationSeconds = 100f, now = 2)
+
+        val after = restored.progress("kid").value.getValue("v")
+        assertThat(after.furthestSeconds).isEqualTo(95f)
+        assertThat(after.watched).isTrue()
+        assertThat(after.lastSeconds).isEqualTo(5f)
+    }
+
+    @Test
+    fun recordReportsTheNewRowToTheSink() {
+        val sink = RecordingSink()
+        val reporting = InMemoryWatchHistory(sink = sink)
+
+        reporting.record("kid", "v", positionSeconds = 40f, durationSeconds = 100f, now = 3)
+
+        val stored = reporting.progress("kid").value.getValue("v")
+        assertThat(sink.changes).containsExactly(Triple("kid", "v", stored))
+        assertThat(sink.flushes).isEqualTo(0)
+    }
+
+    @Test
+    fun markWatchedReportsAndFlushes() {
+        val sink = RecordingSink()
+        val reporting = InMemoryWatchHistory(sink = sink)
+
+        reporting.markWatched("kid", "v", durationSeconds = 100f, now = 3)
+
+        assertThat(
+            sink.changes
+                .single()
+                .third.watched,
+        ).isTrue()
+        assertThat(sink.flushes).isEqualTo(1)
+    }
+
+    @Test
+    fun flushReachesTheSink() {
+        val sink = RecordingSink()
+
+        InMemoryWatchHistory(sink = sink).flush()
+
+        assertThat(sink.flushes).isEqualTo(1)
+    }
 }

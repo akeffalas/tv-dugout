@@ -42,4 +42,7 @@ interface WatchHistory {
         durationSeconds: Float,
         now: Long,
     )
+
+    /** Save anything not yet saved, such as when the child leaves the player. */
+    fun flush()
 }
