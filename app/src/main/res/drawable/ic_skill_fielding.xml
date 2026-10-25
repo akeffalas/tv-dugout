@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- A fielder's glove, tilted: padded fingers, a net web, and the thumb. -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:rotation="20">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M10.4,8 Q10.4,2.6 15.2,2.6 Q20.2,2.6 20.2,8.2 L20.2,14.6 Q20,20.2 14.6,20.6 L10.6,20.6 Q6.6,20.2 5.8,16.2 L10.4,13.6 Z M13.6,3.6 L14.2,3.6 L14.2,8.6 L13.6,8.6 Z M16.8,3.6 L17.4,3.6 L17.4,8.6 L16.8,8.6 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M3.2,9.6 Q3.2,6.8 5.2,6.8 Q7,6.8 7.2,9.4 L7.6,16.6 Q6,18.2 4.4,16.8 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M6.6,5.4 L11,5.4 L11,14 L7.4,14 Z M7.7,6.6 L9.9,6.6 L9.9,9.1 L7.9,9.1 Z M8.1,10.3 L9.9,10.3 L9.9,12.8 L8.3,12.8 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M10.1,20.2 h6.2 a0.7,0.7 0 0 1 0.7,0.7 v0.9 a0.7,0.7 0 0 1 -0.7,0.7 h-6.2 a0.7,0.7 0 0 1 -0.7,-0.7 v-0.9 a0.7,0.7 0 0 1 0.7,-0.7 Z" />
+    </group>
+</vector>

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -26,6 +27,7 @@ import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
+import tv.dugout.ui.SkillIcon
 import tv.dugout.ui.theme.Chalk
 import tv.dugout.ui.theme.FocusGold
 import tv.dugout.ui.theme.Navy
@@ -106,10 +108,11 @@ private fun TabChip(
             val label =
                 when (tab) {
                     HomeTab.Home -> "Home"
-                    is HomeTab.SkillTab -> "${tab.skill.icon} ${tab.skill.label}"
+                    is HomeTab.SkillTab -> tab.skill.label
                     HomeTab.MyList -> "⭐ My List"
                 }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (tab is HomeTab.SkillTab) SkillIcon(tab.skill, size = 18.dp)
                 Text(label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 if (complete) {
                     Text(

@@ -1,15 +1,18 @@
 package tv.dugout.library
 
+import androidx.annotation.DrawableRes
+import tv.dugout.R
+
 /** A baseball skill, in the order the tabs show them. */
 enum class Skill(
     val label: String,
-    val icon: String,
+    @DrawableRes val icon: Int,
 ) {
-    HITTING("Hitting", "🏏"),
-    FIELDING("Fielding", "🧤"),
-    BASERUNNING("Baserunning", "🏃"),
-    PITCHING("Pitching", "🎯"),
-    CATCHING("Catching", "🛡️"),
+    HITTING("Hitting", R.drawable.ic_skill_hitting),
+    FIELDING("Fielding", R.drawable.ic_skill_fielding),
+    BASERUNNING("Baserunning", R.drawable.ic_skill_baserunning),
+    PITCHING("Pitching", R.drawable.ic_skill_pitching),
+    CATCHING("Catching", R.drawable.ic_skill_catching),
 }
 
 /** The kind of baseball a video suits, used by the setup wizard to recommend videos. */

@@ -31,6 +31,7 @@ import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import tv.dugout.library.Skill
 import tv.dugout.library.Video
+import tv.dugout.ui.SkillIcon
 import tv.dugout.ui.theme.BadgeNavy
 import tv.dugout.ui.theme.BadgeText
 import tv.dugout.ui.theme.CardNavy
@@ -81,7 +82,7 @@ fun VideoCard(
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(video.skill.gradient())) {
-                Text(video.skill.icon, fontSize = 32.sp, modifier = Modifier.align(Alignment.Center))
+                SkillIcon(video.skill, size = 40.dp, modifier = Modifier.align(Alignment.Center))
                 AsyncImage(
                     model = video.thumbnailUrl(),
                     contentDescription = null,
@@ -159,11 +160,12 @@ fun SkillRowTitle(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.Bottom,
+        modifier = modifier.testTag("row_title_${progress.skill.name.lowercase()}"),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("${progress.skill.icon} ${progress.skill.label}", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        SkillIcon(progress.skill, size = 20.dp)
+        Text(progress.skill.label, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         Text("${progress.watched} of ${progress.total} watched", fontSize = 12.sp, color = Slate)
     }
 }

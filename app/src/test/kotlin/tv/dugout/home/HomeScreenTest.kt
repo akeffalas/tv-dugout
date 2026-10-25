@@ -4,6 +4,8 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -98,6 +100,25 @@ class HomeScreenTest {
 
         compose.onNodeWithText("1 of 2").assertIsDisplayed()
         compose.onNodeWithTag("tab_complete_fielding", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun skillTabsAndRowTitlesShowSkillIcons() {
+        show(state())
+
+        for (skill in listOf("hitting", "fielding")) {
+            compose
+                .onNode(
+                    hasTestTag("skill_icon_$skill") and hasAnyAncestor(hasTestTag("tab_$skill")),
+                    useUnmergedTree = true,
+                ).assertIsDisplayed()
+            compose.onNodeWithTag("row_title_$skill", useUnmergedTree = true).assertIsDisplayed()
+            compose
+                .onNode(
+                    hasTestTag("skill_icon_$skill") and hasAnyAncestor(hasTestTag("row_title_$skill")),
+                    useUnmergedTree = true,
+                ).assertIsDisplayed()
+        }
     }
 
     @Test

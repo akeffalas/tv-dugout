@@ -32,6 +32,7 @@ import coil3.compose.AsyncImage
 import tv.dugout.home.gradient
 import tv.dugout.home.thumbnailUrl
 import tv.dugout.library.Video
+import tv.dugout.ui.SkillIcon
 import tv.dugout.ui.theme.BadgeNavy
 import tv.dugout.ui.theme.BadgeText
 import tv.dugout.ui.theme.Chalk
@@ -66,7 +67,7 @@ fun UpNextScreen(
                             .clip(RoundedCornerShape(10.dp))
                             .background(next.skill.gradient()),
                 ) {
-                    Text(next.skill.icon, fontSize = 40.sp, modifier = Modifier.align(Alignment.Center))
+                    SkillIcon(next.skill, size = 56.dp, modifier = Modifier.align(Alignment.Center))
                     AsyncImage(
                         model = next.thumbnailUrl(),
                         contentDescription = null,
