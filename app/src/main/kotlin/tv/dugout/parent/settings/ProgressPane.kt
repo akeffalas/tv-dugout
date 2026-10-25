@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,9 +42,14 @@ fun ProgressPane(
     val rowFocus = remember { mutableMapOf<String, FocusRequester>() }
 
     fun requester(key: String) = rowFocus.getOrPut(key) { FocusRequester() }
+    // Kept outside the dialog's branch, so the list comes back where it was rather than at the top.
+    val listState = rememberLazyListState()
     LaunchedEffect(state.confirm) {
         val row = asked ?: return@LaunchedEffect
         if (state.confirm == null) {
+            val index =
+                state.progressRows.indexOfFirst { it.video.id == row }.takeIf { it >= 0 } ?: state.progressRows.size
+            listState.scrollToItem(index)
             withFrameNanos { }
             requester(row).requestFocus()
             asked = null
@@ -97,7 +103,7 @@ fun ProgressPane(
             tagPrefix = "progress_skill",
             onSkillFocused = onSkillFocused,
         )
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(state.progressRows, key = { it.video.id }) { row ->
                 PaneRow(
                     onClick = {
