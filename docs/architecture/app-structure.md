@@ -7,12 +7,14 @@ Kotlin with Jetpack Compose for TV ([ADR-0001](../adr/0001-kotlin-gradle-compose
 
 ```text
 app/src/main/kotlin/tv/dugout/
-├── MainActivity.kt          # composition root: builds the AppGraph
+├── MainActivity.kt          # composition root: waits for saved data, saves on stop
+├── StartupGate.kt           # blank until loaded, or the error message if loading failed
 ├── AppGraph.kt              # the shared data sources and the player surface
 ├── DugoutApp.kt             # NavHost, routes, and the result handoff back to Home
 ├── library/                 # Video, Skill, VideoLibrary (31 bundled videos), ProfileVideos
-├── history/                 # WatchHistory, WatchProgress rules, InMemoryWatchHistory
+├── history/                 # WatchHistory, WatchProgress rules, InMemoryWatchHistory, ProgressSink
 ├── profile/                 # Profile, ProfileRepository, sample profiles
+├── storage/                 # Room database, seeding, SavedStore, throttled ProgressWriter
 ├── picker/                  # ProfilePickerViewModel and ProfilePickerScreen
 ├── home/                    # HomeViewModel, focus return rules, HomeScreen, cards, tabs
 ├── player/                  # VideoPlayer seam, PlayerViewModel, PlayerScreen, YouTube adapter
@@ -44,13 +46,43 @@ flowchart LR
     PVM --> PLAYER["PlayerScreen"]
 ```
 
-- `ProfileVideos` decides which videos a child sees. Every child gets the whole library
-  until the setup wizard (spec 0004) chooses per-child lists.
+- `ProfileVideos` decides which videos a child sees. Each child's list is saved; a new
+  database gives every sample child the whole library, until the setup wizard (spec
+  0004) chooses per-child lists.
 - `WatchHistory` holds each child's progress. A video is watched at 90% of its length,
-  or when it ends; it counts as started at 10 seconds. The in-memory implementation
-  resets when the app process ends, until spec 0003 saves it.
+  or when it ends; it counts as started at 10 seconds. `InMemoryWatchHistory` serves
+  progress from memory and reports each change to a `ProgressSink`.
 - `PlayerViewModel` talks to the player only through `VideoPlayer`, so the YouTube
   adapter ([ADR-0006](../adr/0006-youtube-embedded-player.md)) can be swapped for a fake.
+
+## Saved data
+
+Profiles, each child's video list, and watch progress live in a Room database,
+`dugout.db` ([ADR-0007](../adr/0007-room-for-saved-data.md), spec
+[0003](../specs/0003-saving/spec.md)). The bundled library stays in code; saved rows
+refer to videos by ID.
+
+```mermaid
+flowchart LR
+    APP["DugoutApplication"] -- "start()" --> STORE["SavedStore"]
+    DB[("dugout.db")] -- "read once" --> STORE
+    STORE -- "Ready(AppGraph)" --> GATE["StartupGate<br>(MainActivity)"]
+    GATE --> NAV["DugoutApp"]
+    HIST["InMemoryWatchHistory"] -- "changed / flush" --> WRITER["ProgressWriter"]
+    WRITER -- "at most every 5 s" --> DB
+```
+
+- `SavedStore` opens the database off the main thread, reads all of it into memory, and
+  builds the `AppGraph` from in-memory parts. Until then `StartupGate` shows a blank
+  background, so no screen (including one Android restores after the process was
+  killed) reads a half-filled store. If loading fails it shows an error message.
+- A brand-new database is seeded with the sample profiles, each given the whole library.
+  It is never reseeded, even when every profile is gone.
+- `ProgressWriter` saves a playing video's progress at most every 5 seconds, and at once
+  when a video ends, when the child leaves the player, and when the activity stops.
+- Progress for a video no longer in the library is dropped on load.
+- The schema is exported to `app/schemas/`. Any change needs a new version and a tested
+  migration.
 
 ## Navigation
 

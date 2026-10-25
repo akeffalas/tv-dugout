@@ -18,7 +18,7 @@ relevant part when a task touches it.
   (packages, data flow, navigation, focus) and the development workflow, including
   deploying to a TV.
 - [docs/adr/](./docs/adr/README.md): accepted decisions and their rationale (ADR-0001 to
-  0006).
+  0007).
 - [docs/specs/](./docs/specs/): one numbered `NNNN-topic/` directory per feature
   (`spec.md` plus `plan.md`). The directory names are the feature index; `git log` holds
   the rest.
@@ -28,8 +28,10 @@ relevant part when a task touches it.
 
 ```text
 app/                    the single Android module (package tv.dugout)
-  src/main/kotlin/      MainActivity, AppGraph, DugoutApp (NavHost), library/, history/,
-                        profile/, picker/, home/, player/, upnext/, parent/, ui/theme/
+  src/main/kotlin/      MainActivity, StartupGate, AppGraph, DugoutApp (NavHost), library/,
+                        history/, profile/, storage/, picker/, home/, player/, upnext/,
+                        parent/, ui/theme/
+  schemas/              exported Room schemas, one JSON file per database version
   src/test/             JVM unit tests and Compose UI tests under Robolectric
   src/androidTest/      emulator acceptance tests (real D-pad key events)
 scripts/acceptance.sh   boots a headless Google TV emulator, runs acceptance, shuts it down
@@ -38,7 +40,7 @@ docs/  Justfile  .pre-commit-config.yaml
 ```
 
 Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
-`androidx.tv:tv-material`, Navigation Compose, `minSdk` 28, `compileSdk`/`targetSdk` 37
+`androidx.tv:tv-material`, Navigation Compose, Room through KSP (ADR-0007), `minSdk` 28, `compileSdk`/`targetSdk` 37
 (ADR-0001).
 
 ### What exists
@@ -46,14 +48,13 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 ```text
 screens   picker (start), home (skill tabs with progress), player (YouTube embed),
           up next, parent placeholder
-data      31-video bundled library, in-memory watch history, sample profiles
-          (Sam and Jack) until the setup wizard
+data      31-video bundled library; profiles, each child's video list, and watch
+          progress saved in Room (seeded with Sam and Jack until the setup wizard)
 recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```
 
-Not built yet: saving progress and profiles (spec 0003), the per-child setup wizard
-(0004), My List, parent settings and the PIN, CI, and integration tests (Testcontainers is
+Not built yet: the per-child setup wizard (0004), My List, parent settings and the PIN, CI, and integration tests (Testcontainers is
 deferred until there is something to integrate against, ADR-0003).
 
 ## Commands
@@ -100,6 +101,11 @@ The canonical slice to copy is `picker/`: `ProfilePickerViewModel.kt` with its t
   `PlayerSurface` through `AppGraph`; real playback is checked on a TV (ADR-0006).
 - **Nothing may be drawn over the YouTube player**, and remote focus must stay out of it
   (its view blocks descendant focus). Controls go below the video.
+- **Saved data loads off the main thread before any screen shows.** Robolectric tests that
+  launch the real `MainActivity` must wait for it (`DugoutAppTest` waits for the picker;
+  `awaitGraph()` waits for the graph). Tests that call `DugoutApp(testGraph())` need not.
+- **Changing a Room entity needs a new schema version and a tested migration** (ADR-0007).
+  Never use a destructive fallback: it erases children's progress.
 - `@Composable` functions are exempt from ktlint's lowercase naming rule
   (`.editorconfig`).
 
