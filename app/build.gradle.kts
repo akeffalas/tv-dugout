@@ -18,6 +18,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    lint {
+        abortOnError = true
+        warningsAsErrors = true
+        checkDependencies = false
+        // Upstream releases must not fail the gate; version bumps are a deliberate change.
+        disable += setOf("NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion")
+    }
 }
 
 kotlin {

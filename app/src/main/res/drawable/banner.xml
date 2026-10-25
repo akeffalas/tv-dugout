@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TV launcher banner (320x180dp): a baseball on the app's navy, with a gold base path. -->
+<!-- TV launcher banner (16:9, scaled by the launcher): a baseball on the app's navy, with a gold base path. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="320dp"
-    android:height="180dp"
+    android:width="160dp"
+    android:height="90dp"
     android:viewportWidth="320"
     android:viewportHeight="180">
     <path
