@@ -9,11 +9,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.security.SecureRandom
+import kotlin.coroutines.CoroutineContext
 
 /**
  * The parent lock served from memory and written through [saver]. Waits are timed on [elapsed],
  * time since boot, so changing the TV's clock cannot shorten them; a wait still in force when the
- * app starts begins again at its full length.
+ * app starts begins again at its full length. Hashing, which is slow on purpose, runs on [hashing].
  */
 class InMemoryParentLock(
     initial: LockRecord?,
@@ -22,6 +23,7 @@ class InMemoryParentLock(
     private val saver: LockSaver = LockSaver.NONE,
     private val elapsed: () -> Long = SystemClock::elapsedRealtime,
     private val random: SecureRandom = SecureRandom(),
+    private val hashing: CoroutineContext = Dispatchers.Default,
 ) : ParentLock {
     private var record: LockRecord? = initial
     private var lockedUntil: Long? = initial?.lockWaitMs?.takeIf { it > 0 }?.let { elapsed() + it }
@@ -51,7 +53,7 @@ class InMemoryParentLock(
             val locked = lockedForMillis()
             if (locked > 0) return@withLock Check.Locked(locked)
             lockedUntil = null
-            val correct = withContext(Dispatchers.Default) { matches(current) }
+            val correct = withContext(hashing) { matches(current) }
             val failures = if (correct) 0 else current.failedAttempts + 1
             val wait = lockWaitMillis(failures)
             val updated = current.withAttempts(failures, wait)
@@ -66,7 +68,7 @@ class InMemoryParentLock(
         }
 
     override suspend fun prepare(pin: String): PendingPin =
-        withContext(Dispatchers.Default) {
+        withContext(hashing) {
             if (!key.exists()) key.create()
             val code = RecoveryCode.generate(random)
             val pinSalt = hasher.newSalt()
