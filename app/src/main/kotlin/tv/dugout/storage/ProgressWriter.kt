@@ -17,7 +17,7 @@ const val SAVE_INTERVAL_MILLIS = 5_000L
 private const val TAG = "ProgressWriter"
 
 /**
- * Saves progress through [save], holding each video's changes for [intervalMillis] and keeping only
+ * Saves progress through [save] and removes it through [delete], holding each video's changes for [intervalMillis] and keeping only
  * the latest. [scope] must run one coroutine at a time, since all state is touched inside it. A
  * save suspends and so frees that one thread, which is why saves also take [saving] in turn: an
  * older row must never land after a newer one.
@@ -25,6 +25,7 @@ private const val TAG = "ProgressWriter"
 class ProgressWriter(
     private val scope: CoroutineScope,
     private val intervalMillis: Long = SAVE_INTERVAL_MILLIS,
+    private val delete: suspend (profileId: String, videoIds: Set<String>) -> Unit = { _, _ -> },
     private val save: suspend (profileId: String, videoId: String, progress: WatchProgress) -> Unit,
 ) : ProgressSink {
     private val pending = mutableMapOf<Pair<String, String>, WatchProgress>()
@@ -55,6 +56,26 @@ class ProgressWriter(
             scheduled.values.forEach { it.cancel() }
             scheduled.clear()
             pending.keys.toList().forEach { write(it) }
+        }
+    }
+
+    override fun reset(
+        profileId: String,
+        videoIds: Set<String>,
+    ) {
+        scope.launch {
+            videoIds.map { profileId to it }.forEach { key ->
+                pending.remove(key)
+                scheduled.remove(key)?.cancel()
+            }
+            // After any save already under way, so that save cannot land after the delete.
+            try {
+                saving.withLock { delete(profileId, videoIds) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Resetting progress for $profileId failed", e)
+            }
         }
     }
 

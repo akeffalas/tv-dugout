@@ -64,4 +64,12 @@ class InMemoryWatchHistory(
     }
 
     override fun flush() = sink.flush()
+
+    override fun reset(
+        profileId: String,
+        videoIds: Set<String>,
+    ) {
+        flow(profileId).update { all -> all - videoIds }
+        sink.reset(profileId, videoIds)
+    }
 }

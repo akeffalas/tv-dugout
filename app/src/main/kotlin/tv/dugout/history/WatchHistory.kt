@@ -45,4 +45,10 @@ interface WatchHistory {
 
     /** Save anything not yet saved, such as when the child leaves the player. */
     fun flush()
+
+    /** Clears [profileId]'s progress in [videoIds], so the child starts them from the beginning. */
+    fun reset(
+        profileId: String,
+        videoIds: Set<String>,
+    )
 }

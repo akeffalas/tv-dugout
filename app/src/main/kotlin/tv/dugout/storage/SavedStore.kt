@@ -78,7 +78,10 @@ class SavedStore(
                 .groupBy { it.profileId }
                 .mapValues { (_, rows) -> rows.associate { it.videoId to it.toProgress() } }
         val writer =
-            ProgressWriter(scope) { profileId, videoId, row ->
+            ProgressWriter(
+                scope,
+                delete = { profileId, videoIds -> dao.deleteProgress(profileId, videoIds.toList()) },
+            ) { profileId, videoId, row ->
                 dao.saveProgress(row.toEntity(profileId, videoId))
             }
         val profileVideos = FixedProfileVideos(lists)

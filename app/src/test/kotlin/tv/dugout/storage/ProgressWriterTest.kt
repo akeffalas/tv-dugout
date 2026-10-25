@@ -144,4 +144,54 @@ class ProgressWriterTest {
 
             assertThat(finished).containsExactly(p1, p2).inOrder()
         }
+
+    private val deletes = mutableListOf<Pair<String, Set<String>>>()
+
+    @Test
+    fun resetDropsPendingWrite() =
+        runTest(StandardTestDispatcher()) {
+            val writer =
+                ProgressWriter(
+                    backgroundScope,
+                    save = { profileId, videoId, progress -> saves += Triple(profileId, videoId, progress) },
+                    delete = { profileId, videoIds -> deletes += profileId to videoIds },
+                )
+            writer.changed("sam", "v", p1)
+            writer.changed("sam", "w", p2)
+            runCurrent()
+
+            writer.reset("sam", setOf("v"))
+            advanceTimeBy(10_000)
+            runCurrent()
+
+            assertThat(saves).containsExactly(Triple("sam", "w", p2))
+            assertThat(deletes).containsExactly("sam" to setOf("v"))
+        }
+
+    @Test
+    fun resetAfterAnInFlightSaveStillDeletes() =
+        runTest(StandardTestDispatcher()) {
+            val gate = CompletableDeferred<Unit>()
+            val events = mutableListOf<String>()
+            val writer =
+                ProgressWriter(
+                    backgroundScope,
+                    save = { _, _, _ ->
+                        events += "save started"
+                        gate.await()
+                        events += "save done"
+                    },
+                    delete = { _, _ -> events += "delete" },
+                )
+            writer.changed("sam", "v", p1)
+            writer.flush()
+            runCurrent()
+
+            writer.reset("sam", setOf("v"))
+            runCurrent()
+            gate.complete(Unit)
+            runCurrent()
+
+            assertThat(events).containsExactly("save started", "save done", "delete").inOrder()
+        }
 }

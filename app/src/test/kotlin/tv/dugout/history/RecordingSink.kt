@@ -1,9 +1,10 @@
 package tv.dugout.history
 
-/** Remembers every change and flush it is handed. */
+/** Remembers every change, flush, and reset it is handed. */
 class RecordingSink : ProgressSink {
     val changes = mutableListOf<Triple<String, String, WatchProgress>>()
     var flushes = 0
+    val resets = mutableListOf<Pair<String, Set<String>>>()
 
     override fun changed(
         profileId: String,
@@ -15,5 +16,12 @@ class RecordingSink : ProgressSink {
 
     override fun flush() {
         flushes++
+    }
+
+    override fun reset(
+        profileId: String,
+        videoIds: Set<String>,
+    ) {
+        resets += profileId to videoIds
     }
 }

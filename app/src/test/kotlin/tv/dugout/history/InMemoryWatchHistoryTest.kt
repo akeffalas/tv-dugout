@@ -121,4 +121,22 @@ class InMemoryWatchHistoryTest {
 
         assertThat(sink.flushes).isEqualTo(1)
     }
+
+    @Test
+    fun resetRemovesOnlyThoseVideos() {
+        val sink = RecordingSink()
+        val history = InMemoryWatchHistory(sink = sink)
+        listOf(
+            "a",
+            "b",
+            "c",
+        ).forEach { history.record("kid", it, positionSeconds = 50f, durationSeconds = 100f, now = 1) }
+        history.record("other", "a", positionSeconds = 50f, durationSeconds = 100f, now = 1)
+
+        history.reset("kid", setOf("a", "c"))
+
+        assertThat(history.progress("kid").value.keys).containsExactly("b")
+        assertThat(history.progress("other").value.keys).containsExactly("a")
+        assertThat(sink.resets).containsExactly("kid" to setOf("a", "c"))
+    }
 }
