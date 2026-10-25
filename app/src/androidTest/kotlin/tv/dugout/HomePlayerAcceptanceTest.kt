@@ -15,7 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.library.BundledVideoLibrary
-import tv.dugout.library.EveryVideoForEveryProfile
+import tv.dugout.library.FixedProfileVideos
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.ui.theme.DugoutTheme
 
@@ -41,7 +41,13 @@ class HomePlayerAcceptanceTest {
             AppGraph(
                 profiles = InMemoryProfileRepository(SAMPLE_PROFILES),
                 library = library,
-                profileVideos = EveryVideoForEveryProfile(library),
+                profileVideos =
+                    FixedProfileVideos(
+                        SAMPLE_PROFILES.associate { p ->
+                            p.id to
+                                library.videos().map { it.id }
+                        },
+                    ),
                 history = InMemoryWatchHistory(),
                 playerSurface = surface,
             )

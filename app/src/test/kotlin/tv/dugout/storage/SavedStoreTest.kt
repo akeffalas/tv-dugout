@@ -18,6 +18,7 @@ import tv.dugout.library.AgeRange
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.Level
 import tv.dugout.player.FakePlayerSurface
+import tv.dugout.profile.Profile
 import tv.dugout.ready
 
 @RunWith(AndroidJUnit4::class)
@@ -43,7 +44,10 @@ class SavedStoreTest {
         runBlocking<Unit> {
             val graph = store().apply { start() }.ready()
 
-            assertThat(graph.profiles.profiles().map { it.id }).containsExactly("sam", "jack").inOrder()
+            assertThat(
+                graph.profiles.profiles.value
+                    .map { it.id },
+            ).containsExactly("sam", "jack").inOrder()
             assertThat(graph.profiles.profile("jack")).isEqualTo(SAMPLE_PROFILES[1])
             assertThat(graph.profileVideos.videoIds("sam")).isEqualTo(library.videos().map { it.id })
         }
@@ -58,6 +62,22 @@ class SavedStoreTest {
                     .ready()
 
             assertThat(graph.profiles.profile("sam")).isEqualTo(child)
+        }
+
+    @Test
+    fun addedChildIsSavedAndServed() =
+        runBlocking<Unit> {
+            val name = "add-test.db"
+            context.deleteDatabase(name)
+            val maya = Profile("maya", "Maya", 0xFFF4A261, AgeRange.FOUR_TO_SIX, Level.TEE_BALL)
+            store(
+                open = { dugoutDatabase(context, name) },
+            ).apply { start() }.ready().profiles.add(maya, listOf("b", "a"))
+
+            val reopened = store(open = { dugoutDatabase(context, name) }).apply { start() }.ready()
+
+            assertThat(reopened.profiles.profiles.value).containsExactly(maya)
+            assertThat(reopened.profileVideos.videoIds("maya")).containsExactly("b", "a").inOrder()
         }
 
     @Test
@@ -102,7 +122,11 @@ class SavedStoreTest {
 
             store.retryIfFailed()
 
-            assertThat(store.ready().profiles.profiles()).hasSize(2)
+            assertThat(
+                store
+                    .ready()
+                    .profiles.profiles.value,
+            ).hasSize(2)
         }
 
     @Test

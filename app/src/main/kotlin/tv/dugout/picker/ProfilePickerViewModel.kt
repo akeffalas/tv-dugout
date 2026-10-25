@@ -34,7 +34,7 @@ class ProfilePickerViewModel(
     repository: ProfileRepository,
     history: WatchHistory,
 ) : ViewModel() {
-    private val profiles = repository.profiles()
+    private val profiles = repository.profiles.value
     private val state = MutableStateFlow(ProfilePickerUiState(profiles, watchedCounts(profiles, history), null))
     val uiState: StateFlow<ProfilePickerUiState> = state.asStateFlow()
 

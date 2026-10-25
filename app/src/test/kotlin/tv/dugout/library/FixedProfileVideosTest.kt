@@ -16,4 +16,12 @@ class FixedProfileVideosTest {
     fun unknownChildGetsNothing() {
         assertThat(lists.videoIds("nobody")).isEmpty()
     }
+
+    @Test
+    fun putReplacesOneChildsList() {
+        lists.put("sam", listOf("z"))
+
+        assertThat(lists.videoIds("sam")).containsExactly("z")
+        assertThat(lists.videoIds("jack")).containsExactly("c")
+    }
 }

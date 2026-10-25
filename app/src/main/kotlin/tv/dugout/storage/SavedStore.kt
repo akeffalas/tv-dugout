@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tv.dugout.AppGraph
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.history.WatchProgress
@@ -17,6 +18,7 @@ import tv.dugout.library.VideoLibrary
 import tv.dugout.player.PlayerSurface
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.profile.Profile
+import tv.dugout.profile.ProfileSaver
 
 private const val TAG = "SavedStore"
 
@@ -79,10 +81,21 @@ class SavedStore(
             ProgressWriter(scope) { profileId, videoId, row ->
                 dao.saveProgress(row.toEntity(profileId, videoId))
             }
+        val profileVideos = FixedProfileVideos(lists)
+        val saver =
+            ProfileSaver { profile, position, videoIds ->
+                // On the store's own scope, so leaving the wizard mid-save does not cancel the write.
+                withContext(scope.coroutineContext) {
+                    dao.addProfile(
+                        profile.toEntity(position),
+                        videoIds.mapIndexed { index, videoId -> ProfileVideoEntity(profile.id, videoId, index) },
+                    )
+                }
+            }
         return AppGraph(
-            profiles = InMemoryProfileRepository(profiles),
+            profiles = InMemoryProfileRepository(profiles, profileVideos, saver),
             library = library,
-            profileVideos = FixedProfileVideos(lists),
+            profileVideos = profileVideos,
             history = InMemoryWatchHistory(progress, writer),
             playerSurface = playerSurface,
             clock = clock,
@@ -97,6 +110,16 @@ private fun ProfileEntity.toProfile() =
         avatarColor = avatarColor,
         ageRange = AgeRange.valueOf(ageRange),
         level = Level.valueOf(level),
+    )
+
+private fun Profile.toEntity(position: Int) =
+    ProfileEntity(
+        id = id,
+        name = name,
+        avatarColor = avatarColor,
+        position = position,
+        ageRange = ageRange.name,
+        level = level.name,
     )
 
 private fun WatchProgressEntity.toProgress() =
