@@ -43,8 +43,11 @@ There is no CI yet; the hooks and `just check` are the gate.
 
 `just acceptance` needs no running emulator. `scripts/acceptance.sh` creates the
 `dugout-acceptance` AVD from `system-images;android-34;google-tv;arm64-v8a` if it is
-missing, boots it headless on its own port, runs the suite against that emulator only,
-and shuts it down even when tests fail. Install the image once with:
+missing, cold boots it headless on its own port (5584), runs the suite against that
+emulator only, and shuts it down even when tests fail or the run is interrupted. It stops
+with an error, touching nothing, if something already runs on that port, and fails with
+the tail of `build/acceptance-emulator.log` if the emulator exits or does not boot within
+five minutes. Install the image once with:
 
 ```sh
 sdkmanager "system-images;android-34;google-tv;arm64-v8a"
