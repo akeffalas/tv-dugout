@@ -32,11 +32,12 @@ class DugoutAppTest {
     }
 
     @Test
-    fun selectingJackShowsHiJack() {
+    fun selectingJackShowsJacksHome() {
         press(Key.DirectionRight)
         press(Key.DirectionCenter)
 
-        compose.onNodeWithText("Hi, Jack").assertIsDisplayed()
+        compose.onNodeWithText("Jack").assertIsDisplayed()
+        compose.onNodeWithText("0 videos watched").assertIsDisplayed()
     }
 
     @Test

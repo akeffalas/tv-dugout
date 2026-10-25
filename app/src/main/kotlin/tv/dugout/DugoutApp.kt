@@ -9,7 +9,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import tv.dugout.home.HomePlaceholderScreen
+import tv.dugout.home.HomeScreen
+import tv.dugout.home.HomeViewModel
 import tv.dugout.parent.ParentPlaceholderScreen
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
@@ -56,7 +57,13 @@ fun DugoutApp(
             if (profile == null) {
                 LaunchedEffect(Unit) { navController.popBackStack(PICKER_ROUTE, inclusive = false) }
             } else {
-                HomePlaceholderScreen(profile.name)
+                val homeViewModel = viewModel { HomeViewModel(profile.id, graph) }
+                val state by homeViewModel.uiState.collectAsStateWithLifecycle()
+                HomeScreen(
+                    state = state,
+                    onTabSelected = homeViewModel::onTabSelected,
+                    onVideoSelected = homeViewModel::onVideoSelected,
+                )
             }
         }
         composable(PARENT_ROUTE) { ParentPlaceholderScreen() }
