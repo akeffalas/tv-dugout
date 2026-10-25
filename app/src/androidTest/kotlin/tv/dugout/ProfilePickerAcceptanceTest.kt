@@ -33,7 +33,8 @@ class ProfilePickerAcceptanceTest {
 
         remote { pressDPadRight() }
         remote { pressDPadCenter() }
-        compose.onNodeWithText("Hi, Jack").assertIsDisplayed()
+        compose.onNodeWithText("Jack").assertIsDisplayed()
+        compose.onNodeWithText("0 videos watched").assertIsDisplayed()
 
         remote { pressBack() }
         compose.onNodeWithTag("profile_tile_jack").assertIsFocused()
