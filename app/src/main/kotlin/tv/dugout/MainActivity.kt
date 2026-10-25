@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.EveryVideoForEveryProfile
+import tv.dugout.player.YouTubePlayerSurface
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.ui.theme.DugoutTheme
 
@@ -17,6 +18,7 @@ class MainActivity : ComponentActivity() {
             library = library,
             profileVideos = EveryVideoForEveryProfile(library),
             history = InMemoryWatchHistory(),
+            playerSurface = YouTubePlayerSurface,
         )
     }
 
