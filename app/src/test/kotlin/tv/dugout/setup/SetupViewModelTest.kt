@@ -10,6 +10,7 @@ import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.library.AgeRange
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.FixedProfileVideos
+import tv.dugout.library.LIBRARY_VERSION
 import tv.dugout.library.Level
 import tv.dugout.library.Skill
 import tv.dugout.profile.InMemoryProfileRepository
@@ -274,11 +275,21 @@ class SetupViewModelTest {
 
         viewModel.onDone()
 
-        val expected = Profile("new-id", "Maya", 0xFFF4A261, AgeRange.ELEVEN_TO_TWELVE, Level.KID_PITCH)
+        val expected =
+            Profile("new-id", "Maya", 0xFFF4A261, AgeRange.ELEVEN_TO_TWELVE, Level.KID_PITCH, LIBRARY_VERSION)
         assertThat(saved.single().first).isEqualTo(expected)
         assertThat(saved.single().second).isEqualTo(library.videos().map { it.id } - idsOf(Skill.HITTING)[1])
         assertThat(viewModel.state.step).isEqualTo(SetupStep.READY)
         assertThat(viewModel.state.saved).isEqualTo(expected)
+    }
+
+    @Test
+    fun newChildIsOfferedTheCurrentLibrary() {
+        val viewModel = viewModel().toVideos()
+
+        viewModel.onDone()
+
+        assertThat(saved.single().first.offeredVersion).isEqualTo(LIBRARY_VERSION)
     }
 
     @Test

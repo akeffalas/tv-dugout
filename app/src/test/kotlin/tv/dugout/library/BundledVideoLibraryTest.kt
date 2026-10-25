@@ -32,6 +32,39 @@ class BundledVideoLibraryTest {
     }
 
     @Test
+    fun videosAddedIn0005AreVersionTwo() {
+        val added =
+            setOf(
+                "kAmceQXXS-Q",
+                "TZ9CQUmPjn8",
+                "U3Rj-f1xN04",
+                "iQ7e96-iLzo",
+                "qvwkdxepqTk",
+                "i89e1L9yKdI",
+                "UYItjZ8hPg0",
+                "8T_KoHtTlo0",
+                "4_1yyhAaT_8",
+                "1Xcli14cENE",
+                "hI-TQskjhGw",
+                "htV-X-KYK2I",
+                "E0PiNTFyrqU",
+                "U2-PTYnPmCM",
+                "NaFuBrLfj78",
+                "NmAsa944EN4",
+            )
+
+        assertThat(library.videos().filter { it.addedIn == 2 }.map { it.id }).containsExactlyElementsIn(added)
+        assertThat(
+            library
+                .videos()
+                .filter { it.addedIn != 2 }
+                .map { it.addedIn }
+                .toSet(),
+        ).containsExactly(1)
+        assertThat(LIBRARY_VERSION).isEqualTo(2)
+    }
+
+    @Test
     fun skillCountsMatchSpec() {
         val counts = library.videos().groupingBy { it.skill }.eachCount()
 

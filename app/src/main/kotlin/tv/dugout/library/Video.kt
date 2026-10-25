@@ -41,7 +41,7 @@ enum class AgeRange(
 /** Where a video is hosted. Only YouTube plays today; the field leaves room for others. */
 enum class VideoSource { YOUTUBE, }
 
-/** One approved video. [sourceId] is the ID the [source] knows it by. */
+/** One approved video. [sourceId] is the ID the [source] knows it by; [addedIn] is the library version it arrived in. */
 data class Video(
     val id: String,
     val source: VideoSource,
@@ -52,4 +52,5 @@ data class Video(
     val skill: Skill,
     val levels: Set<Level>,
     val ages: IntRange,
+    val addedIn: Int = 1,
 )

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.dugout.library.AgeRange
+import tv.dugout.library.LIBRARY_VERSION
 import tv.dugout.library.Level
 import tv.dugout.library.Skill
 import tv.dugout.library.VideoLibrary
@@ -111,6 +112,7 @@ class SetupViewModel(
                 avatarColor = nextAvatarColor(profiles.profiles.value.map { it.avatarColor }),
                 ageRange = requireNotNull(current.age),
                 level = requireNotNull(current.level),
+                offeredVersion = LIBRARY_VERSION,
             )
         state.update { it.copy(saving = true, saveFailed = false) }
         viewModelScope.launch {
