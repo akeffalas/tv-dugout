@@ -1,0 +1,122 @@
+package tv.dugout.picker
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Surface
+import androidx.tv.material3.Text
+import tv.dugout.profile.Profile
+import tv.dugout.ui.theme.DugoutBackground
+import tv.dugout.ui.theme.FocusGold
+
+private val FocusedScale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f)
+
+@Composable
+private fun focusedBorder() = ClickableSurfaceDefaults.border(focusedBorder = Border(BorderStroke(4.dp, FocusGold)))
+
+@Composable
+fun ProfilePickerScreen(
+    state: ProfilePickerUiState,
+    onProfileSelected: (String) -> Unit,
+    onParentSelected: () -> Unit,
+) {
+    val profileFocus = remember(state.profiles) { state.profiles.associate { it.id to FocusRequester() } }
+    val parentFocus = remember { FocusRequester() }
+    val initialFocus =
+        when (val selection = state.lastSelection) {
+            PickerSelection.Parent -> parentFocus
+            is PickerSelection.Kid -> profileFocus[selection.profileId]
+            null -> null
+        } ?: profileFocus.values.firstOrNull() ?: parentFocus
+
+    LaunchedEffect(initialFocus) { initialFocus.requestFocus() }
+
+    DugoutBackground {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(32.dp)) {
+            Text("Who's up to bat?", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(48.dp)) {
+                state.profiles.forEach { profile ->
+                    ProfileTile(
+                        profile = profile,
+                        onClick = { onProfileSelected(profile.id) },
+                        modifier = Modifier.focusRequester(profileFocus.getValue(profile.id)),
+                    )
+                }
+            }
+            Surface(
+                onClick = onParentSelected,
+                modifier = Modifier.focusRequester(parentFocus).testTag("parent_button"),
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(24.dp)),
+                scale = FocusedScale,
+                border = focusedBorder(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val style = MaterialTheme.typography.bodyMedium
+                    val color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Text("🔒", style = style)
+                    Text("Parent: manage videos (PIN)", style = style, color = color)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileTile(
+    profile: Profile,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.testTag("profile_tile_${profile.id}"),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
+        colors = ClickableSurfaceDefaults.colors(containerColor = Color.Transparent),
+        scale = FocusedScale,
+        border = focusedBorder(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(96.dp).background(Color(profile.avatarColor), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(profile.name.take(1), fontSize = 44.sp, fontWeight = FontWeight.ExtraBold)
+            }
+            Text(profile.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                "${profile.watchedCount} watched",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
