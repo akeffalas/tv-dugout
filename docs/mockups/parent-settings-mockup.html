@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Parent settings</title>
+<style>
+body{background:#e9e7e2;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;color:#222;padding:28px;margin:0}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:18px;margin:32px 0 4px} .subtitle{color:#555;font-size:14px;margin:0 0 14px}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:24px}
+.mockup{background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.mockup-header{font-size:13px;font-weight:700;padding:8px 12px;background:#f3f1ea}
+.mockup-body{padding:12px} .option{max-width:900px} .section{max-width:900px;font-size:14px;line-height:1.5}
+</style>
+</head><body>
+<h1>Parent settings</h1>
+<p class="subtitle">Mockups agreed during the 0006 brainstorm. Gold outline marks focus. Names are placeholders.</p>
+<style>
+  .tv { width: 100%; aspect-ratio: 16/9; background: radial-gradient(ellipse at top, #1d3557 0%, #0f1a2b 70%); border: 10px solid #111; border-radius: 8px; color: #f3f1ea; font-family: -apple-system, Roboto, sans-serif; position: relative; overflow: hidden; padding: 18px 22px; box-sizing: border-box; font-size: 12px; }
+  .tv h4 { margin: 0 0 10px; font-size: 16px; }
+  .gold { outline: 3px solid #ffd23f; transform: scale(1.04); }
+  .pad { display: grid; grid-template-columns: repeat(3, 38px); gap: 6px; justify-content: center; margin-top: 10px; }
+  .key { height: 30px; border-radius: 6px; background: rgba(255,255,255,.1); display: grid; place-items: center; font-weight: 700; }
+  .dots { display: flex; gap: 10px; justify-content: center; font-size: 22px; letter-spacing: 4px; }
+  .muted { color: #9fb0c8; }
+  .row { display: flex; gap: 10px; }
+  .kid { padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #0f1a2b; }
+  .btn { padding: 6px 12px; border-radius: 16px; background: rgba(255,255,255,.1); font-weight: 600; display: inline-block; margin: 0 6px 6px 0; }
+  .btn.on { background: #f3f1ea; color: #0f1a2b; }
+  .tile { width: 90px; text-align: center; padding: 8px; border-radius: 10px; }
+  .big { width: 46px; height: 46px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; font-size: 20px; font-weight: 800; color: #0f1a2b; }
+  .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); margin-top: 4px; }
+  .bar i { display: block; height: 100%; border-radius: 3px; background: #4caf50; }
+  .skill { margin-bottom: 8px; }
+</style>
+
+<h2>PIN and parent settings layout</h2>
+<p class="subtitle">The PIN screen, then the two-pane layout the owner chose.</p>
+
+<div class="mockup" style="max-width:520px">
+  <div class="mockup-header">PIN screen (after choosing Parent on the picker)</div>
+  <div class="mockup-body">
+    <div class="tv" style="text-align:center">
+      <h4>Enter parent PIN</h4>
+      <div class="dots">● ● ○ ○</div>
+      <div class="pad">
+        <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+        <div class="key">4</div><div class="key gold">5</div><div class="key">6</div>
+        <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+        <div class="key">⌫</div><div class="key">0</div><div class="key">✓</div>
+      </div>
+      <div class="muted" style="margin-top:10px">Forgot PIN</div>
+    </div>
+  </div>
+</div>
+<p class="subtitle" style="margin-top:8px">The first time, this screen says "Choose a parent PIN", asks twice, then shows the recovery code.</p>
+
+<div class="options">
+  <div class="option" data-choice="a">
+    
+    <div class="content">
+      <h3>Two panes: children on the left, details on the right</h3>
+      <div class="tv" style="margin-top:8px">
+        <div class="row" style="height:100%">
+          <div style="width:32%">
+            <div class="kid gold"><div class="av" style="background:#ffd23f">A</div>Alex</div>
+            <div class="kid"><div class="av" style="background:#7fd1ae">B</div>Bailey</div>
+            <div class="kid muted">＋ Add a player</div>
+            <div class="kid muted">🔑 Change PIN</div>
+          </div>
+          <div style="flex:1; padding-left:10px; border-left:1px solid rgba(255,255,255,.1)">
+            <div><span class="btn on">Progress</span><span class="btn">Profile</span><span class="btn">Videos</span><span class="btn">Remove</span></div>
+            <div class="skill">Hitting <span class="muted">4 of 6</span><div class="bar"><i style="width:66%"></i></div></div>
+            <div class="skill">Fielding <span class="muted">2 of 5</span><div class="bar"><i style="width:40%"></i></div></div>
+            <div class="skill">Pitching <span class="muted">0 of 4</span><div class="bar"><i style="width:0"></i></div></div>
+          </div>
+        </div>
+      </div>
+      <p>Everything on one screen. Moving down the left list changes the right side right away. Busier, fewer screens.</p>
+    </div>
+  </div>
+  </div>
+
+<style>
+  .tv { width: 100%; aspect-ratio: 16/9; background: radial-gradient(ellipse at top, #1d3557 0%, #0f1a2b 70%); border: 10px solid #111; border-radius: 8px; color: #f3f1ea; font-family: -apple-system, Roboto, sans-serif; overflow: hidden; padding: 16px 20px; box-sizing: border-box; font-size: 12px; }
+  .gold { outline: 3px solid #ffd23f; }
+  .muted { color: #9fb0c8; }
+  .row { display: flex; gap: 10px; height: 100%; }
+  .kid { padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #0f1a2b; }
+  .btn { padding: 5px 12px; border-radius: 16px; background: rgba(255,255,255,.1); font-weight: 600; display: inline-block; margin: 0 5px 8px 0; }
+  .btn.on { background: #f3f1ea; color: #0f1a2b; }
+  .field { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.06); margin-bottom: 6px; }
+  .vid { display: grid; grid-template-columns: 18px 1fr auto auto; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 6px; margin-bottom: 3px; }
+  .box { width: 13px; height: 13px; border: 2px solid #f3f1ea; border-radius: 3px; display: grid; place-items: center; font-size: 10px; }
+  .badge { font-size: 10px; padding: 2px 6px; border-radius: 8px; font-weight: 700; }
+  .rec { background: rgba(127,209,174,.2); color: #7fd1ae; }
+  .new { background: rgba(255,210,63,.2); color: #ffd23f; }
+  .sk { font-weight: 700; margin: 6px 0 4px; }
+  .skills .btn { font-size: 11px; padding: 3px 9px; }
+</style>
+
+<h2>Profile and Videos panes</h2>
+<p class="subtitle">Same two-pane layout you picked. Gold outline is where focus is.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Profile</div>
+    <div class="mockup-body">
+      <div class="tv"><div class="row">
+        <div style="width:30%">
+          <div class="kid"><div class="av" style="background:#ffd23f">A</div>Alex</div>
+          <div class="kid"><div class="av" style="background:#7fd1ae">B</div>Bailey</div>
+          <div class="kid muted">＋ Add a player</div>
+          <div class="kid muted">🔑 Change PIN</div>
+        </div>
+        <div style="flex:1; padding-left:10px; border-left:1px solid rgba(255,255,255,.1)">
+          <div><span class="btn">Progress</span><span class="btn on">Profile</span><span class="btn">Videos</span><span class="btn">Remove</span></div>
+          <div class="field gold"><span>Name</span><span>Alex ›</span></div>
+          <div class="field"><span>Age range</span><span>9 to 10 ›</span></div>
+          <div class="field"><span>Level</span><span>Kid pitch ›</span></div>
+          <p class="muted" style="margin-top:10px">Each row opens the same picker the setup wizard uses. Changes save when you confirm.</p>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Videos</div>
+    <div class="mockup-body">
+      <div class="tv"><div class="row">
+        <div style="width:30%">
+          <div class="kid"><div class="av" style="background:#ffd23f">A</div>Alex</div>
+          <div class="kid"><div class="av" style="background:#7fd1ae">B</div>Bailey</div>
+          <div class="kid muted">＋ Add a player</div>
+          <div class="kid muted">🔑 Change PIN</div>
+        </div>
+        <div style="flex:1; padding-left:10px; border-left:1px solid rgba(255,255,255,.1); overflow:hidden">
+          <div><span class="btn">Progress</span><span class="btn">Profile</span><span class="btn on">Videos</span><span class="btn">Remove</span></div>
+          <div class="skills"><span class="btn on">Hitting 6</span><span class="btn">Fielding 5</span><span class="btn">Catching 3 · 2 new</span><span class="btn">Pitching 4</span></div>
+          <div class="vid gold"><div class="box">✓</div><span>Load and stride</span><span class="badge rec">Recommended</span><span class="muted">4:12</span></div>
+          <div class="vid"><div class="box">✓</div><span>Keep your eye on the ball</span><span class="badge rec">Recommended</span><span class="muted">3:05</span></div>
+          <div class="vid"><div class="box"></div><span>Two-strike approach</span><span class="badge new">New</span><span class="muted">5:40</span></div>
+          <div class="vid"><div class="box"></div><span>Bunting basics</span><span></span><span class="muted">6:18</span></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px">
+  <h3>Rules I'd suggest</h3>
+  <ul>
+    <li>Changing age range or level only changes which videos are marked Recommended. It never adds or removes videos by itself.</li>
+    <li>"New" marks library videos added since the child was set up. The skill chip counts them so you can find them.</li>
+    <li>Unchecking a video hides it from the child but keeps its progress. Checking it again brings the progress back.</li>
+    <li>Every skill with videos in the library is listed, so you can add a skill the wizard skipped.</li>
+  </ul>
+</div>
+
+<style>
+  .tv { width: 100%; aspect-ratio: 16/9; background: radial-gradient(ellipse at top, #1d3557 0%, #0f1a2b 70%); border: 10px solid #111; border-radius: 8px; color: #f3f1ea; font-family: -apple-system, Roboto, sans-serif; overflow: hidden; padding: 16px 20px; box-sizing: border-box; font-size: 12px; position: relative; }
+  .gold { outline: 3px solid #ffd23f; }
+  .muted { color: #9fb0c8; }
+  .row { display: flex; gap: 10px; height: 100%; }
+  .kid { padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #0f1a2b; }
+  .btn { padding: 5px 12px; border-radius: 16px; background: rgba(255,255,255,.1); font-weight: 600; display: inline-block; margin: 0 5px 8px 0; }
+  .btn.on { background: #f3f1ea; color: #0f1a2b; }
+  .btn.red { background: #c0392b; color: #fff; }
+  .skills .btn { font-size: 11px; padding: 3px 9px; }
+  .vid { display: grid; grid-template-columns: 1fr 90px 70px; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 6px; margin-bottom: 3px; }
+  .ok { color: #4caf50; font-weight: 700; }
+  .part { color: #ffd23f; }
+  .left { width: 30%; }
+  .right { flex:1; padding-left:10px; border-left:1px solid rgba(255,255,255,.1); overflow:hidden; }
+  .dialog { position:absolute; inset: 22% 22%; background:#1b2a44; border-radius:10px; padding:14px; box-shadow:0 8px 30px rgba(0,0,0,.6); }
+</style>
+
+<h2>Progress and Remove</h2>
+<p class="subtitle">Gold outline is where focus is.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Progress (select a video to reset it)</div>
+    <div class="mockup-body">
+      <div class="tv"><div class="row">
+        <div class="left">
+          <div class="kid"><div class="av" style="background:#ffd23f">A</div>Alex</div>
+          <div class="kid"><div class="av" style="background:#7fd1ae">B</div>Bailey</div>
+          <div class="kid muted">＋ Add a player</div>
+          <div class="kid muted">🔑 Change PIN</div>
+        </div>
+        <div class="right">
+          <div><span class="btn on">Progress</span><span class="btn">Profile</span><span class="btn">Videos</span><span class="btn">Remove</span></div>
+          <div class="skills"><span class="btn on">Hitting 4 of 6</span><span class="btn">Fielding 2 of 5</span><span class="btn">Pitching 0 of 4</span></div>
+          <div class="vid"><span>Load and stride</span><span class="ok">✓ Finished</span><span class="muted">Oct 22</span></div>
+          <div class="vid gold"><span>Keep your eye on the ball</span><span class="part">Watched 60%</span><span class="muted">Oct 24</span></div>
+          <div class="vid"><span>Two-strike approach</span><span class="muted">Not started</span><span class="muted"></span></div>
+          <div class="vid"><span class="muted">Reset all Hitting progress</span><span></span><span></span></div>
+        </div>
+      </div>
+      <div class="dialog">
+        <b>Reset "Keep your eye on the ball"?</b>
+        <p class="muted">Alex will start it from the beginning.</p>
+        <span class="btn gold">Cancel</span><span class="btn red">Reset</span>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Remove</div>
+    <div class="mockup-body">
+      <div class="tv"><div class="row">
+        <div class="left">
+          <div class="kid"><div class="av" style="background:#ffd23f">A</div>Alex</div>
+          <div class="kid"><div class="av" style="background:#7fd1ae">B</div>Bailey</div>
+          <div class="kid muted">＋ Add a player</div>
+          <div class="kid muted">🔑 Change PIN</div>
+        </div>
+        <div class="right">
+          <div><span class="btn">Progress</span><span class="btn">Profile</span><span class="btn">Videos</span><span class="btn on">Remove</span></div>
+          <p><b>Remove Alex?</b></p>
+          <p class="muted">This deletes Alex's profile, video list, and all progress. It can't be undone.</p>
+          <span class="btn gold">Keep Alex</span><span class="btn red">Remove Alex</span>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px">
+  <ul>
+    <li>Focus always lands on the safe choice (Cancel, Keep) first, so one stray press never erases anything.</li>
+    <li>Removing the last child goes back to the setup wizard, like a fresh install, but the PIN stays.</li>
+  </ul>
+</div>
+
+</body></html>
