@@ -128,11 +128,9 @@ class SetupViewModel(
     /** Goes back one step. Returns false on the first step and the ready screen, where the wizard is left instead. */
     fun onBack(): Boolean {
         val step = state.value.step
-        if (step == SetupStep.NAME || step == SetupStep.READY ||
-            state.value.saving
-        ) {
-            return step != SetupStep.NAME && step != SetupStep.READY
-        }
+        if (step == SetupStep.NAME || step == SetupStep.READY) return false
+        // Stay put while saving, so the ready screen cannot appear over an earlier step.
+        if (state.value.saving) return true
         state.update {
             it.copy(
                 step = SetupStep.entries[step.ordinal - 1],
