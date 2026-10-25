@@ -29,11 +29,12 @@ relevant part when a task touches it.
 ```text
 app/                    the single Android module (package tv.dugout)
   src/main/kotlin/      MainActivity, StartupGate, AppGraph, DugoutApp (NavHost), library/,
-                        history/, profile/, storage/, picker/, home/, player/, upnext/,
-                        parent/, ui/theme/
+                        history/, profile/, storage/, picker/, setup/, home/, player/,
+                        upnext/, parent/, ui/theme/
   schemas/              exported Room schemas, one JSON file per database version
   src/test/             JVM unit tests and Compose UI tests under Robolectric
   src/androidTest/      emulator acceptance tests (real D-pad key events)
+  src/sharedTest/       sample children shared by both test suites
 scripts/acceptance.sh   boots a headless Google TV emulator, runs acceptance, shuts it down
 gradle/libs.versions.toml   every plugin and dependency version
 docs/  Justfile  .pre-commit-config.yaml
@@ -46,16 +47,19 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 ### What exists
 
 ```text
-screens   picker (start), home (skill tabs with progress), player (YouTube embed),
-          up next, parent placeholder
-data      31-video bundled library; profiles, each child's video list, and watch
-          progress saved in Room (seeded with Sam and Jack until the setup wizard)
+screens   picker (start), setup wizard (add a player; the start on a fresh install),
+          home (skill tabs with progress), player (YouTube embed), up next,
+          parent placeholder
+data      31-video bundled library with age and level tags; profiles (with age range
+          and level), each child's video list, and watch progress saved in Room; a
+          fresh install has no children
 recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```
 
-Not built yet: the per-child setup wizard (0004), My List, parent settings and the PIN, CI, and integration tests (Testcontainers is
-deferred until there is something to integrate against, ADR-0003).
+Not built yet: the larger library for other ages and levels (0005), My List, parent
+settings and the PIN (editing or removing a child), CI, and integration tests
+(Testcontainers is deferred until there is something to integrate against, ADR-0003).
 
 ## Commands
 

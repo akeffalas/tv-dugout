@@ -11,11 +11,12 @@ app/src/main/kotlin/tv/dugout/
 ├── StartupGate.kt           # blank until loaded, or the error message if loading failed
 ├── AppGraph.kt              # the shared data sources and the player surface
 ├── DugoutApp.kt             # NavHost, routes, and the result handoff back to Home
-├── library/                 # Video, Skill, VideoLibrary (31 bundled videos), ProfileVideos
+├── library/                 # Video, Skill, Level, AgeRange, recommendations, VideoLibrary, ProfileVideos
 ├── history/                 # WatchHistory, WatchProgress rules, InMemoryWatchHistory, ProgressSink
-├── profile/                 # Profile, ProfileRepository, sample profiles
-├── storage/                 # Room database, seeding, SavedStore, throttled ProgressWriter
-├── picker/                  # ProfilePickerViewModel and ProfilePickerScreen
+├── profile/                 # Profile, ProfileRepository (add a child), ProfileSaver, avatar colors
+├── storage/                 # Room database, migrations, SavedStore, throttled ProgressWriter
+├── picker/                  # ProfilePickerViewModel and ProfilePickerScreen (with the add tile)
+├── setup/                   # SetupViewModel and the "Add a player" wizard screens
 ├── home/                    # HomeViewModel, focus return rules, HomeScreen, cards, tabs
 ├── player/                  # VideoPlayer seam, PlayerViewModel, PlayerScreen, YouTube adapter
 ├── upnext/                  # next video rule and UpNextScreen
@@ -24,7 +25,8 @@ app/src/main/kotlin/tv/dugout/
 ```
 
 Tests mirror the packages: JVM and Robolectric tests in `app/src/test`, emulator
-acceptance tests in `app/src/androidTest`
+acceptance tests in `app/src/androidTest`, and the sample children both use in
+`app/src/sharedTest`
 ([ADR-0003](../adr/0003-testing-and-coverage-standard.md)).
 
 ## Data flow
@@ -46,9 +48,12 @@ flowchart LR
     PVM --> PLAYER["PlayerScreen"]
 ```
 
-- `ProfileVideos` decides which videos a child sees. Each child's list is saved; a new
-  database gives every sample child the whole library, until the setup wizard (spec
-  0004) chooses per-child lists.
+- `ProfileVideos` decides which videos a child sees. The setup wizard (spec
+  [0004](../specs/0004-setup-wizard/spec.md)) chooses each child's list, pre-checking
+  videos whose level and ages match the child (`isRecommendedFor`).
+- `ProfileRepository` exposes the children as a `StateFlow`. `add` saves a child and
+  their list through a `ProfileSaver` (one Room transaction), then updates memory, so the
+  picker shows the new child at once.
 - `WatchHistory` holds each child's progress. A video is watched at 90% of its length,
   or when it ends; it counts as started at 10 seconds. `InMemoryWatchHistory` serves
   progress from memory and reports each change to a `ProgressSink`.
@@ -76,8 +81,11 @@ flowchart LR
   builds the `AppGraph` from in-memory parts. Until then `StartupGate` shows a blank
   background, so no screen (including one Android restores after the process was
   killed) reads a half-filled store. If loading fails it shows an error message.
-- A brand-new database is seeded with the sample profiles, each given the whole library.
-  It is never reseeded, even when every profile is gone.
+- A brand-new database starts empty, so a fresh install opens the setup wizard. Tests
+  can seed one (`Seed`); `SampleDugoutApplication` does so for tests that launch the real
+  `MainActivity`.
+- Version 2 added each child's age range and level; `MIGRATION_1_2` gives children saved
+  by version 1 "9 to 10, kid pitch".
 - `ProgressWriter` saves a playing video's progress at most every 5 seconds, and at once
   when a video ends, when the child leaves the player, and when the activity stops.
 - Progress for a video no longer in the library is dropped on load.
@@ -89,6 +97,7 @@ flowchart LR
 | Route | Screen | Back goes to |
 |-------|--------|--------------|
 | `picker` (start) | Profile picker | leaves the app |
+| `setup` (start with no children) | Add a player wizard | the previous step; on the first step and the ready screen, the picker (or leaves the app with no children) |
 | `home/{profileId}` | Home: skill tabs, rows of cards | picker, focus on that profile |
 | `player/{profileId}/{videoId}` | Player | Home, focus on that video |
 | `upnext/{profileId}/{videoId}` | Up next, after a video ends | Home, focus on that video |
@@ -97,7 +106,9 @@ flowchart LR
 When a video ends, the player replaces itself with Up next. "Play next" replaces Up
 next with a new player, so Back always lands on Home. The player and Up next tell Home
 which video was last played (and, for "Back to <Skill>", which skill tab to open) through
-Home's back stack entry (`RESULT_LAST_VIDEO`, `RESULT_OPEN_SKILL`).
+Home's back stack entry (`RESULT_LAST_VIDEO`, `RESULT_OPEN_SKILL`). The wizard tells the
+picker which child it added (`RESULT_ADDED_PROFILE`), so focus lands on them; "Start
+watching" puts the picker beneath the new child's Home, even on a fresh install.
 
 The picker navigates only while it is the current destination, and Home opens a video
 only once its entry is resumed, so pressing select twice quickly never stacks screens.
