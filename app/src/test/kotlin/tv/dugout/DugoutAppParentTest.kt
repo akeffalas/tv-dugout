@@ -268,4 +268,17 @@ class DugoutAppParentTest {
         back()
         assertThat(compose.activity.isFinishing).isTrue()
     }
+
+    @Test
+    fun leavingWithHomeLocksParentSettingsAgain() {
+        openSettings()
+        compose.onNodeWithTag("parent_settings").assertIsDisplayed()
+
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("parent_settings").assertDoesNotExist()
+        compose.onNodeWithText("Who's up to bat?").assertIsDisplayed()
+    }
 }

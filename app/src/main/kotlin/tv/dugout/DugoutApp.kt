@@ -7,6 +7,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -87,6 +89,20 @@ fun DugoutApp(
                 else -> SETUP_ROUTE
             }
         }
+
+    // Parent screens never outlive a visit: leaving with Home, or a restored back stack, locks them again.
+    fun lockParentScreens() {
+        if (navController.currentDestination?.route?.startsWith(PARENT_ROUTE) == true) {
+            navController.popBackStack(PICKER_ROUTE, inclusive = false)
+        }
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) lockParentScreens() }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(Unit) { lockParentScreens() }
     NavHost(navController = navController, startDestination = start) {
         composable(PICKER_ROUTE) { entry ->
             val pickerViewModel =
