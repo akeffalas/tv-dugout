@@ -201,4 +201,30 @@ class PlayerViewModelTest {
 
         assertThat(player.pauses).isEqualTo(1)
     }
+
+    @Test
+    fun silentPlayerShowsFailureAfterStartTimeout() =
+        runTest(main.dispatcher) {
+            val vm = PlayerViewModel("sam", video, history, clock = { 7L })
+
+            advanceTimeBy(PLAYER_START_TIMEOUT_MILLIS - 1)
+            runCurrent()
+            assertThat(vm.uiState.value.failure).isNull()
+
+            advanceTimeBy(2)
+            runCurrent()
+            assertThat(vm.uiState.value.failure).isEqualTo(PlayerFailure.OTHER)
+        }
+
+    @Test
+    fun respondingPlayerNeverTimesOut() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            player.emitState(PlaybackState.LOADING)
+
+            advanceTimeBy(PLAYER_START_TIMEOUT_MILLIS * 2)
+            runCurrent()
+
+            assertThat(vm.uiState.value.failure).isNull()
+        }
 }

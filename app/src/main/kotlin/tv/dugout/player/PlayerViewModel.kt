@@ -16,6 +16,9 @@ import tv.dugout.library.Video
 /** How long to wait for YouTube to confirm 0.5× before telling the child it is unavailable. */
 const val SLOW_MO_CONFIRM_MILLIS = 2_000L
 
+/** How long to wait for any word from the player (it never loads without a network) before showing an error. */
+const val PLAYER_START_TIMEOUT_MILLIS = 20_000L
+
 data class PlayerUiState(
     val video: Video,
     val state: PlaybackState = PlaybackState.LOADING,
@@ -41,9 +44,17 @@ class PlayerViewModel(
     private var player: VideoPlayer? = null
     private var slowMoTimeout: Job? = null
 
+    // Without a network the embedded player never loads and never reports anything.
+    private val startTimeout =
+        viewModelScope.launch {
+            delay(PLAYER_START_TIMEOUT_MILLIS)
+            state.update { it.copy(failure = it.failure ?: PlayerFailure.OTHER) }
+        }
+
     private val listener =
         object : VideoPlayer.Listener {
             override fun onState(state: PlaybackState) {
+                startTimeout.cancel()
                 this@PlayerViewModel.state.update { it.copy(state = state) }
                 if (state == PlaybackState.ENDED) {
                     history.markWatched(profileId, video.id, uiState.value.durationSeconds, clock())
@@ -52,6 +63,7 @@ class PlayerViewModel(
             }
 
             override fun onPosition(seconds: Float) {
+                startTimeout.cancel()
                 state.update { it.copy(positionSeconds = seconds) }
                 val duration = uiState.value.durationSeconds
                 if (duration > 0f) history.record(profileId, video.id, seconds, duration, clock())
@@ -67,6 +79,7 @@ class PlayerViewModel(
             }
 
             override fun onFailure(failure: PlayerFailure) {
+                startTimeout.cancel()
                 state.update { it.copy(failure = failure) }
             }
         }
