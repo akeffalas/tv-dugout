@@ -36,3 +36,6 @@ google-services.json
 
 # Brainstorm visual companion scratch files
 .superpowers/
+
+# Local device settings (never committed)
+.env

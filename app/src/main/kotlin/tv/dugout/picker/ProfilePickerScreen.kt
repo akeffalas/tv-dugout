@@ -28,8 +28,10 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import tv.dugout.profile.Profile
+import tv.dugout.ui.theme.Chalk
 import tv.dugout.ui.theme.DugoutBackground
 import tv.dugout.ui.theme.FocusGold
+import tv.dugout.ui.theme.NavyLight
 
 private val FocusedScale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f)
 
@@ -69,6 +71,15 @@ fun ProfilePickerScreen(
                 onClick = onParentSelected,
                 modifier = Modifier.focusRequester(parentFocus).testTag("parent_button"),
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(24.dp)),
+                colors =
+                    ClickableSurfaceDefaults.colors(
+                        containerColor = NavyLight,
+                        contentColor = Chalk,
+                        focusedContainerColor = NavyLight,
+                        focusedContentColor = Chalk,
+                        pressedContainerColor = NavyLight,
+                        pressedContentColor = Chalk,
+                    ),
                 scale = FocusedScale,
                 border = focusedBorder(),
             ) {
@@ -96,7 +107,16 @@ private fun ProfileTile(
         onClick = onClick,
         modifier = modifier.testTag("profile_tile_${profile.id}"),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
-        colors = ClickableSurfaceDefaults.colors(containerColor = Color.Transparent),
+        // The mockup marks focus with the gold outline and scale only, so the tile stays transparent.
+        colors =
+            ClickableSurfaceDefaults.colors(
+                containerColor = Color.Transparent,
+                contentColor = Chalk,
+                focusedContainerColor = Color.Transparent,
+                focusedContentColor = Chalk,
+                pressedContainerColor = Color.Transparent,
+                pressedContentColor = Chalk,
+            ),
         scale = FocusedScale,
         border = focusedBorder(),
     ) {
