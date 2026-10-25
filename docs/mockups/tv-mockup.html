@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dugout TV mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e9e7e2; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: #222; padding: 32px; }
+  .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { color: #666; margin-bottom: 24px; font-size: 14px; }
+  .screen-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #555; margin: 28px 0 8px; }
+  .note { font-size: 13px; color: #555; margin-top: 8px; max-width: 1100px; line-height: 1.5; }
+
+  /* TV frame: 16:9 */
+  .tv { width: 1100px; aspect-ratio: 16 / 9; background: #0f1a2b; border: 14px solid #111; border-radius: 10px;
+        box-shadow: 0 12px 30px rgba(0,0,0,.35); overflow: hidden; position: relative; color: #f3f1ea; }
+  .row-split { display: flex; gap: 24px; flex-wrap: wrap; }
+  .row-split .tv { width: 538px; border-width: 10px; }
+
+  /* Shared bits */
+  .chalk { font-family: "Marker Felt", "Chalkboard SE", "Comic Sans MS", cursive; }
+  .focus { outline: 4px solid #ffd23f; outline-offset: 3px; transform: scale(1.06); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+
+  /* Home screen */
+  .home { padding: 26px 34px; height: 100%; background: radial-gradient(ellipse at top, #1d3557 0%, #0f1a2b 70%); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .brand { font-size: 26px; font-weight: 800; letter-spacing: .02em; }
+  .brand span { color: #ffd23f; }
+  .who { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 18px; }
+  .streak { background: rgba(255,210,63,.15); color: #ffd23f; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+
+  .tabs { display: flex; gap: 10px; margin-bottom: 18px; }
+  .tab { padding: 8px 18px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 600; }
+  .tab.on { background: #f3f1ea; color: #0f1a2b; }
+
+  .row-title { font-size: 17px; font-weight: 700; margin: 6px 0 10px; display: flex; align-items: baseline; gap: 10px; }
+  .row-title small { font-size: 12px; font-weight: 500; color: #9fb0c8; }
+  .cards { display: flex; gap: 16px; margin-bottom: 16px; }
+  .card { width: 196px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: #1b2a44; transition: transform .15s; }
+  .thumb { height: 110px; position: relative; display: grid; place-items: center; font-size: 42px; }
+  .thumb .dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.75); font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+  .thumb .done { position: absolute; left: 6px; top: 6px; background: #3ecf8e; color: #062; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 4px; }
+  .progress { height: 4px; background: rgba(255,255,255,.15); }
+  .progress i { display: block; height: 100%; background: #e63946; }
+  .meta { padding: 8px 10px 10px; }
+  .meta b { display: block; font-size: 13px; line-height: 1.25; margin-bottom: 3px; }
+  .meta span { font-size: 11px; color: #9fb0c8; }
+  .src { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-right: 4px; background: #2b3f63; color: #cfe0ff; }
+
+  .hit { background: linear-gradient(135deg, #e63946, #a4161a); }
+  .fld { background: linear-gradient(135deg, #2a9d8f, #1d6f65); }
+  .pit { background: linear-gradient(135deg, #457b9d, #1d3557); }
+  .cat { background: linear-gradient(135deg, #f4a261, #c96b28); }
+
+  /* Profile picker */
+  .profiles { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+              background: radial-gradient(ellipse at center, #1d3557 0%, #0f1a2b 75%); }
+  .profiles h1 { font-size: 26px; }
+  .kids { display: flex; gap: 40px; }
+  .kid { text-align: center; }
+  .kid .big { width: 110px; height: 110px; border-radius: 50%; display: grid; place-items: center; font-size: 46px; font-weight: 800; margin-bottom: 10px; }
+  .kid b { font-size: 16px; display: block; }
+  .kid span { font-size: 12px; color: #9fb0c8; }
+  .parent { font-size: 12px; color: #9fb0c8; }
+
+  /* Player */
+  .player { height: 100%; background: #000; position: relative; }
+  .video { position: absolute; inset: 0; background: linear-gradient(160deg, #3a5a40, #1f3322); display: grid; place-items: center; font-size: 80px; }
+  .overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 22px; background: linear-gradient(transparent, rgba(0,0,0,.85)); }
+  .overlay b { font-size: 16px; }
+  .overlay .bar { height: 5px; background: rgba(255,255,255,.25); border-radius: 3px; margin: 10px 0; }
+  .overlay .bar i { display: block; width: 62%; height: 100%; background: #e63946; border-radius: 3px; }
+  .ctrls { display: flex; gap: 10px; font-size: 12px; }
+  .ctrl { padding: 6px 12px; border-radius: 16px; background: rgba(255,255,255,.12); }
+  .ctrl.focus { transform: none; outline-width: 3px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Dugout TV (working name): mockup</div>
+<div class="page-sub">Rough layout for a 1080p Google TV screen. The yellow outline shows the item selected by the remote. The thumbnails and video titles are placeholders.</div>
+
+<div class="screen-label">1. Home screen (Sam's profile)</div>
+<div class="tv">
+  <div class="home">
+    <div class="topbar">
+      <div class="brand">⚾ Dugout<span>TV</span></div>
+      <div class="who">
+        <div class="streak">🔥 4-day streak · 12 videos watched</div>
+        <div class="avatar" style="background:#e63946">S</div>
+        <span>Sam</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab on">Home</div>
+      <div class="tab">🏏 Hitting</div>
+      <div class="tab">🧤 Fielding</div>
+      <div class="tab">🎯 Pitching</div>
+      <div class="tab">🛡️ Catching</div>
+      <div class="tab">⭐ My List</div>
+    </div>
+
+    <div class="row-title">Keep watching</div>
+    <div class="cards">
+      <div class="card focus">
+        <div class="thumb hit">🏏<span class="dur">4:12</span></div>
+        <div class="progress"><i style="width:60%"></i></div>
+        <div class="meta"><b>Power Thru Soft Toss</b><span><span class="src">LITTLE LEAGUE</span>Hitting</span></div>
+      </div>
+      <div class="card">
+        <div class="thumb cat">🛡️<span class="dur">6:30</span></div>
+        <div class="progress"><i style="width:25%"></i></div>
+        <div class="meta"><b>Blocking: get small, stay square</b><span><span class="src">USA BASEBALL</span>Catching</span></div>
+      </div>
+      <div class="card">
+        <div class="thumb fld">🧤<span class="dur">3:05</span></div>
+        <div class="progress"><i style="width:80%"></i></div>
+        <div class="meta"><b>Field a Ground Ball: Hat Drill</b><span><span class="src">LITTLE LEAGUE</span>Fielding</span></div>
+      </div>
+      <div class="card">
+        <div class="thumb pit">🎯<span class="dur">5:48</span></div>
+        <div class="progress"><i style="width:10%"></i></div>
+        <div class="meta"><b>Balance point and stride</b><span><span class="src">MLB PLAY BALL</span>Pitching</span></div>
+      </div>
+      <div class="card">
+        <div class="thumb hit">🏏<span class="dur">2:40</span></div>
+        <div class="progress"><i style="width:45%"></i></div>
+        <div class="meta"><b>Fixing a long swing</b><span><span class="src">USA BASEBALL</span>Hitting</span></div>
+      </div>
+    </div>
+
+    <div class="row-title">🧤 Fielding <small>4 of 14 watched</small></div>
+    <div class="cards">
+      <div class="card">
+        <div class="thumb fld">🧤<span class="done">✓ WATCHED</span><span class="dur">3:20</span></div>
+        <div class="progress"><i style="width:100%;background:#3ecf8e"></i></div>
+        <div class="meta"><b>Ready position for infielders</b><span><span class="src">USA BASEBALL</span></span></div>
+      </div>
+      <div class="card">
+        <div class="thumb fld">🧤<span class="dur">4:55</span></div>
+        <div class="progress"><i style="width:0"></i></div>
+        <div class="meta"><b>Shortstop footwork with a big leaguer</b><span><span class="src">MLB PLAY BALL</span></span></div>
+      </div>
+      <div class="card">
+        <div class="thumb fld">🧤<span class="dur">7:10</span></div>
+        <div class="progress"><i style="width:0"></i></div>
+        <div class="meta"><b>Building the complete infielder</b><span><span class="src">COACHTUBE</span></span></div>
+      </div>
+      <div class="card">
+        <div class="thumb fld">🧤<span class="dur">2:15</span></div>
+        <div class="progress"><i style="width:0"></i></div>
+        <div class="meta"><b>Catching fly balls: two hands</b><span><span class="src">LITTLE LEAGUE</span></span></div>
+      </div>
+      <div class="card">
+        <div class="thumb fld">🧤<span class="dur">3:40</span></div>
+        <div class="progress"><i style="width:0"></i></div>
+        <div class="meta"><b>Crow hop and throw</b><span><span class="src">USA BASEBALL</span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">The kid's name and streak are at the top. Tabs go across the top, one for each skill. "Keep watching" always comes first. Every card shows a source badge, so you can tell at a glance that it came from your approved list. A green check means the video was watched (at least 90% viewed).</div>
+
+<div class="row-split">
+  <div>
+    <div class="screen-label">2. Who's watching?</div>
+    <div class="tv">
+      <div class="profiles">
+        <h1>Who's up to bat?</h1>
+        <div class="kids">
+          <div class="kid"><div class="big focus" style="background:#e63946">S</div><b>Sam</b><span>12 watched</span></div>
+          <div class="kid"><div class="big" style="background:#2a9d8f">J</div><b>Jack</b><span>7 watched</span></div>
+        </div>
+        <div class="parent">🔒 Parent: manage videos (PIN)</div>
+      </div>
+    </div>
+    <div class="note">Two big targets that are easy to hit with the remote. Parent settings sit behind a PIN.</div>
+  </div>
+
+  <div>
+    <div class="screen-label">3. Watching a video</div>
+    <div class="tv">
+      <div class="player">
+        <div class="video">🏏</div>
+        <div class="overlay">
+          <b>Power Thru Soft Toss</b> <span class="src">LITTLE LEAGUE</span>
+          <div class="bar"><i></i></div>
+          <div class="ctrls">
+            <div class="ctrl focus">⏯ Pause</div>
+            <div class="ctrl">⏪ 10s</div>
+            <div class="ctrl">⭐ Add to My List</div>
+            <div class="ctrl">🐢 Slow-mo 0.5×</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note">The app's own player. When the video ends, there are no YouTube suggestions, just "next in Hitting." Slow-mo helps for studying a swing.</div>
+  </div>
+</div>
+
+</body>
+</html>
