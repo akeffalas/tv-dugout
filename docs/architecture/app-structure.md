@@ -13,14 +13,16 @@ app/src/main/kotlin/tv/dugout/
 ├── DugoutApp.kt             # NavHost, routes, and the result handoff back to Home
 ├── library/                 # Video, Skill, Level, AgeRange, recommendations, VideoLibrary, ProfileVideos
 ├── history/                 # WatchHistory, WatchProgress rules, InMemoryWatchHistory, ProgressSink
-├── profile/                 # Profile, ProfileRepository (add a child), ProfileSaver, avatar colors
+├── profile/                 # Profile, ProfileRepository (add, update, re-list, remove), ProfileSaver, avatar colors
 ├── storage/                 # Room database, migrations, SavedStore, throttled ProgressWriter
 ├── picker/                  # ProfilePickerViewModel and ProfilePickerScreen (with the add tile)
 ├── setup/                   # SetupViewModel and the "Add a player" wizard screens
 ├── home/                    # HomeViewModel, focus return rules, HomeScreen, cards, tabs
 ├── player/                  # VideoPlayer seam, PlayerViewModel, PlayerScreen, YouTube adapter
 ├── upnext/                  # next video rule and UpNextScreen
-├── parent/                  # ParentPlaceholderScreen (until the parent settings spec)
+├── parent/                  # ParentLock, PinHasher, PinKey (Keystore), recovery codes, lockout
+│   ├── pin/                 # PinFlowViewModel and the PIN, recovery code, and recovery screens
+│   └── settings/            # ParentSettingsViewModel, the two-pane screen, and its four tabs
 └── ui/theme/                # color tokens, DugoutTheme, DugoutBackground
 ```
 
@@ -57,6 +59,14 @@ flowchart LR
 - `WatchHistory` holds each child's progress. A video is watched at 90% of its length,
   or when it ends; it counts as started at 10 seconds. `InMemoryWatchHistory` serves
   progress from memory and reports each change to a `ProgressSink`.
+- `ParentLock` guards parent settings and adding a player (spec
+  [0006](../specs/0006-parent-settings/spec.md)). The PIN and recovery code are kept only
+  as a salted PBKDF2 hash mixed with an HMAC key held in the Android Keystore
+  (`PinHasher`, `PinKey`). A new PIN is saved only when the parent confirms they have the
+  recovery code. Five wrong entries lock the PIN screens for a minute, doubling to an
+  hour, timed on the monotonic clock so changing the TV's clock cannot skip a wait.
+- `Video.addedIn` and `Profile.offeredVersion` mark videos added to the library since a
+  parent last looked at a child's Videos tab, so they show as New there.
 - `PlayerViewModel` talks to the player only through `VideoPlayer`, so the YouTube
   adapter ([ADR-0006](../adr/0006-youtube-embedded-player.md)) can be swapped for a fake.
 
@@ -81,11 +91,15 @@ flowchart LR
   builds the `AppGraph` from in-memory parts. Until then `StartupGate` shows a blank
   background, so no screen (including one Android restores after the process was
   killed) reads a half-filled store. If loading fails it shows an error message.
-- A brand-new database starts empty, so a fresh install opens the setup wizard. Tests
+- A brand-new database starts empty, so a fresh install asks for a parent PIN and then
+  opens the setup wizard. Tests
   can seed one (`Seed`); `SampleDugoutApplication` does so for tests that launch the real
   `MainActivity`.
 - Version 2 added each child's age range and level; `MIGRATION_1_2` gives children saved
   by version 1 "9 to 10, kid pitch".
+- Version 3 added `profile.offered_library_version` and the single-row `parent_lock`
+  table; `MIGRATION_2_3` sets existing children to version 1, so the 0005 videos show as
+  New for them.
 - `ProgressWriter` saves a playing video's progress at most every 5 seconds, and at once
   when a video ends, when the child leaves the player, and when the activity stops.
 - Progress for a video no longer in the library is dropped on load.
@@ -97,11 +111,15 @@ flowchart LR
 | Route | Screen | Back goes to |
 |-------|--------|--------------|
 | `picker` (start) | Profile picker | leaves the app |
-| `setup` (start with no children) | Add a player wizard | the previous step; on the first step and the ready screen, the picker (or leaves the app with no children) |
+| `first-pin` (start with no children and no PIN) | Choose a parent PIN, then the recovery code | the previous step, or leaves the app |
+| `setup` (start with no children and a PIN) | Add a player wizard | the previous step; on the first step and the ready screen, the picker (or leaves the app with no children) |
 | `home/{profileId}` | Home: skill tabs, rows of cards | picker, focus on that profile |
 | `player/{profileId}/{videoId}` | Player | Home, focus on that video |
 | `upnext/{profileId}/{videoId}` | Up next, after a video ends | Home, focus on that video |
-| `parent` | Parent placeholder | picker, focus on the parent button |
+| `parent` | Enter (or choose) the parent PIN, Forgot PIN | the previous step, or the picker, focus on the parent button |
+| `parent/settings` | Parent settings, two panes | from the right pane, the selected child; from the left, the picker |
+| `parent/change-pin` | Change PIN | parent settings, focus on Change PIN |
+| `parent/setup` | Add a player wizard from parent settings | parent settings, focus on the new child (from the ready screen) or on Add a player |
 
 When a video ends, the player replaces itself with Up next. "Play next" replaces Up
 next with a new player, so Back always lands on Home. The player and Up next tell Home
@@ -128,3 +146,9 @@ outline and scale to 1.06, as in [the mockup](../mockups/tv-mockup.html).
 - **Player:** Play/Pause. The YouTube view blocks descendant focus, so the remote never
   enters it.
 - **Up next:** Play next, or Back to <Skill> when the skill has no other video.
+- **PIN screens:** the 5 key on the number pad; the remote's number keys also type
+  digits. On the recovery code screen, "I've saved it".
+- **Parent settings:** the first child, or the item last chosen. Right from the left pane
+  lands on the selected tab; entering the left pane lands on the selected child. A
+  confirmation opens on its safe choice (Cancel, Keep), and focus returns to the row it
+  came from.

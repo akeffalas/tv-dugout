@@ -47,18 +47,20 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 ### What exists
 
 ```text
-screens   picker (start), setup wizard (add a player; the start on a fresh install),
-          home (skill tabs with progress), player (YouTube embed), up next,
-          parent placeholder
-data      47-video bundled library with age and level tags; profiles (with age range
-          and level), each child's video list, and watch progress saved in Room; a
-          fresh install has no children
+screens   picker (start), parent PIN (first screen on a fresh install, then the setup
+          wizard), setup wizard (add a player), home (skill tabs with progress),
+          player (YouTube embed), up next, parent settings (progress and reset,
+          profile, videos with New marks, remove; add a player, change PIN)
+data      47-video bundled library with age, level, and library-version tags; profiles
+          (with age range, level, and offered version), each child's video list, watch
+          progress, and the hashed parent PIN saved in Room; a fresh install has no
+          children and no PIN
 recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```
 
 Not built yet: videos for other ages and levels (tee ball, coach pitch, 13+), My List,
-parent settings and the PIN (editing or removing a child), CI, and integration tests
+a per-video "stop at" time, CI, and integration tests
 (Testcontainers is deferred until there is something to integrate against, ADR-0003).
 
 ## Commands
@@ -110,6 +112,10 @@ The canonical slice to copy is `picker/`: `ProfilePickerViewModel.kt` with its t
   `awaitGraph()` waits for the graph). Tests that call `DugoutApp(testGraph())` need not.
 - **Changing a Room entity needs a new schema version and a tested migration** (ADR-0007).
   Never use a destructive fallback: it erases children's progress.
+- **Robolectric has no Android Keystore.** Tests use `FixedPinKey`; `KeystorePinKey` runs
+  only in the acceptance suite.
+- **Robolectric measures text as zero width by default.** A test about how text fits (such
+  as chips squeezing at TV size) needs `@GraphicsMode(GraphicsMode.Mode.NATIVE)`.
 - `@Composable` functions are exempt from ktlint's lowercase naming rule
   (`.editorconfig`).
 
