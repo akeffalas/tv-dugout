@@ -1,6 +1,8 @@
 package tv.dugout.parent
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.dugout.ui.theme.DugoutBackground
@@ -9,6 +11,10 @@ import tv.dugout.ui.theme.DugoutBackground
 @Composable
 fun ParentPlaceholderScreen() {
     DugoutBackground {
-        Text("Parent settings are coming soon.", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            modifier = Modifier.testTag("parent_settings"),
+            text = "Parent settings are coming soon.",
+            style = MaterialTheme.typography.headlineMedium,
+        )
     }
 }

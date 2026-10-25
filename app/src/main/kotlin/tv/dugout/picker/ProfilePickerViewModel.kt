@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.update
 import tv.dugout.history.WatchHistory
 import tv.dugout.history.WatchProgress
 import tv.dugout.library.ProfileVideos
+import tv.dugout.parent.LockStatus
+import tv.dugout.parent.ParentLock
 import tv.dugout.profile.MAX_PLAYERS
 import tv.dugout.profile.Profile
 import tv.dugout.profile.ProfileRepository
@@ -43,11 +45,12 @@ class ProfilePickerViewModel(
     repository: ProfileRepository,
     private val profileVideos: ProfileVideos,
     private val history: WatchHistory,
+    private val lock: ParentLock,
 ) : ViewModel() {
     private val state =
         MutableStateFlow(
             repository.profiles.value.let { profiles ->
-                ProfilePickerUiState(profiles, watchedCounts(profiles), null, profiles.size < MAX_PLAYERS)
+                ProfilePickerUiState(profiles, watchedCounts(profiles), null, canAdd(profiles.size, lock.status.value))
             },
         )
     val uiState: StateFlow<ProfilePickerUiState> = state.asStateFlow()
@@ -72,12 +75,20 @@ class ProfilePickerViewModel(
                     it.copy(
                         profiles = profiles,
                         watchedCounts = counts,
-                        canAddPlayer =
-                            profiles.size < MAX_PLAYERS,
+                        canAddPlayer = canAdd(profiles.size, lock.status.value),
                     )
                 }
             }.launchIn(viewModelScope)
+        lock.status
+            .onEach { status -> state.update { it.copy(canAddPlayer = canAdd(it.profiles.size, status)) } }
+            .launchIn(viewModelScope)
     }
+
+    // Once a PIN exists, adding a player lives behind it in parent settings.
+    private fun canAdd(
+        children: Int,
+        status: LockStatus,
+    ) = children < MAX_PLAYERS && status == LockStatus.NO_PIN
 
     fun onProfileSelected(profileId: String) {
         state.update { it.copy(lastSelection = PickerSelection.Kid(profileId)) }

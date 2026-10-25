@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.FixedProfileVideos
 import tv.dugout.library.Skill
+import tv.dugout.parent.pinLock
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.ui.theme.DugoutTheme
 
@@ -35,7 +36,12 @@ class DugoutAppSetupTest {
 
     private fun emptyGraph(): AppGraph {
         val lists = FixedProfileVideos(emptyMap())
-        return testGraph(library = library, lists = lists, profiles = InMemoryProfileRepository(emptyList(), lists))
+        return testGraph(
+            library = library,
+            lists = lists,
+            profiles = InMemoryProfileRepository(emptyList(), lists),
+            lock = pinLock(),
+        )
     }
 
     private fun show(graph: AppGraph) {

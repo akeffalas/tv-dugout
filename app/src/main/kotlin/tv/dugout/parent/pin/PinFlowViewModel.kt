@@ -49,6 +49,12 @@ class PinFlowViewModel(
         title = titleFor(step),
         message = message,
         showForgot = step == PinStep.ENTER && flow == PinFlow.UNLOCK,
+        canStepBack =
+            when (step) {
+                PinStep.CONFIRM, PinStep.SHOW_CODE, PinStep.RECOVER -> true
+                PinStep.CHOOSE -> newPinFrom == NewPinFrom.RECOVERY
+                PinStep.ENTER, PinStep.KEY_LOST -> false
+            },
     )
 
     private fun titleFor(step: PinStep): String =

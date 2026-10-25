@@ -61,11 +61,11 @@ class DugoutAppTest {
     }
 
     @Test
-    fun selectingParentShowsPlaceholder() {
+    fun selectingParentAsksForAPin() {
         press(Key.DirectionDown)
         press(Key.DirectionCenter)
 
-        compose.onNodeWithText("Parent settings are coming soon.").assertIsDisplayed()
+        compose.onNodeWithText("Choose a parent PIN").assertIsDisplayed()
     }
 
     @Test

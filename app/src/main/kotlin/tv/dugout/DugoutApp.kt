@@ -16,7 +16,11 @@ import androidx.navigation.compose.rememberNavController
 import tv.dugout.home.HomeScreen
 import tv.dugout.home.HomeViewModel
 import tv.dugout.library.Skill
+import tv.dugout.parent.LockStatus
 import tv.dugout.parent.ParentPlaceholderScreen
+import tv.dugout.parent.pin.PinFlow
+import tv.dugout.parent.pin.PinFlowScreen
+import tv.dugout.parent.pin.PinFlowViewModel
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
 import tv.dugout.player.PlayerScreen
@@ -30,6 +34,9 @@ import tv.dugout.upnext.nextVideo
 const val PICKER_ROUTE = "picker"
 const val PARENT_ROUTE = "parent"
 const val SETUP_ROUTE = "setup"
+const val FIRST_PIN_ROUTE = "first-pin"
+const val PARENT_SETTINGS_ROUTE = "parent/settings"
+const val CHANGE_PIN_ROUTE = "parent/change-pin"
 private const val PROFILE_ID_ARG = "profileId"
 private const val VIDEO_ID_ARG = "videoId"
 
@@ -60,21 +67,22 @@ fun DugoutApp(
     graph: AppGraph,
     navController: NavHostController = rememberNavController(),
 ) {
-    // A fresh install has no children yet, so it starts by adding one.
+    // A fresh install has no children yet, so it starts by choosing a PIN (if none) and adding one.
     val start =
         remember {
-            if (graph.profiles.profiles.value
-                    .isEmpty()
-            ) {
-                SETUP_ROUTE
-            } else {
-                PICKER_ROUTE
+            when {
+                graph.profiles.profiles.value
+                    .isNotEmpty() -> PICKER_ROUTE
+
+                graph.lock.status.value == LockStatus.NO_PIN -> FIRST_PIN_ROUTE
+
+                else -> SETUP_ROUTE
             }
         }
     NavHost(navController = navController, startDestination = start) {
         composable(PICKER_ROUTE) { entry ->
             val pickerViewModel =
-                viewModel { ProfilePickerViewModel(graph.profiles, graph.profileVideos, graph.history) }
+                viewModel { ProfilePickerViewModel(graph.profiles, graph.profileVideos, graph.history, graph.lock) }
             val state by pickerViewModel.uiState.collectAsStateWithLifecycle()
             val added by entry.savedStateHandle
                 .getStateFlow<String?>(RESULT_ADDED_PROFILE, null)
@@ -115,9 +123,52 @@ fun DugoutApp(
         composable("home/{$PROFILE_ID_ARG}") { entry -> HomeDestination(graph, navController, entry) }
         composable(PLAYER_ROUTE_PATTERN) { entry -> PlayerDestination(graph, navController, entry) }
         composable(UP_NEXT_ROUTE_PATTERN) { entry -> UpNextDestination(graph, navController, entry) }
-        composable(PARENT_ROUTE) { ParentPlaceholderScreen() }
+        composable(FIRST_PIN_ROUTE) { entry ->
+            PinDestination(graph, navController, entry, PinFlow.FIRST_RUN) {
+                navController.navigate(SETUP_ROUTE) { popUpTo(FIRST_PIN_ROUTE) { inclusive = true } }
+            }
+        }
+        composable(PARENT_ROUTE) { entry ->
+            PinDestination(graph, navController, entry, PinFlow.UNLOCK) {
+                navController.navigate(PARENT_SETTINGS_ROUTE) { popUpTo(PARENT_ROUTE) { inclusive = true } }
+            }
+        }
+        composable(CHANGE_PIN_ROUTE) { entry ->
+            PinDestination(graph, navController, entry, PinFlow.CHANGE) { navController.popBackStack() }
+        }
+        composable(PARENT_SETTINGS_ROUTE) { ParentPlaceholderScreen() }
         composable(SETUP_ROUTE) { entry -> SetupDestination(graph, navController, entry) }
     }
+}
+
+/** The PIN screens for [flow]; [onFinished] runs once, while this screen is current, when the flow ends. */
+@Composable
+private fun PinDestination(
+    graph: AppGraph,
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+    flow: PinFlow,
+    onFinished: () -> Unit,
+) {
+    val pinViewModel = viewModel { PinFlowViewModel(flow, graph.lock) }
+    val state by pinViewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(state.finished) {
+        if (state.finished && navController.currentBackStackEntry == entry) onFinished()
+    }
+    // Otherwise Back leaves the PIN screens: to the screen beneath, or out of the app on a fresh install.
+    BackHandler(enabled = state.canStepBack || state.busy) {
+        if (navController.currentBackStackEntry == entry) pinViewModel.onBack()
+    }
+    PinFlowScreen(
+        state = state,
+        onDigit = pinViewModel::onDigit,
+        onDelete = pinViewModel::onDelete,
+        onOk = pinViewModel::onOk,
+        onForgot = pinViewModel::onForgot,
+        onCodeChanged = pinViewModel::onCodeChanged,
+        onCodeSubmitted = pinViewModel::onCodeSubmitted,
+        onSaved = pinViewModel::onSaved,
+    )
 }
 
 @Composable

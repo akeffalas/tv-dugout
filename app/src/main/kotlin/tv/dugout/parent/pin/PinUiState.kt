@@ -35,4 +35,6 @@ data class PinUiState(
     val showForgot: Boolean = false,
     val busy: Boolean = false,
     val finished: Boolean = false,
+    /** Whether Back steps within the PIN screens rather than leaving them. */
+    val canStepBack: Boolean = false,
 )

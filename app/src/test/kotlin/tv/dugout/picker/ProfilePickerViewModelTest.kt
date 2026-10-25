@@ -11,6 +11,9 @@ import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.FixedProfileVideos
 import tv.dugout.library.ProfileVideos
+import tv.dugout.parent.ParentLock
+import tv.dugout.parent.noPinLock
+import tv.dugout.parent.pinLock
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.profile.Profile
 import tv.dugout.profile.ProfileRepository
@@ -27,7 +30,8 @@ class ProfilePickerViewModelTest {
     private fun viewModel(
         profiles: ProfileRepository = repository,
         profileVideos: ProfileVideos = lists,
-    ) = ProfilePickerViewModel(profiles, profileVideos, history)
+        lock: ParentLock = noPinLock(),
+    ) = ProfilePickerViewModel(profiles, profileVideos, history, lock)
 
     @Test
     fun initialStateHasProfilesAndNoSelection() {
@@ -125,6 +129,19 @@ class ProfilePickerViewModelTest {
             repository.add(maya.copy(id = "kid3"), emptyList())
 
             assertThat(viewModel.uiState.value.canAddPlayer).isFalse()
+        }
+
+    @Test
+    fun addTileHidesOnceAPinExists() =
+        runTest {
+            val lock = noPinLock()
+            val viewModel = viewModel(lock = lock)
+            assertThat(viewModel.uiState.value.canAddPlayer).isTrue()
+
+            lock.commit(lock.prepare("1234"))
+
+            assertThat(viewModel.uiState.value.canAddPlayer).isFalse()
+            assertThat(viewModel(lock = pinLock()).uiState.value.canAddPlayer).isFalse()
         }
 
     @Test
