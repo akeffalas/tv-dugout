@@ -16,7 +16,27 @@ enum class Skill(
 }
 
 /** The kind of baseball a video suits, used by the setup wizard to recommend videos. */
-enum class Level { TEE_BALL, COACH_PITCH, KID_PITCH }
+enum class Level(
+    val label: String,
+    val hint: String,
+) {
+    TEE_BALL("Tee ball", "Hits off a tee"),
+    COACH_PITCH("Coach pitch", "A coach throws"),
+    KID_PITCH("Kid pitch", "Kids pitch"),
+}
+
+/** A child's age range as the setup wizard offers it. [years] is what video ages are matched against. */
+enum class AgeRange(
+    val label: String,
+    val years: IntRange,
+    val usualLevel: Level,
+) {
+    FOUR_TO_SIX("4 to 6", 4..6, Level.TEE_BALL),
+    SEVEN_TO_EIGHT("7 to 8", 7..8, Level.COACH_PITCH),
+    NINE_TO_TEN("9 to 10", 9..10, Level.KID_PITCH),
+    ELEVEN_TO_TWELVE("11 to 12", 11..12, Level.KID_PITCH),
+    THIRTEEN_PLUS("13+", 13..18, Level.KID_PITCH),
+}
 
 /** Where a video is hosted. Only YouTube plays today; the field leaves room for others. */
 enum class VideoSource { YOUTUBE, }
