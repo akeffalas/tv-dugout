@@ -13,4 +13,16 @@ interface ProfileRepository {
         profile: Profile,
         videoIds: List<String>,
     )
+
+    /** Saves changes to a child's name, age range, level, or offered version. Throws, changing nothing, on failure. */
+    suspend fun update(profile: Profile)
+
+    /** Gives a child the list [videoIds], in that order. Throws, changing nothing, on failure. */
+    suspend fun setVideos(
+        profileId: String,
+        videoIds: List<String>,
+    )
+
+    /** Deletes a child and their list. Throws, changing nothing, on failure. */
+    suspend fun remove(profileId: String)
 }

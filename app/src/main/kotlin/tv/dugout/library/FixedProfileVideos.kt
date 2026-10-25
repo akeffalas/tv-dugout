@@ -16,4 +16,9 @@ class FixedProfileVideos(
     ) {
         lists = lists + (profileId to videoIds)
     }
+
+    /** Drops [profileId]'s list. */
+    fun remove(profileId: String) {
+        lists = lists - profileId
+    }
 }

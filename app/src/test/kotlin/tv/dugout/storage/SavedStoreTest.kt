@@ -81,6 +81,30 @@ class SavedStoreTest {
         }
 
     @Test
+    fun changesSurviveReload() =
+        runBlocking<Unit> {
+            val name = "change-test.db"
+            context.deleteDatabase(name)
+            val open = { dugoutDatabase(context, name, seed) }
+            val profiles = store(open = open).apply { start() }.ready().profiles
+            val renamed =
+                SAMPLE_PROFILES[1].copy(
+                    name = "Jackson",
+                    ageRange = AgeRange.THIRTEEN_PLUS,
+                    offeredVersion = 2,
+                )
+
+            profiles.update(renamed)
+            profiles.setVideos("jack", listOf("b", "a"))
+            profiles.remove("sam")
+
+            val reopened = store(open = open).apply { start() }.ready()
+            assertThat(reopened.profiles.profiles.value).containsExactly(renamed)
+            assertThat(reopened.profileVideos.videoIds("jack")).containsExactly("b", "a").inOrder()
+            assertThat(reopened.profileVideos.videoIds("sam")).isEmpty()
+        }
+
+    @Test
     fun openFailureReportsFailed() =
         runBlocking<Unit> {
             val store = store(open = { error("no disk") })

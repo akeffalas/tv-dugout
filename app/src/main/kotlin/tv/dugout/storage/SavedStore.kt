@@ -83,14 +83,28 @@ class SavedStore(
             }
         val profileVideos = FixedProfileVideos(lists)
         val saver =
-            ProfileSaver { profile, position, videoIds ->
-                // On the store's own scope, so leaving the wizard mid-save does not cancel the write.
-                withContext(scope.coroutineContext) {
-                    dao.addProfile(
-                        profile.toEntity(position),
-                        videoIds.mapIndexed { index, videoId -> ProfileVideoEntity(profile.id, videoId, index) },
-                    )
-                }
+            object : ProfileSaver {
+                // On the store's own scope, so leaving a screen mid-save does not cancel the write.
+                private suspend fun write(block: suspend () -> Unit) = withContext(scope.coroutineContext) { block() }
+
+                override suspend fun save(
+                    profile: Profile,
+                    position: Int,
+                    videoIds: List<String>,
+                ) = write { dao.addProfile(profile.toEntity(position), videoIds.toRows(profile.id)) }
+
+                override suspend fun update(profile: Profile) =
+                    write {
+                        val position = dao.profiles().first { it.id == profile.id }.position
+                        dao.updateProfile(profile.toEntity(position))
+                    }
+
+                override suspend fun saveVideos(
+                    profileId: String,
+                    videoIds: List<String>,
+                ) = write { dao.replaceProfileVideos(profileId, videoIds.toRows(profileId)) }
+
+                override suspend fun remove(profileId: String) = write { dao.removeProfile(profileId) }
             }
         return AppGraph(
             profiles = InMemoryProfileRepository(profiles, profileVideos, saver),
@@ -102,6 +116,9 @@ class SavedStore(
         )
     }
 }
+
+private fun List<String>.toRows(profileId: String) =
+    mapIndexed { index, videoId -> ProfileVideoEntity(profileId, videoId, index) }
 
 private fun ProfileEntity.toProfile() =
     Profile(

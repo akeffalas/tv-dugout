@@ -68,4 +68,74 @@ class InMemoryProfileRepositoryTest {
         assertThat(repository.profiles.value).isEqualTo(SAMPLE_PROFILES)
         assertThat(lists.videoIds("maya")).isEmpty()
     }
+
+    private val sam = SAMPLE_PROFILES[0]
+
+    @Test
+    fun updateReplacesTheProfileInPlace() =
+        runTest {
+            val repository = repository()
+            val renamed = sam.copy(name = "Sammy", level = Level.TEE_BALL)
+
+            repository.update(renamed)
+
+            assertThat(repository.profiles.value).containsExactly(renamed, SAMPLE_PROFILES[1]).inOrder()
+            assertThat(repository.profile("sam")).isEqualTo(renamed)
+        }
+
+    @Test
+    fun setVideosChangesTheList() =
+        runTest {
+            val repository = repository()
+
+            repository.setVideos("sam", listOf("c", "a"))
+
+            assertThat(lists.videoIds("sam")).containsExactly("c", "a").inOrder()
+        }
+
+    @Test
+    fun removeDropsProfileAndList() =
+        runTest {
+            lists.put("sam", listOf("a"))
+            val repository = repository()
+
+            repository.remove("sam")
+
+            assertThat(repository.profiles.value).containsExactly(SAMPLE_PROFILES[1])
+            assertThat(lists.videoIds("sam")).isEmpty()
+        }
+
+    @Test
+    fun failedUpdateChangesNothing() {
+        lists.put("sam", listOf("a"))
+        val failing =
+            object : ProfileSaver {
+                override suspend fun save(
+                    profile: Profile,
+                    position: Int,
+                    videoIds: List<String>,
+                ) = Unit
+
+                override suspend fun update(profile: Profile) = error("disk full")
+
+                override suspend fun saveVideos(
+                    profileId: String,
+                    videoIds: List<String>,
+                ) = error("disk full")
+
+                override suspend fun remove(profileId: String) = error("disk full")
+            }
+        val repository = repository(saver = failing)
+
+        listOf<suspend () -> Unit>(
+            { repository.update(sam.copy(name = "Sammy")) },
+            { repository.setVideos("sam", listOf("b")) },
+            { repository.remove("sam") },
+        ).forEach { change ->
+            assertThrows(IllegalStateException::class.java) { kotlinx.coroutines.runBlocking { change() } }
+        }
+
+        assertThat(repository.profiles.value).isEqualTo(SAMPLE_PROFILES)
+        assertThat(lists.videoIds("sam")).containsExactly("a")
+    }
 }
