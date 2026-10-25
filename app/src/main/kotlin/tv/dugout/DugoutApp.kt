@@ -169,7 +169,16 @@ private fun SetupDestination(
                 }
             }
         },
-        onAddAnother = { fromSetup(setupViewModel::onAddAnother) },
+        onAddAnother = {
+            val saved = state.saved
+            if (saved != null) {
+                // A fresh wizard over the picker, so Back on its first step returns there even on a fresh install.
+                fromSetup {
+                    toPicker(saved.id)
+                    navController.navigate(SETUP_ROUTE)
+                }
+            }
+        },
     )
 }
 

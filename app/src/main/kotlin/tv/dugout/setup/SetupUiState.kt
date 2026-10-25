@@ -20,7 +20,8 @@ data class VideoChoice(
 
 /**
  * Everything the wizard shows. [videos] belong to [videoSkill]; [chosenCounts] is checked and
- * total videos for each chosen skill.
+ * total videos for each chosen skill. [emptySkillRequest] changes on every refused Done, so
+ * focus moves to [emptySkill] each time, not only when it names a new skill.
  */
 data class SetupUiState(
     val step: SetupStep = SetupStep.NAME,
@@ -35,6 +36,7 @@ data class SetupUiState(
     val chosenCounts: Map<Skill, Pair<Int, Int>> = emptyMap(),
     val noRecommendations: Boolean = false,
     val emptySkill: Skill? = null,
+    val emptySkillRequest: Int = 0,
     val saving: Boolean = false,
     val saveFailed: Boolean = false,
     val saved: Profile? = null,

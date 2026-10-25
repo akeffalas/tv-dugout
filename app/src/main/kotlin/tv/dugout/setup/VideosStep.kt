@@ -56,7 +56,7 @@ internal fun VideosStep(
     val skillFocus = remember(skills) { skills.associateWith { FocusRequester() } }
     val firstVideo = remember { FocusRequester() }
     LaunchedEffect(Unit) { skillFocus[state.videoSkill]?.requestFocus() }
-    LaunchedEffect(state.emptySkill) { state.emptySkill?.let { skillFocus[it]?.requestFocus() } }
+    LaunchedEffect(state.emptySkillRequest) { state.emptySkill?.let { skillFocus[it]?.requestFocus() } }
 
     Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
         Column(modifier = Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

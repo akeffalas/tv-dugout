@@ -93,7 +93,14 @@ class SetupViewModel(
         if (current.saving || current.step != SetupStep.VIDEOS) return
         val empty = Skill.entries.firstOrNull { it in current.skills && checks[it].isNullOrEmpty() }
         if (empty != null) {
-            publishVideos(current.copy(emptySkill = empty, videoSkill = empty))
+            publishVideos(
+                current.copy(
+                    emptySkill = empty,
+                    videoSkill = empty,
+                    emptySkillRequest =
+                        current.emptySkillRequest + 1,
+                ),
+            )
             return
         }
         val chosen = checks.values.flatten().toSet()
@@ -140,11 +147,6 @@ class SetupViewModel(
             )
         }
         return true
-    }
-
-    fun onAddAnother() {
-        checks = emptyMap()
-        state.value = fresh()
     }
 
     private fun fresh() = SetupUiState(canAddAnother = profiles.profiles.value.size < MAX_PLAYERS)

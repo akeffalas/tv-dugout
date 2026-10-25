@@ -1,5 +1,7 @@
 package tv.dugout.setup
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -166,6 +168,44 @@ class VideosStepTest {
 
         compose.onNodeWithTag("video_skill_CATCHING").assertIsFocused()
         compose.onNodeWithText("Pick at least one Catching video.").assertIsDisplayed()
+    }
+
+    @Test
+    fun everyRefusedDoneMovesFocusToTheEmptySkill() {
+        val viewModel = SetupViewModel(InMemoryProfileRepository(emptyList()), library)
+        viewModel.onNameChanged("Maya")
+        viewModel.onNameSubmitted()
+        viewModel.onAgeSelected(AgeRange.FOUR_TO_SIX)
+        viewModel.onLevelSelected(Level.TEE_BALL)
+        viewModel.onSkillsSubmitted()
+        compose.setContent {
+            val state by viewModel.uiState.collectAsState()
+            DugoutTheme {
+                SetupScreen(
+                    state = state,
+                    onNameChanged = {},
+                    onNameSubmitted = {},
+                    onAgeSelected = {},
+                    onLevelSelected = {},
+                    onSkillToggled = {},
+                    onSkillsSubmitted = {},
+                    onVideoSkillFocused = viewModel::onVideoSkillFocused,
+                    onVideoToggled = viewModel::onVideoToggled,
+                    onDone = viewModel::onDone,
+                    onStartWatching = {},
+                    onAddAnother = {},
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        repeat(Skill.entries.size) { press(Key.DirectionDown) }
+        press(Key.DirectionCenter)
+        compose.onNodeWithTag("video_skill_HITTING").assertIsFocused()
+        repeat(Skill.entries.size) { press(Key.DirectionDown) }
+        press(Key.DirectionCenter)
+
+        compose.onNodeWithTag("video_skill_HITTING").assertIsFocused()
     }
 
     @Test

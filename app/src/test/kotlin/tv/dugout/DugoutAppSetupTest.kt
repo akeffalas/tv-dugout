@@ -199,4 +199,19 @@ class DugoutAppSetupTest {
 
         compose.onNodeWithText("What's the player's name?").assertIsDisplayed()
     }
+
+    @Test
+    fun freshInstallAddAnotherThenBackShowsPicker() {
+        val graph = emptyGraph()
+        show(graph)
+
+        addMaya()
+        press(Key.DirectionRight)
+        press(Key.DirectionCenter)
+        back()
+
+        assertThat(compose.activity.isFinishing).isFalse()
+        compose.onNodeWithText("Who's up to bat?").assertIsDisplayed()
+        compose.onNodeWithTag("profile_tile_${graph.profiles.profiles.value.single().id}").assertIsFocused()
+    }
 }

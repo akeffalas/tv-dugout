@@ -256,6 +256,18 @@ class SetupViewModelTest {
     }
 
     @Test
+    fun everyRefusedDoneAsksForFocusAgain() {
+        val viewModel = viewModel().toVideos()
+        viewModel.uncheckAll(Skill.CATCHING)
+
+        viewModel.onDone()
+        val first = viewModel.state.emptySkillRequest
+        viewModel.onDone()
+
+        assertThat(viewModel.state.emptySkillRequest).isGreaterThan(first)
+    }
+
+    @Test
     fun doneSavesTheChild() {
         val viewModel = viewModel().toVideos(AgeRange.ELEVEN_TO_TWELVE, name = " Maya")
         viewModel.onVideoToggled(idsOf(Skill.HITTING)[1])
@@ -337,19 +349,6 @@ class SetupViewModelTest {
     @Test
     fun backOnNameReturnsFalse() {
         assertThat(viewModel().onBack()).isFalse()
-    }
-
-    @Test
-    fun addAnotherStartsFresh() {
-        val viewModel = viewModel().toVideos()
-        viewModel.onDone()
-
-        viewModel.onAddAnother()
-
-        assertThat(viewModel.state.step).isEqualTo(SetupStep.NAME)
-        assertThat(viewModel.state.name).isEmpty()
-        assertThat(viewModel.state.age).isNull()
-        assertThat(viewModel.state.saved).isNull()
     }
 
     @Test
