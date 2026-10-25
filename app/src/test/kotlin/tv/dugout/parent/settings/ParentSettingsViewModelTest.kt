@@ -9,6 +9,7 @@ import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.library.AgeRange
 import tv.dugout.library.BundledVideoLibrary
+import tv.dugout.library.LIBRARY_VERSION
 import tv.dugout.library.Level
 import tv.dugout.library.Skill
 import tv.dugout.setup.NameError
@@ -290,4 +291,127 @@ class ParentSettingsViewModelTest {
         assertThat(viewModel.state.editing).isNull()
         assertThat(graph.profiles.profile("sam")?.name).isEqualTo("Sam")
     }
+
+    private val added0005 = library.videos().filter { it.addedIn == 2 }.map { it.id }
+
+    private fun openVideos(viewModel: ParentSettingsViewModel = viewModel()) =
+        viewModel.apply { onTabFocused(ParentTab.VIDEOS) }
+
+    @Test
+    fun allFiveSkillsAreListed() =
+        runTest {
+            graph.profiles.setVideos("sam", hitting.take(2))
+            val viewModel = openVideos()
+
+            assertThat(viewModel.state.videoChips.keys).containsExactlyElementsIn(Skill.entries).inOrder()
+            assertThat(viewModel.state.videoChips[Skill.HITTING]?.first).isEqualTo(2)
+            assertThat(viewModel.state.videoChips[Skill.PITCHING]?.first).isEqualTo(0)
+            assertThat(viewModel.state.videosSkill).isEqualTo(Skill.HITTING)
+            assertThat(viewModel.state.videos.map { it.video.id }).isEqualTo(hitting)
+            assertThat(viewModel.state.videos.count { it.checked }).isEqualTo(2)
+
+            viewModel.onVideosSkillFocused(Skill.PITCHING)
+            assertThat(
+                viewModel.state.videos
+                    .map { it.video.skill }
+                    .toSet(),
+            ).containsExactly(Skill.PITCHING)
+            assertThat(viewModel.state.videos.none { it.checked }).isTrue()
+        }
+
+    @Test
+    fun newMarksVideosPastTheOfferedVersion() {
+        val viewModel = openVideos()
+
+        val newIds =
+            viewModel.state.videos
+                .filter { it.new }
+                .map { it.video.id }
+
+        assertThat(newIds).isEqualTo(hitting.filter { it in added0005 })
+        val newPerSkill =
+            Skill.entries.associateWith { skill ->
+                library.videos().count {
+                    it.skill == skill &&
+                        it.addedIn == 2
+                }
+            }
+        assertThat(viewModel.state.videoChips.mapValues { it.value.second }).isEqualTo(newPerSkill)
+    }
+
+    @Test
+    fun recommendedFollowsTheChildsAgeAndLevel() {
+        val viewModel = openVideos()
+
+        assertThat(viewModel.state.videos.all { it.recommended }).isTrue()
+    }
+
+    @Test
+    fun leavingTheTabClearsNewMarks() {
+        val viewModel = openVideos()
+
+        viewModel.onTabFocused(ParentTab.PROGRESS)
+
+        assertThat(graph.profiles.profile("sam")?.offeredVersion).isEqualTo(LIBRARY_VERSION)
+        viewModel.onTabFocused(ParentTab.VIDEOS)
+        assertThat(viewModel.state.videos.none { it.new }).isTrue()
+    }
+
+    @Test
+    fun leavingByAnotherChildOrLeavingSettingsAlsoClearsThem() {
+        val viewModel = openVideos()
+        viewModel.onChildFocused("jack")
+        assertThat(graph.profiles.profile("sam")?.offeredVersion).isEqualTo(LIBRARY_VERSION)
+
+        viewModel.onTabFocused(ParentTab.VIDEOS)
+        viewModel.onLeave()
+        assertThat(graph.profiles.profile("jack")?.offeredVersion).isEqualTo(LIBRARY_VERSION)
+    }
+
+    @Test
+    fun notOpeningTheTabKeepsNewMarks() {
+        val viewModel = viewModel()
+
+        viewModel.onTabFocused(ParentTab.PROFILE)
+        viewModel.onLeave()
+
+        assertThat(graph.profiles.profile("sam")?.offeredVersion).isEqualTo(1)
+    }
+
+    @Test
+    fun uncheckKeepsProgressAndRecheckRestoresIt() {
+        watch(hitting[0], 95f)
+        val viewModel = openVideos()
+
+        viewModel.onVideoToggled(hitting[0])
+        assertThat(graph.profileVideos.videoIds("sam")).doesNotContain(hitting[0])
+        assertThat(history.progress("sam").value.keys).contains(hitting[0])
+
+        viewModel.onVideoToggled(hitting[0])
+        assertThat(graph.profileVideos.videoIds("sam")).contains(hitting[0])
+        assertThat(graph.profileVideos.videoIds("sam")).isEqualTo(library.videos().map { it.id })
+        viewModel.onTabFocused(ParentTab.PROGRESS)
+        assertThat(
+            viewModel.state.progressRows
+                .first()
+                .state,
+        ).isEqualTo(ProgressState.Finished)
+    }
+
+    @Test
+    fun lastVideoCannotBeUnchecked() =
+        runTest {
+            graph.profiles.setVideos("sam", listOf(hitting[0]))
+            val viewModel = openVideos()
+
+            viewModel.onVideoToggled(hitting[0])
+
+            assertThat(viewModel.state.videosMessage).isEqualTo("A player needs at least one video.")
+            assertThat(graph.profileVideos.videoIds("sam")).containsExactly(hitting[0])
+            assertThat(
+                viewModel.state.videos
+                    .first()
+                    .checked,
+            ).isTrue()
+        }
 }

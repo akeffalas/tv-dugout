@@ -2,6 +2,7 @@ package tv.dugout
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -25,6 +26,7 @@ import tv.dugout.parent.settings.ParentSettingsViewModel
 import tv.dugout.parent.settings.ParentTab
 import tv.dugout.parent.settings.ProfilePane
 import tv.dugout.parent.settings.ProgressPane
+import tv.dugout.parent.settings.VideosPane
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
 import tv.dugout.player.PlayerScreen
@@ -194,6 +196,9 @@ private fun ParentSettingsDestination(
         settingsViewModel.onReturnedWithAdded(profileId)
     }
 
+    // Leaving for another screen or back to the picker counts as having seen the Videos tab.
+    DisposableEffect(Unit) { onDispose { settingsViewModel.onLeave() } }
+
     fun fromSettings(action: () -> Unit) {
         if (navController.currentBackStackEntry == entry) action()
     }
@@ -236,6 +241,14 @@ private fun ParentSettingsDestination(
                     onAgeChosen = settingsViewModel::onAgeChosen,
                     onLevelChosen = settingsViewModel::onLevelChosen,
                     onCancelEdit = settingsViewModel::onCancelEdit,
+                )
+            }
+
+            ParentTab.VIDEOS -> {
+                VideosPane(
+                    state = state,
+                    onSkillFocused = settingsViewModel::onVideosSkillFocused,
+                    onVideoToggled = settingsViewModel::onVideoToggled,
                 )
             }
 

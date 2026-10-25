@@ -189,7 +189,7 @@ private fun VideoRow(
 }
 
 @Composable
-private fun CheckBox(
+internal fun CheckBox(
     checked: Boolean,
     videoId: String,
 ) {

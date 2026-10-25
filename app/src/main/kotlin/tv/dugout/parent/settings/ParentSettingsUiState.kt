@@ -42,6 +42,14 @@ data class ProgressRow(
     val lastPlayed: Long?,
 )
 
+/** One library video on the Videos tab. [new] means it arrived since a parent last looked at this child's videos. */
+data class EditableVideo(
+    val video: Video,
+    val checked: Boolean,
+    val recommended: Boolean,
+    val new: Boolean,
+)
+
 enum class ProfileField { NAME, AGE, LEVEL }
 
 /** A change that waits for the parent to confirm it. */
@@ -69,6 +77,11 @@ data class ParentSettingsUiState(
     val editing: ProfileField? = null,
     val nameDraft: String = "",
     val nameError: NameError? = null,
+    val videosSkill: Skill = Skill.entries.first(),
+    /** Chosen and new counts for every skill, in tab order. */
+    val videoChips: Map<Skill, Pair<Int, Int>> = emptyMap(),
+    val videos: List<EditableVideo> = emptyList(),
+    val videosMessage: String? = null,
 ) {
     val selected: Profile? get() = profiles.firstOrNull { it.id == selectedId }
 }

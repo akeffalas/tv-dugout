@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,14 +17,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import tv.dugout.AppGraph
 import tv.dugout.history.fraction
 import tv.dugout.history.started
 import tv.dugout.library.AgeRange
+import tv.dugout.library.LIBRARY_VERSION
 import tv.dugout.library.Level
 import tv.dugout.library.Skill
+import tv.dugout.library.isRecommendedFor
 import tv.dugout.profile.MAX_PLAYERS
 import tv.dugout.profile.Profile
+import tv.dugout.profile.isNewFor
 import tv.dugout.setup.nameError
 
 private const val TAG = "ParentSettings"
@@ -33,6 +40,10 @@ private const val TAG = "ParentSettings"
 class ParentSettingsViewModel(
     private val graph: AppGraph,
 ) : ViewModel() {
+    // The selected child's list as the Videos tab shows it; saves catch up one at a time, in order.
+    private var chosen: Set<String> = emptySet()
+    private val saving = Mutex()
+
     private val state =
         MutableStateFlow(
             graph.profiles.profiles.value.let { profiles ->
@@ -70,6 +81,7 @@ class ParentSettingsViewModel(
 
     fun onChildFocused(profileId: String) {
         val changed = profileId != state.value.selectedId
+        if (changed && state.value.tab == ParentTab.VIDEOS) markOffered()
         state.update {
             it.copy(
                 selectedId = profileId,
@@ -200,7 +212,99 @@ class ParentSettingsViewModel(
     }
 
     fun onTabFocused(tab: ParentTab) {
-        state.update { it.copy(tab = tab) }
+        val from = state.value.tab
+        if (from == ParentTab.VIDEOS && tab != ParentTab.VIDEOS) markOffered()
+        state.update { it.copy(tab = tab, videosMessage = null) }
+        if (tab == ParentTab.VIDEOS && from != ParentTab.VIDEOS) {
+            chosen =
+                state.value.selectedId
+                    ?.let(graph.profileVideos::videoIds)
+                    .orEmpty()
+                    .toSet()
+            refreshVideos()
+        }
+        if (tab == ParentTab.PROGRESS) refreshProgress()
+    }
+
+    /** Leaving parent settings: a Videos tab still open counts as seen. */
+    fun onLeave() {
+        if (state.value.tab == ParentTab.VIDEOS) markOffered()
+    }
+
+    fun onVideosSkillFocused(skill: Skill) {
+        state.update { it.copy(videosSkill = skill) }
+        refreshVideos()
+    }
+
+    fun onVideoToggled(videoId: String) {
+        val profileId = state.value.selectedId ?: return
+        if (videoId in chosen && chosen.size == 1) {
+            state.update { it.copy(videosMessage = "A player needs at least one video.") }
+            return
+        }
+        chosen = if (videoId in chosen) chosen - videoId else chosen + videoId
+        val snapshot = chosen
+        state.update { it.copy(videosMessage = null) }
+        refreshVideos()
+        viewModelScope.launch {
+            saving.withLock {
+                try {
+                    graph.profiles.setVideos(
+                        profileId,
+                        graph.library
+                            .videos()
+                            .map { it.id }
+                            .filter { it in snapshot },
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Saving videos for $profileId failed", e)
+                    if (state.value.selectedId == profileId) {
+                        chosen = graph.profileVideos.videoIds(profileId).toSet()
+                        state.update { it.copy(videosMessage = "Couldn't save. Try again.") }
+                        refreshVideos()
+                    }
+                }
+            }
+            refreshProgress()
+        }
+    }
+
+    // The parent has now seen every library video for this child, so none shows as new again.
+    private fun markOffered() {
+        val child = state.value.selected ?: return
+        if (child.offeredVersion >= LIBRARY_VERSION) return
+        // Not cancellable: leaving settings clears this ViewModel right after.
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                try {
+                    graph.profiles.update(child.copy(offeredVersion = LIBRARY_VERSION))
+                } catch (e: Exception) {
+                    Log.w(TAG, "Saving ${child.id} failed", e)
+                }
+            }
+        }
+    }
+
+    private fun refreshVideos() {
+        val child = state.value.selected ?: return
+        val library = graph.library.videos()
+        val chips =
+            Skill.entries.associateWith { skill ->
+                val inSkill = library.filter { it.skill == skill }
+                inSkill.count { it.id in chosen } to inSkill.count { it.isNewFor(child) }
+            }
+        val videos =
+            library.filter { it.skill == state.value.videosSkill }.map { video ->
+                EditableVideo(
+                    video = video,
+                    checked = video.id in chosen,
+                    recommended = video.isRecommendedFor(child.ageRange, child.level),
+                    new = video.isNewFor(child),
+                )
+            }
+        state.update { it.copy(videoChips = chips, videos = videos) }
     }
 
     fun onAddPlayerSelected() {
