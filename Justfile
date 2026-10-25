@@ -19,3 +19,7 @@ lint:
 # Android Lint with warnings as errors.
 lint-android:
     ./gradlew :app:lintDebug
+
+# JVM unit tests (including Compose UI under Robolectric) with the 90% coverage floor.
+test:
+    ./gradlew :app:testDebugUnitTest :app:koverVerifyDebug

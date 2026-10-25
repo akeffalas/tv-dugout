@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -42,4 +43,27 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.tv.material)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.truth)
+}
+
+kover {
+    reports {
+        filters {
+            excludes {
+                // Generated code and color tokens only; screens and logic stay measured.
+                classes("tv.dugout.BuildConfig", "tv.dugout.R", "tv.dugout.R$*", "*ComposableSingletons*")
+                classes("tv.dugout.ui.theme.ColorKt")
+            }
+        }
+        variant("debug") {
+            verify {
+                rule {
+                    minBound(90)
+                }
+            }
+        }
+    }
 }
