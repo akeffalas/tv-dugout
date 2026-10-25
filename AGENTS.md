@@ -50,15 +50,15 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 screens   picker (start), setup wizard (add a player; the start on a fresh install),
           home (skill tabs with progress), player (YouTube embed), up next,
           parent placeholder
-data      31-video bundled library with age and level tags; profiles (with age range
+data      47-video bundled library with age and level tags; profiles (with age range
           and level), each child's video list, and watch progress saved in Room; a
           fresh install has no children
 recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```
 
-Not built yet: the larger library for other ages and levels (0005), My List, parent
-settings and the PIN (editing or removing a child), CI, and integration tests
+Not built yet: videos for other ages and levels (tee ball, coach pitch, 13+), My List,
+parent settings and the PIN (editing or removing a child), CI, and integration tests
 (Testcontainers is deferred until there is something to integrate against, ADR-0003).
 
 ## Commands

@@ -7,11 +7,28 @@ class BundledVideoLibraryTest {
     private val library = BundledVideoLibrary()
 
     @Test
-    fun holdsThirtyOneVideos() {
+    fun holdsFortySevenVideos() {
         val ids = library.videos().map { it.id }
 
-        assertThat(ids).hasSize(31)
-        assertThat(ids.toSet()).hasSize(31)
+        assertThat(ids).hasSize(47)
+        assertThat(ids.toSet()).hasSize(47)
+    }
+
+    @Test
+    fun holdsTheVideosAddedInSpec0005AtTheEndOfTheirSkill() {
+        val added =
+            mapOf(
+                Skill.HITTING to listOf("kAmceQXXS-Q", "TZ9CQUmPjn8", "U3Rj-f1xN04"),
+                Skill.FIELDING to listOf("iQ7e96-iLzo", "qvwkdxepqTk", "i89e1L9yKdI", "UYItjZ8hPg0"),
+                Skill.BASERUNNING to listOf("8T_KoHtTlo0", "4_1yyhAaT_8"),
+                Skill.PITCHING to listOf("1Xcli14cENE", "hI-TQskjhGw", "htV-X-KYK2I"),
+                Skill.CATCHING to listOf("E0PiNTFyrqU", "U2-PTYnPmCM", "NaFuBrLfj78", "NmAsa944EN4"),
+            )
+
+        added.forEach { (skill, ids) ->
+            val inSkill = library.videos().filter { it.skill == skill }.map { it.id }
+            assertThat(inSkill.takeLast(ids.size)).containsExactlyElementsIn(ids).inOrder()
+        }
     }
 
     @Test
@@ -21,15 +38,15 @@ class BundledVideoLibraryTest {
         assertThat(counts)
             .containsExactly(
                 Skill.HITTING,
-                7,
+                10,
                 Skill.FIELDING,
-                7,
+                11,
                 Skill.BASERUNNING,
-                6,
+                8,
                 Skill.PITCHING,
-                6,
+                9,
                 Skill.CATCHING,
-                5,
+                9,
             )
     }
 

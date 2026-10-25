@@ -131,8 +131,8 @@ class VideosStepTest {
         show(videosState())
 
         compose.onNodeWithText(firstHitting.title).assertIsDisplayed()
-        compose.onAllNodesWithText("Recommended").fetchSemanticsNodes().let { assertThat(it).hasSize(7) }
-        compose.onNode(hasTestTag("video_skill_HITTING") and hasText("7 of 7 chosen")).assertIsDisplayed()
+        compose.onAllNodesWithText("Recommended").fetchSemanticsNodes().let { assertThat(it).hasSize(10) }
+        compose.onNode(hasTestTag("video_skill_HITTING") and hasText("10 of 10 chosen")).assertIsDisplayed()
         compose.onNodeWithTag("check_${firstHitting.id}", useUnmergedTree = true).assertExists()
     }
 
@@ -142,7 +142,7 @@ class VideosStepTest {
 
         compose.onNodeWithText("No videos picked for this level yet. Choose any you like.").assertIsDisplayed()
         compose.onNodeWithTag("check_${firstHitting.id}", useUnmergedTree = true).assertDoesNotExist()
-        compose.onNode(hasTestTag("video_skill_HITTING") and hasText("0 of 7 chosen")).assertIsDisplayed()
+        compose.onNode(hasTestTag("video_skill_HITTING") and hasText("0 of 10 chosen")).assertIsDisplayed()
     }
 
     @Test

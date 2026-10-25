@@ -224,11 +224,11 @@ class SetupViewModelTest {
     @Test
     fun chosenCountsPerSkill() {
         val viewModel = viewModel().toVideos()
-        assertThat(viewModel.state.chosenCounts[Skill.HITTING]).isEqualTo(7 to 7)
+        assertThat(viewModel.state.chosenCounts[Skill.HITTING]).isEqualTo(10 to 10)
 
         viewModel.onVideoToggled(idsOf(Skill.HITTING).first())
 
-        assertThat(viewModel.state.chosenCounts[Skill.HITTING]).isEqualTo(6 to 7)
+        assertThat(viewModel.state.chosenCounts[Skill.HITTING]).isEqualTo(9 to 10)
         assertThat(viewModel.state.chosenCounts.keys).containsExactlyElementsIn(Skill.entries)
     }
 

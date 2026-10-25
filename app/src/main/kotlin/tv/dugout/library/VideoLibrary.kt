@@ -7,7 +7,7 @@ interface VideoLibrary {
     fun video(id: String): Video?
 }
 
-/** The owner-approved starter list (spec 0002), bundled with the app. */
+/** The owner-approved list (specs 0002 and 0005), bundled with the app. */
 class BundledVideoLibrary : VideoLibrary {
     private val byId = STARTER_VIDEOS.associateBy { it.id }
 
@@ -49,6 +49,9 @@ private val STARTER_VIDEOS: List<Video> =
         ),
         kidPitch(Skill.HITTING, "XMO6GBFACTU", "Why Practice with a Tee", "SKLZ Baseball", 181),
         kidPitch(Skill.HITTING, "_UsaFW7pawA", "How to Hit a Baseball", "Jermaine Curtis", 335),
+        kidPitch(Skill.HITTING, "kAmceQXXS-Q", "Hitting Stance", "Ripken Baseball", 74),
+        kidPitch(Skill.HITTING, "TZ9CQUmPjn8", "Soft Toss", "Ripken Baseball", 98),
+        kidPitch(Skill.HITTING, "U3Rj-f1xN04", "One Arm Drill", "Ripken Baseball", 113),
         kidPitch(Skill.FIELDING, "xoygxT47to0", "Fielding a Ground Ball in the Infield", "Ripken Baseball", 119),
         kidPitch(Skill.FIELDING, "GfqSNwFVv1s", "Fielding a Ground Ball", "Ripken Baseball", 98),
         kidPitch(Skill.FIELDING, "u9txBL8QOaE", "Throwing to First Base", "Ripken Baseball", 90),
@@ -56,12 +59,18 @@ private val STARTER_VIDEOS: List<Video> =
         kidPitch(Skill.FIELDING, "5NCz88MpfgY", "Throwing Off the Backhand", "Ripken Baseball", 82),
         kidPitch(Skill.FIELDING, "MkMYQneG6t0", "How to Practice Catching Fly Balls", "Coach Joe Germaine", 329),
         kidPitch(Skill.FIELDING, "oG6gQe2gXUk", "How to Field a Ground Ball", "Ultimate Baseball Training", 248),
+        kidPitch(Skill.FIELDING, "iQ7e96-iLzo", "The Backhand", "Ripken Baseball", 105),
+        kidPitch(Skill.FIELDING, "qvwkdxepqTk", "Outfield Drop Step", "Ripken Baseball", 119),
+        kidPitch(Skill.FIELDING, "i89e1L9yKdI", "Receiving the Relay", "Ripken Baseball", 87),
+        kidPitch(Skill.FIELDING, "UYItjZ8hPg0", "Throwing from the Outfield", "Ripken Baseball", 94),
         kidPitch(Skill.BASERUNNING, "_IqNFzu34b4", "How to Slide", "Ultimate Baseball Training", 360),
         kidPitch(Skill.BASERUNNING, "bWt9YWZiJps", "How to Run the Bases", "YouGoProBaseball", 277),
         kidPitch(Skill.BASERUNNING, "D18ZPICvsZU", "How to Run Through First Base", "Coach Mazey", 102),
         kidPitch(Skill.BASERUNNING, "RTc6rXTxWOk", "Getting a Lead off First Base", "MLB Network", 250),
         kidPitch(Skill.BASERUNNING, "qqLmtYQ38Qk", "Leading and Stealing from First", "Dominate The Diamond", 224),
         kidPitch(Skill.BASERUNNING, "GVycFma-Rbk", "Rounding First Base", "Figure It Out Baseball", 220),
+        kidPitch(Skill.BASERUNNING, "8T_KoHtTlo0", "The Walking Base", "Ripken Baseball", 102),
+        kidPitch(Skill.BASERUNNING, "4_1yyhAaT_8", "Primary and Secondary Leads", "Ripken Baseball", 149),
         kidPitch(Skill.PITCHING, "86yS_uh52xI", "3 Keys for Better Pitching Mechanics", "Little League", 109),
         kidPitch(Skill.PITCHING, "7tdt-JvWpzA", "Building Arm Strength for Young Pitchers", "Little League", 126),
         kidPitch(Skill.PITCHING, "9CzbPIQfXmM", "Throwing a Changeup", "Coach Dan Blewett", 363),
@@ -74,6 +83,9 @@ private val STARTER_VIDEOS: List<Video> =
             324,
         ),
         kidPitch(Skill.PITCHING, "W0Op6Hhrqt4", "5 Easy Beginner Pitching Drills", "Northern Baseball Training", 375),
+        kidPitch(Skill.PITCHING, "1Xcli14cENE", "How to Throw a Baseball", "Ripken Baseball", 189),
+        kidPitch(Skill.PITCHING, "hI-TQskjhGw", "The Balance Drill", "Ripken Baseball", 116),
+        kidPitch(Skill.PITCHING, "htV-X-KYK2I", "The 1 2 3 Drill", "Ripken Baseball", 101),
         kidPitch(
             Skill.CATCHING,
             "pulh3ER0gM4",
@@ -85,4 +97,8 @@ private val STARTER_VIDEOS: List<Video> =
         kidPitch(Skill.CATCHING, "8EtK_1FoJgY", "Top 5 Receiving Drills", "Catching Made Simple", 222),
         kidPitch(Skill.CATCHING, "12uXsLPFhxk", "The Receiving Position", "IMG Academy", 145),
         kidPitch(Skill.CATCHING, "5No9AeOjGIk", "Throw-Downs to Second Base", "Dominate The Diamond", 270),
+        kidPitch(Skill.CATCHING, "E0PiNTFyrqU", "The One Knee Down Stance", "YouGoProBaseball", 651),
+        kidPitch(Skill.CATCHING, "U2-PTYnPmCM", "Catcher Blocking", "Ripken Baseball", 67),
+        kidPitch(Skill.CATCHING, "NaFuBrLfj78", "Catcher's Throwing Hand Position", "Ripken Baseball", 59),
+        kidPitch(Skill.CATCHING, "NmAsa944EN4", "The Low Strike", "Ripken Baseball", 60),
     )
