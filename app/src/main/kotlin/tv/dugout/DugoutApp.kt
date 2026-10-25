@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -20,6 +21,8 @@ import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
 import tv.dugout.player.PlayerScreen
 import tv.dugout.player.PlayerViewModel
+import tv.dugout.upnext.UpNextScreen
+import tv.dugout.upnext.nextVideo
 
 const val PICKER_ROUTE = "picker"
 const val PARENT_ROUTE = "parent"
@@ -31,6 +34,14 @@ const val RESULT_LAST_VIDEO = "lastVideoId"
 const val RESULT_OPEN_SKILL = "openSkill"
 
 fun homeRoute(profileId: String): String = "home/$profileId"
+
+private const val PLAYER_ROUTE_PATTERN = "player/{$PROFILE_ID_ARG}/{$VIDEO_ID_ARG}"
+private const val UP_NEXT_ROUTE_PATTERN = "upnext/{$PROFILE_ID_ARG}/{$VIDEO_ID_ARG}"
+
+fun upNextRoute(
+    profileId: String,
+    finishedVideoId: String,
+): String = "upnext/$profileId/$finishedVideoId"
 
 fun playerRoute(
     profileId: String,
@@ -69,9 +80,8 @@ fun DugoutApp(
             )
         }
         composable("home/{$PROFILE_ID_ARG}") { entry -> HomeDestination(graph, navController, entry) }
-        composable(
-            "player/{$PROFILE_ID_ARG}/{$VIDEO_ID_ARG}",
-        ) { entry -> PlayerDestination(graph, navController, entry) }
+        composable(PLAYER_ROUTE_PATTERN) { entry -> PlayerDestination(graph, navController, entry) }
+        composable(UP_NEXT_ROUTE_PATTERN) { entry -> UpNextDestination(graph, navController, entry) }
         composable(PARENT_ROUTE) { ParentPlaceholderScreen() }
     }
 }
@@ -137,6 +147,14 @@ private fun PlayerDestination(
     }
     val playerViewModel = viewModel { PlayerViewModel(profileId, video, graph.history, graph.clock) }
     val state by playerViewModel.uiState.collectAsStateWithLifecycle()
+    val ended by playerViewModel.ended.collectAsStateWithLifecycle()
+    LaunchedEffect(ended) {
+        if (ended && navController.currentBackStackEntry == entry) {
+            navController.navigate(
+                upNextRoute(profileId, video.id),
+            ) { popUpTo(PLAYER_ROUTE_PATTERN) { inclusive = true } }
+        }
+    }
     val leave = {
         if (navController.currentBackStackEntry == entry) {
             playerViewModel.onLeave()
@@ -151,5 +169,48 @@ private fun PlayerDestination(
         onBackTenSeconds = playerViewModel::onBackTenSeconds,
         onSlowMoToggle = playerViewModel::onSlowMoToggle,
         onBack = leave,
+    )
+}
+
+@Composable
+private fun UpNextDestination(
+    graph: AppGraph,
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+) {
+    val profileId = entry.arguments?.getString(PROFILE_ID_ARG)
+    val finished = entry.arguments?.getString(VIDEO_ID_ARG)?.let(graph.library::video)
+    if (profileId == null || finished == null) {
+        LaunchedEffect(Unit) { navController.popBackStack() }
+        return
+    }
+    val next =
+        remember(entry) {
+            val skillVideos =
+                graph.profileVideos
+                    .videoIds(profileId)
+                    .mapNotNull(graph.library::video)
+                    .filter { it.skill == finished.skill }
+            nextVideo(skillVideos, finished.id, graph.history.progress(profileId).value)
+        }
+
+    fun leave(openSkill: Skill?) {
+        if (navController.currentBackStackEntry == entry) navController.returnHome(finished.id, openSkill)
+    }
+    BackHandler { leave(openSkill = null) }
+    UpNextScreen(
+        finished = finished,
+        next = next,
+        onPlayNext = {
+            if (next != null && navController.currentBackStackEntry == entry) {
+                navController.navigate(playerRoute(profileId, next.id)) {
+                    popUpTo(UP_NEXT_ROUTE_PATTERN) {
+                        inclusive =
+                            true
+                    }
+                }
+            }
+        },
+        onBackToSkill = { leave(openSkill = finished.skill) },
     )
 }

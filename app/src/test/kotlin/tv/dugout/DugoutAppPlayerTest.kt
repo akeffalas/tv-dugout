@@ -18,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.player.FakePlayerSurface
+import tv.dugout.player.PlaybackState
 import tv.dugout.ui.theme.DugoutTheme
 
 /** Home, player, and back again, with a fake player in place of YouTube. */
@@ -81,5 +82,60 @@ class DugoutAppPlayerTest {
 
         compose.onNodeWithText("0 videos watched").assertIsDisplayed()
         assertThat(surface.players).hasSize(1)
+    }
+
+    private fun openFirstAndFinish() {
+        start()
+        press(Key.DirectionCenter)
+        compose.waitForIdle()
+        compose.runOnIdle {
+            surface.current.emitDuration(100f)
+            surface.current.emitState(PlaybackState.ENDED)
+        }
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun endedVideoShowsUpNext() {
+        openFirstAndFinish()
+
+        compose.onNodeWithText("Up next in Hitting").assertIsDisplayed()
+        compose.onNodeWithText("Title h2").assertIsDisplayed()
+        compose.onNodeWithTag("upnext_play").assertIsFocused()
+    }
+
+    @Test
+    fun playNextThenBackReturnsHomeNotFirstVideo() {
+        openFirstAndFinish()
+
+        press(Key.DirectionCenter)
+        compose.waitForIdle()
+        assertThat(surface.current.loaded).isEqualTo("h2" to 0f)
+        back()
+
+        compose.onNodeWithText("1 video watched").assertIsDisplayed()
+        compose.onNodeWithTag("card_row_hitting_h2").assertIsFocused()
+    }
+
+    @Test
+    fun backToSkillOpensSkillTabWithFocusOnFinishedVideo() {
+        openFirstAndFinish()
+
+        press(Key.DirectionRight)
+        press(Key.DirectionCenter)
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("card_grid_hitting_h1").assertIsFocused()
+        compose.onNodeWithTag("check_h1", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun backOnUpNextReturnsToOriginTab() {
+        openFirstAndFinish()
+
+        back()
+
+        compose.onNodeWithTag("card_row_hitting_h1").assertIsFocused()
+        compose.onNodeWithText("1 of 2 watched").assertIsDisplayed()
     }
 }

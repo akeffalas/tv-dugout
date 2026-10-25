@@ -131,7 +131,17 @@ private fun TopBar(state: HomeUiState) {
             Text("TV", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = FocusGold)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("${state.watchedTotal} videos watched", fontSize = 13.sp, color = Slate)
+            Text(
+                if (state.watchedTotal ==
+                    1
+                ) {
+                    "1 video watched"
+                } else {
+                    "${state.watchedTotal} videos watched"
+                },
+                fontSize = 13.sp,
+                color = Slate,
+            )
             Box(
                 modifier = Modifier.size(40.dp).background(Color(state.avatarColor), CircleShape),
                 contentAlignment = Alignment.Center,

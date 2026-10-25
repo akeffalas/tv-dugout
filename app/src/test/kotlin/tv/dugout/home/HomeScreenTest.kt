@@ -193,4 +193,11 @@ class HomeScreenTest {
                 .hasTestTag(tag),
             useUnmergedTree = true,
         ).fetchSemanticsNodes().size
+
+    @Test
+    fun oneWatchedVideoIsSingular() {
+        show(state().copy(watchedTotal = 1))
+
+        compose.onNodeWithText("1 video watched").assertIsDisplayed()
+    }
 }
