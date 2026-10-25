@@ -82,6 +82,8 @@ data class ParentSettingsUiState(
     val videoChips: Map<Skill, Pair<Int, Int>> = emptyMap(),
     val videos: List<EditableVideo> = emptyList(),
     val videosMessage: String? = null,
+    /** Every child was removed, so the app starts over with the wizard. */
+    val allRemoved: Boolean = false,
 ) {
     val selected: Profile? get() = profiles.firstOrNull { it.id == selectedId }
 }

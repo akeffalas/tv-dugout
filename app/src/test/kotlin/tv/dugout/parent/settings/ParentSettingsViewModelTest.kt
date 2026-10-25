@@ -414,4 +414,47 @@ class ParentSettingsViewModelTest {
                     .checked,
             ).isTrue()
         }
+
+    @Test
+    fun removeDeletesChildAndSelectsNext() =
+        runTest {
+            graph.profiles.add(SAMPLE_PROFILES[0].copy(id = "maya", name = "Maya"), emptyList())
+            watch(hitting[0], 50f)
+            val viewModel = viewModel()
+            viewModel.onTabFocused(ParentTab.REMOVE)
+
+            viewModel.onRemoveChild()
+
+            assertThat(
+                graph.profiles.profiles.value
+                    .map { it.id },
+            ).containsExactly("jack", "maya").inOrder()
+            assertThat(history.progress("sam").value).isEmpty()
+            assertThat(viewModel.state.selectedId).isEqualTo("jack")
+            assertThat(viewModel.state.focus).isEqualTo(ParentFocus.Child("jack"))
+            assertThat(viewModel.state.tab).isEqualTo(ParentTab.PROGRESS)
+            assertThat(viewModel.state.allRemoved).isFalse()
+        }
+
+    @Test
+    fun removingLastInListSelectsPrevious() {
+        val viewModel = viewModel()
+        viewModel.onChildFocused("jack")
+
+        viewModel.onRemoveChild()
+
+        assertThat(viewModel.state.selectedId).isEqualTo("sam")
+        assertThat(viewModel.state.focus).isEqualTo(ParentFocus.Child("sam"))
+    }
+
+    @Test
+    fun removingEveryChildIsReported() {
+        val viewModel = viewModel()
+
+        viewModel.onRemoveChild()
+        viewModel.onRemoveChild()
+
+        assertThat(graph.profiles.profiles.value).isEmpty()
+        assertThat(viewModel.state.allRemoved).isTrue()
+    }
 }

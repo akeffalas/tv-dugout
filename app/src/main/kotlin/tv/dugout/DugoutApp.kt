@@ -26,6 +26,7 @@ import tv.dugout.parent.settings.ParentSettingsViewModel
 import tv.dugout.parent.settings.ParentTab
 import tv.dugout.parent.settings.ProfilePane
 import tv.dugout.parent.settings.ProgressPane
+import tv.dugout.parent.settings.RemovePane
 import tv.dugout.parent.settings.VideosPane
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
@@ -196,6 +197,12 @@ private fun ParentSettingsDestination(
         settingsViewModel.onReturnedWithAdded(profileId)
     }
 
+    // With every child gone the app starts over, as on a fresh install but keeping the PIN.
+    LaunchedEffect(state.allRemoved) {
+        if (state.allRemoved && navController.currentBackStackEntry == entry) {
+            navController.navigate(SETUP_ROUTE) { popUpTo(navController.graph.id) { inclusive = true } }
+        }
+    }
     // Leaving for another screen or back to the picker counts as having seen the Videos tab.
     DisposableEffect(Unit) { onDispose { settingsViewModel.onLeave() } }
 
@@ -252,8 +259,8 @@ private fun ParentSettingsDestination(
                 )
             }
 
-            else -> {
-                Unit
+            ParentTab.REMOVE -> {
+                RemovePane(childName = child.name, onRemove = settingsViewModel::onRemoveChild)
             }
         }
     }

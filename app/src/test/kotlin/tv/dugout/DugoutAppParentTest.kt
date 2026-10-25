@@ -229,4 +229,43 @@ class DugoutAppParentTest {
         compose.onNodeWithTag("parent_change_pin").assertIsFocused()
         assertThat(kotlinx.coroutines.runBlocking { graph.lock.checkPin("5678") }).isEqualTo(Check.Correct)
     }
+
+    private fun removeSelected() {
+        press(Key.DirectionRight)
+        repeat(3) { press(Key.DirectionRight) }
+        compose.onNodeWithTag("parent_tab_remove").assertIsFocused()
+        press(Key.DirectionDown)
+        compose.onNodeWithTag("remove_keep").assertIsFocused()
+        press(Key.DirectionRight)
+        press(Key.DirectionCenter)
+    }
+
+    @Test
+    fun removedChildLeavesThePicker() {
+        val graph = openSettings()
+
+        removeSelected()
+        compose.onNodeWithTag("parent_kid_jack").assertIsFocused()
+        back()
+
+        compose.onNodeWithTag("profile_tile_sam").assertDoesNotExist()
+        compose.onNodeWithTag("profile_tile_jack").assertExists()
+        assertThat(
+            graph.profiles.profiles.value
+                .map { it.id },
+        ).containsExactly("jack")
+    }
+
+    @Test
+    fun removingTheLastChildOpensTheWizardAndKeepsThePin() {
+        val graph = openSettings()
+
+        removeSelected()
+        removeSelected()
+
+        compose.onNodeWithText("What's the player's name?").assertIsDisplayed()
+        assertThat(graph.lock.status.value).isEqualTo(LockStatus.SET)
+        back()
+        assertThat(compose.activity.isFinishing).isTrue()
+    }
 }

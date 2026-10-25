@@ -271,6 +271,38 @@ class ParentSettingsViewModel(
         }
     }
 
+    /** Deletes the selected child with their list and progress, then selects the child that took their place. */
+    fun onRemoveChild() {
+        val current = state.value
+        val profileId = current.selectedId ?: return
+        val index = current.profiles.indexOfFirst { it.id == profileId }
+        viewModelScope.launch {
+            try {
+                // Progress first, so a write still waiting for this child cannot land after they are gone.
+                graph.history.reset(profileId, graph.library.videos().mapTo(HashSet()) { it.id })
+                graph.profiles.remove(profileId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Removing $profileId failed", e)
+                return@launch
+            }
+            val remaining = graph.profiles.profiles.value
+            val next = remaining.getOrNull(index) ?: remaining.lastOrNull()
+            state.update {
+                it.copy(
+                    profiles = remaining,
+                    selectedId = next?.id,
+                    tab = ParentTab.PROGRESS,
+                    focus = next?.let { child -> ParentFocus.Child(child.id) },
+                    progressSkill = null,
+                    allRemoved = remaining.isEmpty(),
+                )
+            }
+            refreshProgress()
+        }
+    }
+
     // The parent has now seen every library video for this child, so none shows as new again.
     private fun markOffered() {
         val child = state.value.selected ?: return
