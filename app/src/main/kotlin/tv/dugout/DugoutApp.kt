@@ -55,7 +55,8 @@ fun DugoutApp(
 ) {
     NavHost(navController = navController, startDestination = PICKER_ROUTE) {
         composable(PICKER_ROUTE) {
-            val pickerViewModel = viewModel { ProfilePickerViewModel(graph.profiles, graph.history) }
+            val pickerViewModel =
+                viewModel { ProfilePickerViewModel(graph.profiles, graph.profileVideos, graph.history) }
             val state by pickerViewModel.uiState.collectAsStateWithLifecycle()
 
             // The picker stays on screen and focusable while it fades out, so a fast second press
@@ -71,6 +72,7 @@ fun DugoutApp(
                         navController.navigate(homeRoute(profileId)) { launchSingleTop = true }
                     }
                 },
+                onAddSelected = { fromPicker { pickerViewModel.onAddSelected() } },
                 onParentSelected = {
                     fromPicker {
                         pickerViewModel.onParentSelected()

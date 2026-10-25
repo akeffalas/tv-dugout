@@ -11,3 +11,6 @@ data class Profile(
     val ageRange: AgeRange = AgeRange.NINE_TO_TEN,
     val level: Level = Level.KID_PITCH,
 )
+
+/** The most children the picker has room for. */
+const val MAX_PLAYERS = 6

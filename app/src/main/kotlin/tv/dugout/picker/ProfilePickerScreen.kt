@@ -15,9 +15,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,13 +45,16 @@ private fun focusedBorder() = ClickableSurfaceDefaults.border(focusedBorder = Bo
 fun ProfilePickerScreen(
     state: ProfilePickerUiState,
     onProfileSelected: (String) -> Unit,
+    onAddSelected: () -> Unit,
     onParentSelected: () -> Unit,
 ) {
     val profileFocus = remember(state.profiles) { state.profiles.associate { it.id to FocusRequester() } }
+    val addFocus = remember { FocusRequester() }
     val parentFocus = remember { FocusRequester() }
     val initialFocus =
         when (val selection = state.lastSelection) {
             PickerSelection.Parent -> parentFocus
+            PickerSelection.AddPlayer -> addFocus.takeIf { state.canAddPlayer }
             is PickerSelection.Kid -> profileFocus[selection.profileId]
             null -> null
         } ?: profileFocus.values.firstOrNull() ?: parentFocus
@@ -66,6 +72,9 @@ fun ProfilePickerScreen(
                         onClick = { onProfileSelected(profile.id) },
                         modifier = Modifier.focusRequester(profileFocus.getValue(profile.id)),
                     )
+                }
+                if (state.canAddPlayer) {
+                    AddPlayerTile(onClick = onAddSelected, modifier = Modifier.focusRequester(addFocus))
                 }
             }
             Surface(
@@ -139,6 +148,57 @@ private fun ProfileTile(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun AddPlayerTile(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.testTag("add_player_tile"),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
+        colors =
+            ClickableSurfaceDefaults.colors(
+                containerColor = Color.Transparent,
+                contentColor = Chalk,
+                focusedContainerColor = Color.Transparent,
+                focusedContentColor = Chalk,
+                pressedContainerColor = Color.Transparent,
+                pressedContentColor = Chalk,
+            ),
+        scale = FocusedScale,
+        border = focusedBorder(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            val dashColor = MaterialTheme.colorScheme.onSurfaceVariant
+            Box(
+                modifier =
+                    Modifier.size(96.dp).drawBehind {
+                        drawCircle(
+                            color = dashColor,
+                            radius = size.minDimension / 2 - 2.dp.toPx(),
+                            style =
+                                Stroke(
+                                    width = 3.dp.toPx(),
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f)),
+                                ),
+                        )
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("+", fontSize = 44.sp, fontWeight = FontWeight.ExtraBold, color = dashColor)
+            }
+            Text("Add a player", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            // Keeps the label level with the children's names, which have a count line beneath.
+            Text(" ", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

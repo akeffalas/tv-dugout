@@ -26,6 +26,7 @@ class ProfilePickerScreenTest {
 
     private val selectedProfiles = mutableListOf<String>()
     private var parentSelections = 0
+    private var addSelections = 0
 
     private fun show(
         state: ProfilePickerUiState =
@@ -36,6 +37,7 @@ class ProfilePickerScreenTest {
                 ProfilePickerScreen(
                     state = state,
                     onProfileSelected = { selectedProfiles += it },
+                    onAddSelected = { addSelections++ },
                     onParentSelected = { parentSelections++ },
                 )
             }
@@ -123,5 +125,41 @@ class ProfilePickerScreenTest {
         show(ProfilePickerUiState(emptyList(), lastSelection = null))
 
         compose.onNodeWithTag("parent_button").assertIsFocused()
+    }
+
+    @Test
+    fun addTileFollowsTheChildren() {
+        show()
+
+        press(Key.DirectionRight)
+        press(Key.DirectionRight)
+
+        compose.onNodeWithTag("add_player_tile").assertIsFocused()
+        compose.onNodeWithText("Add a player").assertIsDisplayed()
+    }
+
+    @Test
+    fun addTileCallsBack() {
+        show()
+
+        press(Key.DirectionRight)
+        press(Key.DirectionRight)
+        press(Key.DirectionCenter)
+
+        assertThat(addSelections).isEqualTo(1)
+    }
+
+    @Test
+    fun addTileHiddenAtSix() {
+        show(ProfilePickerUiState(SAMPLE_PROFILES, lastSelection = null, canAddPlayer = false))
+
+        compose.onNodeWithTag("add_player_tile").assertDoesNotExist()
+    }
+
+    @Test
+    fun focusReturnsToAddTile() {
+        show(ProfilePickerUiState(SAMPLE_PROFILES, lastSelection = PickerSelection.AddPlayer))
+
+        compose.onNodeWithTag("add_player_tile").assertIsFocused()
     }
 }
