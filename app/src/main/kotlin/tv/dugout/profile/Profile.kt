@@ -4,6 +4,5 @@ package tv.dugout.profile
 data class Profile(
     val id: String,
     val name: String,
-    val watchedCount: Int,
     val avatarColor: Long,
 )

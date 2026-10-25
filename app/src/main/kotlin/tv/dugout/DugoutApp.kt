@@ -5,8 +5,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,7 +13,6 @@ import tv.dugout.home.HomePlaceholderScreen
 import tv.dugout.parent.ParentPlaceholderScreen
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
-import tv.dugout.profile.ProfileRepository
 
 const val PICKER_ROUTE = "picker"
 const val PARENT_ROUTE = "parent"
@@ -25,13 +22,12 @@ fun homeRoute(profileId: String): String = "home/$profileId"
 
 @Composable
 fun DugoutApp(
-    repository: ProfileRepository,
+    graph: AppGraph,
     navController: NavHostController = rememberNavController(),
 ) {
     NavHost(navController = navController, startDestination = PICKER_ROUTE) {
         composable(PICKER_ROUTE) {
-            val pickerViewModel: ProfilePickerViewModel =
-                viewModel(factory = viewModelFactory { initializer { ProfilePickerViewModel(repository) } })
+            val pickerViewModel = viewModel { ProfilePickerViewModel(graph.profiles, graph.history) }
             val state by pickerViewModel.uiState.collectAsStateWithLifecycle()
 
             // The picker stays on screen and focusable while it fades out, so a fast second press
@@ -56,7 +52,7 @@ fun DugoutApp(
             )
         }
         composable("home/{$PROFILE_ID_ARG}") { entry ->
-            val profile = entry.arguments?.getString(PROFILE_ID_ARG)?.let(repository::profile)
+            val profile = entry.arguments?.getString(PROFILE_ID_ARG)?.let(graph.profiles::profile)
             if (profile == null) {
                 LaunchedEffect(Unit) { navController.popBackStack(PICKER_ROUTE, inclusive = false) }
             } else {

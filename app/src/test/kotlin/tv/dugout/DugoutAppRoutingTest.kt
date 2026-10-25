@@ -9,7 +9,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.ui.theme.DugoutTheme
 
 @RunWith(AndroidJUnit4::class)
@@ -22,7 +21,7 @@ class DugoutAppRoutingTest {
         lateinit var navController: NavHostController
         compose.setContent {
             navController = rememberNavController()
-            DugoutTheme { DugoutApp(InMemoryProfileRepository(), navController) }
+            DugoutTheme { DugoutApp(testGraph(), navController) }
         }
 
         compose.runOnUiThread { navController.navigate(homeRoute("nobody")) }

@@ -62,6 +62,7 @@ fun ProfilePickerScreen(
                 state.profiles.forEach { profile ->
                     ProfileTile(
                         profile = profile,
+                        watchedCount = state.watchedCounts[profile.id] ?: 0,
                         onClick = { onProfileSelected(profile.id) },
                         modifier = Modifier.focusRequester(profileFocus.getValue(profile.id)),
                     )
@@ -100,6 +101,7 @@ fun ProfilePickerScreen(
 @Composable
 private fun ProfileTile(
     profile: Profile,
+    watchedCount: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -133,7 +135,7 @@ private fun ProfileTile(
             }
             Text(profile.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                "${profile.watchedCount} watched",
+                "$watchedCount watched",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

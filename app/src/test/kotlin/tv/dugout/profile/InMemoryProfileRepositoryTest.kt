@@ -9,7 +9,6 @@ class InMemoryProfileRepositoryTest {
         val profiles = InMemoryProfileRepository().profiles()
 
         assertThat(profiles.map { it.name }).containsExactly("Sam", "Jack").inOrder()
-        assertThat(profiles.map { it.watchedCount }).containsExactly(12, 7).inOrder()
     }
 
     @Test

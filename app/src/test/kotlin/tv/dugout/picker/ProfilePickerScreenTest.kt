@@ -27,7 +27,10 @@ class ProfilePickerScreenTest {
     private val selectedProfiles = mutableListOf<String>()
     private var parentSelections = 0
 
-    private fun show(state: ProfilePickerUiState = ProfilePickerUiState(DEFAULT_PROFILES, lastSelection = null)) {
+    private fun show(
+        state: ProfilePickerUiState =
+            ProfilePickerUiState(DEFAULT_PROFILES, mapOf("sam" to 0, "jack" to 3), lastSelection = null),
+    ) {
         compose.setContent {
             DugoutTheme {
                 ProfilePickerScreen(
@@ -45,7 +48,7 @@ class ProfilePickerScreenTest {
     fun showsHeadingTilesCountsAndParentButton() {
         show()
 
-        listOf("Who's up to bat?", "Sam", "12 watched", "Jack", "7 watched", "Parent: manage videos (PIN)")
+        listOf("Who's up to bat?", "Sam", "0 watched", "Jack", "3 watched", "Parent: manage videos (PIN)")
             .forEach { compose.onNodeWithText(it).assertIsDisplayed() }
     }
 
