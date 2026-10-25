@@ -21,12 +21,21 @@ internal fun NameStep(
             fieldTag = "name_field",
             inputTag = "name_input",
         )
-        when (state.nameError) {
-            NameError.EMPTY -> SetupMessage("Enter a name.")
-            NameError.TOO_LONG -> SetupMessage("Use $MAX_NAME_LENGTH characters or fewer.")
-            NameError.DUPLICATE -> SetupMessage("${state.name.trim()} is already a player.")
-            null -> Unit
-        }
+        NameErrorMessage(state.nameError, state.name)
         Choice(label = "Next", highlight = true, onClick = onNameSubmitted, modifier = Modifier.testTag("name_next"))
+    }
+}
+
+/** Says what is wrong with the typed [name], if anything. */
+@Composable
+internal fun NameErrorMessage(
+    error: NameError?,
+    name: String,
+) {
+    when (error) {
+        NameError.EMPTY -> SetupMessage("Enter a name.")
+        NameError.TOO_LONG -> SetupMessage("Use $MAX_NAME_LENGTH characters or fewer.")
+        NameError.DUPLICATE -> SetupMessage("${name.trim()} is already a player.")
+        null -> Unit
     }
 }

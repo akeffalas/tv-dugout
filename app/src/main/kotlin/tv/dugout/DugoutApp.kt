@@ -23,6 +23,7 @@ import tv.dugout.parent.pin.PinFlowViewModel
 import tv.dugout.parent.settings.ParentSettingsScreen
 import tv.dugout.parent.settings.ParentSettingsViewModel
 import tv.dugout.parent.settings.ParentTab
+import tv.dugout.parent.settings.ProfilePane
 import tv.dugout.parent.settings.ProgressPane
 import tv.dugout.picker.ProfilePickerScreen
 import tv.dugout.picker.ProfilePickerViewModel
@@ -223,6 +224,18 @@ private fun ParentSettingsDestination(
                     onResetSkill = settingsViewModel::onResetSkillRequested,
                     onConfirm = settingsViewModel::onConfirm,
                     onCancel = settingsViewModel::onCancelConfirm,
+                )
+            }
+
+            ParentTab.PROFILE -> {
+                ProfilePane(
+                    state = state,
+                    onEditField = settingsViewModel::onEditField,
+                    onNameDraftChanged = settingsViewModel::onNameDraftChanged,
+                    onNameSubmitted = settingsViewModel::onNameSubmitted,
+                    onAgeChosen = settingsViewModel::onAgeChosen,
+                    onLevelChosen = settingsViewModel::onLevelChosen,
+                    onCancelEdit = settingsViewModel::onCancelEdit,
                 )
             }
 

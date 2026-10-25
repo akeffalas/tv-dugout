@@ -19,8 +19,15 @@ import tv.dugout.library.Skill
 internal fun AgeStep(
     state: SetupUiState,
     onAgeSelected: (AgeRange) -> Unit,
+) = AgeChoices(state.age, onAgeSelected)
+
+/** The five age ranges in a row, with focus starting on [selected] (or the first). */
+@Composable
+internal fun AgeChoices(
+    selected: AgeRange?,
+    onAgeSelected: (AgeRange) -> Unit,
 ) {
-    val start = state.age ?: AgeRange.entries.first()
+    val start = selected ?: AgeRange.entries.first()
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -47,8 +54,15 @@ internal fun AgeStep(
 internal fun LevelStep(
     state: SetupUiState,
     onLevelSelected: (Level) -> Unit,
+) = LevelChoices(state.level ?: state.age?.usualLevel, onLevelSelected)
+
+/** The three levels with their hints, with focus starting on [selected] (or the first). */
+@Composable
+internal fun LevelChoices(
+    selected: Level?,
+    onLevelSelected: (Level) -> Unit,
 ) {
-    val start = state.level ?: state.age?.usualLevel ?: Level.entries.first()
+    val start = selected ?: Level.entries.first()
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {

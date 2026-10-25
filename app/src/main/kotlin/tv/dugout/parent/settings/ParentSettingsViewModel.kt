@@ -1,7 +1,9 @@
 package tv.dugout.parent.settings
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,11 +15,18 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import tv.dugout.AppGraph
 import tv.dugout.history.fraction
 import tv.dugout.history.started
+import tv.dugout.library.AgeRange
+import tv.dugout.library.Level
 import tv.dugout.library.Skill
 import tv.dugout.profile.MAX_PLAYERS
+import tv.dugout.profile.Profile
+import tv.dugout.setup.nameError
+
+private const val TAG = "ParentSettings"
 
 /** Parent settings: which child is selected, which of their tabs shows, and where focus returns. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -114,6 +123,52 @@ class ParentSettingsViewModel(
         }
         state.update { it.copy(confirm = null) }
         refreshProgress()
+    }
+
+    fun onEditField(field: ProfileField) {
+        val child = state.value.selected ?: return
+        state.update { it.copy(editing = field, nameDraft = child.name, nameError = null) }
+    }
+
+    fun onNameDraftChanged(text: String) {
+        state.update { it.copy(nameDraft = text, nameError = null) }
+    }
+
+    fun onNameSubmitted() {
+        val child = state.value.selected ?: return
+        val others = state.value.profiles.filterNot { it.id == child.id }
+        val error = nameError(state.value.nameDraft, others)
+        if (error != null) {
+            state.update { it.copy(nameError = error) }
+            return
+        }
+        save(child.copy(name = state.value.nameDraft.trim()))
+    }
+
+    fun onAgeChosen(age: AgeRange) {
+        state.value.selected?.let { save(it.copy(ageRange = age)) }
+    }
+
+    fun onLevelChosen(level: Level) {
+        state.value.selected?.let { save(it.copy(level = level)) }
+    }
+
+    fun onCancelEdit() {
+        state.update { it.copy(editing = null, nameError = null) }
+    }
+
+    // Closes the editor once the change is saved; a failed save leaves it open to try again.
+    private fun save(changed: Profile) {
+        viewModelScope.launch {
+            try {
+                graph.profiles.update(changed)
+                state.update { it.copy(editing = null) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Saving ${changed.id} failed", e)
+            }
+        }
     }
 
     // Rebuilt from the graph, which holds the child's list and progress, whenever either may have changed.

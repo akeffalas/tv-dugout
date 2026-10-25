@@ -7,8 +7,11 @@ import org.junit.Test
 import tv.dugout.MainDispatcherRule
 import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.history.InMemoryWatchHistory
+import tv.dugout.library.AgeRange
 import tv.dugout.library.BundledVideoLibrary
+import tv.dugout.library.Level
 import tv.dugout.library.Skill
+import tv.dugout.setup.NameError
 import tv.dugout.testGraph
 
 class ParentSettingsViewModelTest {
@@ -205,5 +208,86 @@ class ParentSettingsViewModelTest {
         viewModel.onResetVideoRequested(hitting[1])
 
         assertThat(viewModel.state.confirm).isNull()
+    }
+
+    @Test
+    fun renameSavesTrimmed() {
+        val viewModel = viewModel()
+
+        viewModel.onEditField(ProfileField.NAME)
+        assertThat(viewModel.state.nameDraft).isEqualTo("Sam")
+        viewModel.onNameDraftChanged("  Sammy ")
+        viewModel.onNameSubmitted()
+
+        assertThat(graph.profiles.profile("sam")?.name).isEqualTo("Sammy")
+        assertThat(viewModel.state.editing).isNull()
+        assertThat(viewModel.state.selected?.name).isEqualTo("Sammy")
+    }
+
+    @Test
+    fun renameToAnotherChildsNameIsRefused() {
+        val viewModel = viewModel()
+
+        viewModel.onEditField(ProfileField.NAME)
+        viewModel.onNameDraftChanged("JACK")
+        viewModel.onNameSubmitted()
+
+        assertThat(viewModel.state.nameError).isEqualTo(NameError.DUPLICATE)
+        assertThat(viewModel.state.editing).isEqualTo(ProfileField.NAME)
+        assertThat(graph.profiles.profile("sam")?.name).isEqualTo("Sam")
+    }
+
+    @Test
+    fun renameToOwnNameInOtherCaseIsAllowed() {
+        val viewModel = viewModel()
+
+        viewModel.onEditField(ProfileField.NAME)
+        viewModel.onNameDraftChanged("SAM")
+        viewModel.onNameSubmitted()
+
+        assertThat(viewModel.state.nameError).isNull()
+        assertThat(graph.profiles.profile("sam")?.name).isEqualTo("SAM")
+    }
+
+    @Test
+    fun emptyAndLongNamesAreRefused() {
+        val viewModel = viewModel()
+        viewModel.onEditField(ProfileField.NAME)
+
+        viewModel.onNameDraftChanged(" ")
+        viewModel.onNameSubmitted()
+        assertThat(viewModel.state.nameError).isEqualTo(NameError.EMPTY)
+
+        viewModel.onNameDraftChanged("A".repeat(13))
+        viewModel.onNameSubmitted()
+        assertThat(viewModel.state.nameError).isEqualTo(NameError.TOO_LONG)
+    }
+
+    @Test
+    fun changingAgeOrLevelKeepsTheVideoList() {
+        val before = graph.profileVideos.videoIds("sam")
+        val viewModel = viewModel()
+
+        viewModel.onEditField(ProfileField.AGE)
+        viewModel.onAgeChosen(AgeRange.FOUR_TO_SIX)
+        viewModel.onEditField(ProfileField.LEVEL)
+        viewModel.onLevelChosen(Level.TEE_BALL)
+
+        assertThat(graph.profiles.profile("sam")?.ageRange).isEqualTo(AgeRange.FOUR_TO_SIX)
+        assertThat(graph.profiles.profile("sam")?.level).isEqualTo(Level.TEE_BALL)
+        assertThat(graph.profileVideos.videoIds("sam")).isEqualTo(before)
+        assertThat(viewModel.state.editing).isNull()
+    }
+
+    @Test
+    fun cancelEditSavesNothing() {
+        val viewModel = viewModel()
+        viewModel.onEditField(ProfileField.NAME)
+        viewModel.onNameDraftChanged("Other")
+
+        viewModel.onCancelEdit()
+
+        assertThat(viewModel.state.editing).isNull()
+        assertThat(graph.profiles.profile("sam")?.name).isEqualTo("Sam")
     }
 }

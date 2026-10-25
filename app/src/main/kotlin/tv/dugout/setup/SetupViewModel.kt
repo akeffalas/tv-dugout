@@ -20,8 +20,6 @@ import tv.dugout.profile.ProfileRepository
 import tv.dugout.profile.nextAvatarColor
 import java.util.UUID
 
-const val MAX_NAME_LENGTH = 12
-
 /** Walks a parent through adding one child. Nothing is saved until [onDone]. */
 class SetupViewModel(
     private val profiles: ProfileRepository,
@@ -39,13 +37,7 @@ class SetupViewModel(
 
     fun onNameSubmitted() {
         val name = state.value.name.trim()
-        val error =
-            when {
-                name.isEmpty() -> NameError.EMPTY
-                name.length > MAX_NAME_LENGTH -> NameError.TOO_LONG
-                profiles.profiles.value.any { it.name.equals(name, ignoreCase = true) } -> NameError.DUPLICATE
-                else -> null
-            }
+        val error = nameError(name, profiles.profiles.value)
         state.update {
             if (error == null) it.copy(name = name, step = SetupStep.AGE) else it.copy(nameError = error)
         }

@@ -3,6 +3,7 @@ package tv.dugout.parent.settings
 import tv.dugout.library.Skill
 import tv.dugout.library.Video
 import tv.dugout.profile.Profile
+import tv.dugout.setup.NameError
 
 enum class ParentTab(
     val label: String,
@@ -41,6 +42,8 @@ data class ProgressRow(
     val lastPlayed: Long?,
 )
 
+enum class ProfileField { NAME, AGE, LEVEL }
+
 /** A change that waits for the parent to confirm it. */
 sealed interface Confirm {
     data class ResetVideo(
@@ -63,6 +66,9 @@ data class ParentSettingsUiState(
     val progressSkills: Map<Skill, Pair<Int, Int>> = emptyMap(),
     val progressRows: List<ProgressRow> = emptyList(),
     val confirm: Confirm? = null,
+    val editing: ProfileField? = null,
+    val nameDraft: String = "",
+    val nameError: NameError? = null,
 ) {
     val selected: Profile? get() = profiles.firstOrNull { it.id == selectedId }
 }
