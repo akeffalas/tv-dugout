@@ -6,7 +6,7 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 /** PBKDF2 rounds per check. Tuned on a TV so one check takes roughly 100 to 300 ms. */
-const val PIN_ITERATIONS = 100_000
+const val PIN_ITERATIONS = 12_000
 
 private const val SALT_BYTES = 16
 private const val HASH_BITS = 256
