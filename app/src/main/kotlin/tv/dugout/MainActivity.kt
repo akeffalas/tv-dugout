@@ -14,6 +14,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Back finishes the activity but Android often keeps the process, and with it a failed load.
+        store.retryIfFailed()
         setContent {
             val state by store.state.collectAsStateWithLifecycle()
             DugoutTheme {

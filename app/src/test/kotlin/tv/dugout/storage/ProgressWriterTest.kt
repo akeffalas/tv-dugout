@@ -2,6 +2,7 @@ package tv.dugout.storage
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -119,5 +120,28 @@ class ProgressWriterTest {
             runCurrent()
 
             assertThat(saves).containsExactly(Triple("sam", "v", p2))
+        }
+
+    @Test
+    fun aSaveStillRunningFinishesBeforeTheNextStarts() =
+        runTest(StandardTestDispatcher()) {
+            val firstSaveCanFinish = CompletableDeferred<Unit>()
+            val finished = mutableListOf<WatchProgress>()
+            val writer =
+                ProgressWriter(backgroundScope) { _, _, progress ->
+                    if (progress == p1) firstSaveCanFinish.await()
+                    finished += progress
+                }
+            writer.changed("sam", "v", p1)
+            advanceTimeBy(5_001)
+            runCurrent()
+
+            writer.changed("sam", "v", p2)
+            writer.flush()
+            runCurrent()
+            firstSaveCanFinish.complete(Unit)
+            runCurrent()
+
+            assertThat(finished).containsExactly(p1, p2).inOrder()
         }
 }

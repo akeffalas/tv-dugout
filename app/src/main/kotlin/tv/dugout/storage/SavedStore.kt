@@ -56,6 +56,11 @@ class SavedStore(
         }
     }
 
+    /** Loads again after a failure, so reopening the app can recover without a force stop. */
+    fun retryIfFailed() {
+        if (mutableState.compareAndSet(StoreState.Failed, StoreState.Loading)) start()
+    }
+
     private suspend fun load(): AppGraph {
         val dao = open().dao()
         val profiles = dao.profiles().map { Profile(it.id, it.name, it.avatarColor) }

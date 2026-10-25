@@ -25,7 +25,7 @@ class DugoutApplication : Application() {
                 open = { dugoutDatabase(this, DATABASE_NAME, Seed(DEFAULT_PROFILES, library.videos().map { it.id })) },
                 library = library,
                 playerSurface = YouTubePlayerSurface,
-                // One coroutine at a time keeps saves in order (see ProgressWriter).
+                // ProgressWriter and SavedStore need one coroutine at a time.
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1)),
             )
         store.start()

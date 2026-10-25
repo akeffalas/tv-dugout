@@ -72,4 +72,40 @@ class SavedStoreTest {
                     .value.keys,
             ).containsExactly("TjH37PpeX7k")
         }
+
+    @Test
+    fun retryAfterAFailureLoadsAgain() =
+        runBlocking<Unit> {
+            var attempts = 0
+            val store =
+                store(open = {
+                    attempts++
+                    if (attempts == 1) error("storage busy")
+                    dugoutDatabase(context, name = null, seed)
+                })
+            store.start()
+            eventually { store.state.value.takeIf { it == StoreState.Failed } }
+
+            store.retryIfFailed()
+
+            assertThat(store.ready().profiles.profiles()).hasSize(2)
+        }
+
+    @Test
+    fun retryDoesNothingOnceLoaded() =
+        runBlocking<Unit> {
+            var attempts = 0
+            val store =
+                store(open = {
+                    attempts++
+                    dugoutDatabase(context, name = null, seed)
+                })
+            store.start()
+            val graph = store.ready()
+
+            store.retryIfFailed()
+
+            assertThat(store.ready()).isSameInstanceAs(graph)
+            assertThat(attempts).isEqualTo(1)
+        }
 }

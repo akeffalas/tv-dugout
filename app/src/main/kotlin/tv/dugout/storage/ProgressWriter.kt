@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import tv.dugout.history.ProgressSink
 import tv.dugout.history.WatchProgress
 
@@ -16,8 +18,9 @@ private const val TAG = "ProgressWriter"
 
 /**
  * Saves progress through [save], holding each video's changes for [intervalMillis] and keeping only
- * the latest. [scope] must run one coroutine at a time: all state is touched inside it, which also
- * keeps saves in the order the changes arrived.
+ * the latest. [scope] must run one coroutine at a time, since all state is touched inside it. A
+ * save suspends and so frees that one thread, which is why saves also take [saving] in turn: an
+ * older row must never land after a newer one.
  */
 class ProgressWriter(
     private val scope: CoroutineScope,
@@ -26,6 +29,7 @@ class ProgressWriter(
 ) : ProgressSink {
     private val pending = mutableMapOf<Pair<String, String>, WatchProgress>()
     private val scheduled = mutableMapOf<Pair<String, String>, Job>()
+    private val saving = Mutex()
 
     override fun changed(
         profileId: String,
@@ -57,7 +61,7 @@ class ProgressWriter(
     private suspend fun write(key: Pair<String, String>) {
         val progress = pending.remove(key) ?: return
         try {
-            save(key.first, key.second, progress)
+            saving.withLock { save(key.first, key.second, progress) }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
