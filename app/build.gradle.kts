@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kover)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 android {
@@ -38,6 +40,10 @@ kotlin {
     jvmToolchain(17)
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -51,6 +57,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.youtube.player)
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
@@ -78,6 +86,8 @@ kover {
                 // Generated code and color tokens only; screens and logic stay measured.
                 classes("tv.dugout.BuildConfig", "tv.dugout.R", "tv.dugout.R$*", "*ComposableSingletons*")
                 classes("tv.dugout.ui.theme.ColorKt")
+                // Room's generated DAO and database implementations.
+                classes("tv.dugout.storage.*_Impl", "tv.dugout.storage.*_Impl$*")
             }
         }
         variant("debug") {
