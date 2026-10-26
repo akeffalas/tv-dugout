@@ -412,4 +412,18 @@ class PlayerScreenTest {
 
         assertThat(bubble.top.value).isAtLeast(title.bottom.value)
     }
+
+    @Test
+    fun aFreshPressAfterALostKeyUpStillActs() {
+        show(playing.copy(controlsVisible = false))
+        val down = android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_UP)
+
+        compose.runOnIdle { view.dispatchKeyEvent(down) }
+        screen.value = playing
+        compose.waitForIdle()
+        compose.runOnIdle { view.dispatchKeyEvent(down) }
+        compose.waitForIdle()
+
+        focused("control_progress")
+    }
 }

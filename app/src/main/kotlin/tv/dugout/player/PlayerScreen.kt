@@ -129,9 +129,14 @@ fun PlayerScreen(
     fun handleKey(event: KeyEvent): Boolean {
         val down = event.type == KeyEventType.KeyDown
         if (event.key == swallowedKey) {
-            // The press that woke the controls does nothing else, however long it is held.
-            if (event.type == KeyEventType.KeyUp) swallowedKey = null
-            return true
+            // The press that woke the controls does nothing else, however long it is held. A fresh press
+            // means its key-up never arrived, so that press acts as usual.
+            if (event.type == KeyEventType.KeyUp) {
+                swallowedKey = null
+                return true
+            }
+            if (event.nativeKeyEvent.repeatCount > 0) return true
+            swallowedKey = null
         }
         val media = MEDIA_KEYS[event.key]
         if (media != null) {
