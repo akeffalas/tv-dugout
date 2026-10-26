@@ -3,7 +3,7 @@
 # Load a local, gitignored .env (DUGOUT_TV_IP) so device details never live in tracked files.
 set dotenv-load := true
 
-adb := env("ANDROID_HOME", env("HOME") / "Library/Android/sdk") / "platform-tools/adb"
+adb := env("ANDROID_HOME", env("ANDROID_SDK_ROOT", env("HOME") / "Library/Android/sdk")) / "platform-tools/adb"
 
 # Build the debug APK.
 build:
