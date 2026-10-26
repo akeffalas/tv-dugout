@@ -118,6 +118,12 @@ flowchart LR
 - The card gradient (a gold such as `0xFFE9C46A` to `0xFFB08A2E`) and a light bulb
   icon.
 - Shortened display titles, in the style of the existing entries, as in the tables.
+- Home's tab row scrolls sideways to the focused tab. Home, six skills, and My List
+  measure about 200dp wider than a 1080p screen, so shrinking spacing could not fit
+  them, and scrolling keeps every tab at full size. The wizard's skill row fits once its
+  spacing drops from 16dp to 10dp.
+- The wizard's Videos step lists the skills in a column above Done. With six skills
+  Done fell below a 1080p screen, so that column scrolls to the focused entry too.
 
 ## Left to the builder
 
