@@ -3,6 +3,7 @@ package tv.dugout.player
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -238,5 +239,187 @@ class PlayerViewModelTest {
             runCurrent()
 
             assertThat(vm.uiState.value.failure).isNull()
+        }
+
+    private fun TestScope.wait(millis: Long) {
+        advanceTimeBy(millis)
+        runCurrent()
+    }
+
+    private fun TestScope.hiddenWhilePlaying(): PlayerViewModel {
+        val vm = attached()
+        vm.playingAt(10f)
+        wait(CONTROLS_HIDE_MILLIS + 1)
+        return vm
+    }
+
+    @Test
+    fun controlsStartVisible() {
+        val vm = attached()
+
+        assertThat(vm.uiState.value.controlsVisible).isTrue()
+        assertThat(vm.uiState.value.hasPlayed).isFalse()
+        assertThat(vm.uiState.value.showSpinner).isTrue()
+    }
+
+    @Test
+    fun controlsHideAfterFiveSecondsOfPlaying() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(10f)
+
+            wait(CONTROLS_HIDE_MILLIS - 1)
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+
+            wait(2)
+            assertThat(vm.uiState.value.controlsVisible).isFalse()
+        }
+
+    @Test
+    fun controlsStayWhileLoadingTheFirstTime() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            player.emitState(PlaybackState.LOADING)
+
+            wait(10_000)
+
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+        }
+
+    @Test
+    fun controlsStayWhilePaused() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(10f)
+            player.emitState(PlaybackState.PAUSED)
+
+            wait(10_000)
+
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+        }
+
+    @Test
+    fun pausingCancelsAPendingHide() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(10f)
+            wait(4_000)
+
+            player.emitState(PlaybackState.PAUSED)
+            wait(2_000)
+
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+        }
+
+    @Test
+    fun activityRestartsTheTimer() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(10f)
+            wait(4_000)
+
+            vm.onUserActivity()
+            wait(4_000)
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+
+            wait(1_001)
+            assertThat(vm.uiState.value.controlsVisible).isFalse()
+        }
+
+    @Test
+    fun wakeShowsAndRestartsTimer() =
+        runTest(main.dispatcher) {
+            val vm = hiddenWhilePlaying()
+
+            vm.onWake()
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+
+            wait(CONTROLS_HIDE_MILLIS + 1)
+            assertThat(vm.uiState.value.controlsVisible).isFalse()
+        }
+
+    @Test
+    fun bufferingAfterFirstPlayDoesNotHoldControls() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(10f)
+            player.emitState(PlaybackState.LOADING)
+
+            wait(CONTROLS_HIDE_MILLIS + 1)
+
+            assertThat(vm.uiState.value.controlsVisible).isFalse()
+        }
+
+    @Test
+    fun firstPlayingSetsHasPlayedAndStopsSpinner() {
+        val vm = attached()
+
+        vm.playingAt(1f)
+
+        assertThat(vm.uiState.value.hasPlayed).isTrue()
+        assertThat(vm.uiState.value.showSpinner).isFalse()
+    }
+
+    @Test
+    fun keepScreenOnOnlyWhilePlaying() {
+        val vm = attached()
+        vm.playingAt(1f)
+        assertThat(vm.uiState.value.keepScreenOn).isTrue()
+
+        player.emitState(PlaybackState.PAUSED)
+        assertThat(vm.uiState.value.keepScreenOn).isFalse()
+
+        player.emitState(PlaybackState.ENDED)
+        assertThat(vm.uiState.value.keepScreenOn).isFalse()
+
+        player.emitState(PlaybackState.PLAYING)
+        player.fail(PlayerFailure.OTHER)
+        assertThat(vm.uiState.value.keepScreenOn).isFalse()
+    }
+
+    @Test
+    fun backWhilePlayingWithControlsHidesThem() {
+        val vm = attached()
+        vm.playingAt(10f)
+
+        assertThat(vm.onBackPressed()).isTrue()
+        assertThat(vm.uiState.value.controlsVisible).isFalse()
+    }
+
+    @Test
+    fun backWhileHiddenLeaves() =
+        runTest(main.dispatcher) {
+            val vm = hiddenWhilePlaying()
+
+            assertThat(vm.onBackPressed()).isFalse()
+        }
+
+    @Test
+    fun backWhilePausedLeaves() {
+        val vm = attached()
+        vm.playingAt(10f)
+        player.emitState(PlaybackState.PAUSED)
+
+        assertThat(vm.onBackPressed()).isFalse()
+        assertThat(vm.uiState.value.controlsVisible).isTrue()
+    }
+
+    @Test
+    fun backWhileFirstLoadingLeaves() {
+        val vm = attached()
+        player.emitState(PlaybackState.LOADING)
+
+        assertThat(vm.onBackPressed()).isFalse()
+    }
+
+    @Test
+    fun slowMoUnavailableShowsControls() =
+        runTest(main.dispatcher) {
+            val vm = hiddenWhilePlaying()
+
+            vm.onSlowMoToggle()
+            wait(SLOW_MO_CONFIRM_MILLIS + 1)
+
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
         }
 }

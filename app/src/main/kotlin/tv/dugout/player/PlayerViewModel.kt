@@ -19,6 +19,9 @@ const val SLOW_MO_CONFIRM_MILLIS = 2_000L
 /** How long to wait for any word from the player (it never loads without a network) before showing an error. */
 const val PLAYER_START_TIMEOUT_MILLIS = 20_000L
 
+/** How long the controls stay up without a press while the video plays. */
+const val CONTROLS_HIDE_MILLIS = 5_000L
+
 data class PlayerUiState(
     val video: Video,
     val state: PlaybackState = PlaybackState.LOADING,
@@ -27,7 +30,18 @@ data class PlayerUiState(
     val slowMo: Boolean = false,
     val slowMoUnavailable: Boolean = false,
     val failure: PlayerFailure? = null,
-)
+    val controlsVisible: Boolean = true,
+    val hasPlayed: Boolean = false,
+) {
+    /** The baseball spins only until the video first plays; later buffering is YouTube's to show. */
+    val showSpinner: Boolean get() = !hasPlayed && failure == null
+
+    val keepScreenOn: Boolean get() = state == PlaybackState.PLAYING && failure == null
+
+    /** Buffering after the first play counts as playing, so it neither holds nor brings back the controls. */
+    val hideable: Boolean
+        get() = state == PlaybackState.PLAYING || (state == PlaybackState.LOADING && hasPlayed)
+}
 
 class PlayerViewModel(
     private val profileId: String,
@@ -43,6 +57,7 @@ class PlayerViewModel(
 
     private var player: VideoPlayer? = null
     private var slowMoTimeout: Job? = null
+    private var hideJob: Job? = null
 
     // Without a network the embedded player never loads and never reports anything.
     private val startTimeout =
@@ -55,7 +70,10 @@ class PlayerViewModel(
         object : VideoPlayer.Listener {
             override fun onState(state: PlaybackState) {
                 startTimeout.cancel()
-                this@PlayerViewModel.state.update { it.copy(state = state) }
+                this@PlayerViewModel.state.update {
+                    it.copy(state = state, hasPlayed = it.hasPlayed || state == PlaybackState.PLAYING)
+                }
+                scheduleHide()
                 if (state == PlaybackState.ENDED) {
                     history.markWatched(profileId, video.id, uiState.value.durationSeconds, clock())
                     endedState.value = true
@@ -109,11 +127,39 @@ class PlayerViewModel(
             slowMoTimeout =
                 viewModelScope.launch {
                     delay(SLOW_MO_CONFIRM_MILLIS)
-                    state.update { it.copy(slowMoUnavailable = true) }
+                    state.update { it.copy(slowMoUnavailable = true, controlsVisible = true) }
+                    scheduleHide()
                 }
         } else {
             state.update { it.copy(slowMo = false, slowMoUnavailable = false) }
         }
+    }
+
+    fun onUserActivity() = scheduleHide()
+
+    fun onWake() {
+        state.update { it.copy(controlsVisible = true) }
+        scheduleHide()
+    }
+
+    /** Hides the controls while playing and returns true; false means the caller should leave. */
+    fun onBackPressed(): Boolean {
+        val current = uiState.value
+        if (!current.controlsVisible || !current.hideable) return false
+        hideJob?.cancel()
+        state.update { it.copy(controlsVisible = false) }
+        return true
+    }
+
+    private fun scheduleHide() {
+        hideJob?.cancel()
+        val current = uiState.value
+        if (!current.controlsVisible || !current.hideable) return
+        hideJob =
+            viewModelScope.launch {
+                delay(CONTROLS_HIDE_MILLIS)
+                state.update { it.copy(controlsVisible = false) }
+            }
     }
 
     fun onLeave() {
