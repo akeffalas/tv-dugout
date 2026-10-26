@@ -97,7 +97,7 @@ internal fun SkillsStep(
     // Back from Videos starts on Next, where OK cannot untick a skill by accident.
     LaunchedEffect(Unit) { if (state.skillsSubmitted) next.requestFocus() else focus.requestFocus() }
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Skill.entries.forEach { skill ->
                 Choice(
                     label = skill.label,

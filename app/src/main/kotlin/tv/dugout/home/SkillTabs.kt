@@ -3,6 +3,7 @@ package tv.dugout.home
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,7 +56,9 @@ fun SkillTabs(
         modifier =
             Modifier
                 .focusProperties { onEnter = { requesters.getValue(selected).requestFocus() } }
-                .focusGroup(),
+                .focusGroup()
+                // Six skills plus Home and My List are wider than a TV; the row scrolls to the focused tab.
+                .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         tabs.forEach { tab ->

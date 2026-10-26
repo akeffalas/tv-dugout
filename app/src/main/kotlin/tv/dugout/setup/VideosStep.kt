@@ -59,7 +59,11 @@ internal fun VideosStep(
     LaunchedEffect(state.emptySkillRequest) { state.emptySkill?.let { skillFocus[it]?.requestFocus() } }
 
     Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
-        Column(modifier = Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Six skills and Done can be taller than a TV; the column scrolls to the focused entry.
+        Column(
+            modifier = Modifier.width(240.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             skills.forEach { skill ->
                 val (chosen, total) = state.chosenCounts[skill] ?: (0 to 0)
                 SkillEntry(

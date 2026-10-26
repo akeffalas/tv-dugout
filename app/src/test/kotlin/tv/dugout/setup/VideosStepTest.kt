@@ -228,7 +228,7 @@ class VideosStepTest {
         compose.onNodeWithText("Maya is ready!").assertIsDisplayed()
         compose
             .onNodeWithText(
-                "4 skills, ${library.videos().count { it.skill != Skill.PITCHING } - 1} videos",
+                "${Skill.entries.size - 1} skills, ${library.videos().count { it.skill != Skill.PITCHING } - 1} videos",
             ).assertIsDisplayed()
         compose.onNodeWithTag("ready_start").assertIsFocused()
     }

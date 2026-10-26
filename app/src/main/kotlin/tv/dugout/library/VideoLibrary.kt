@@ -10,7 +10,7 @@ interface VideoLibrary {
 /** The newest library version: the highest [Video.addedIn] among the bundled videos. */
 val LIBRARY_VERSION: Int get() = STARTER_VIDEOS.maxOf { it.addedIn }
 
-/** The owner-approved list (specs 0002 and 0005), bundled with the app. */
+/** The owner-approved list (specs 0002, 0005, and 0008), bundled with the app. */
 class BundledVideoLibrary : VideoLibrary {
     private val byId = STARTER_VIDEOS.associateBy { it.id }
 
@@ -38,6 +38,23 @@ private fun kidPitch(
     ages = 9..12,
     addedIn = addedIn,
 )
+
+/** A Baseball IQ basic (spec 0008): force outs and tagging up suit coach pitch and kid pitch from age 7. */
+private fun iqBasic(
+    youTubeId: String,
+    title: String,
+    channel: String,
+    durationSeconds: Int,
+) = kidPitch(Skill.IQ, youTubeId, title, channel, durationSeconds, addedIn = 3)
+    .copy(levels = setOf(Level.COACH_PITCH, Level.KID_PITCH), ages = 7..12)
+
+/** A Baseball IQ game situation (spec 0008), for kid pitch from age 10. */
+private fun iqSituation(
+    youTubeId: String,
+    title: String,
+    channel: String,
+    durationSeconds: Int,
+) = kidPitch(Skill.IQ, youTubeId, title, channel, durationSeconds, addedIn = 3).copy(ages = 10..12)
 
 private val STARTER_VIDEOS: List<Video> =
     listOf(
@@ -106,4 +123,14 @@ private val STARTER_VIDEOS: List<Video> =
         kidPitch(Skill.CATCHING, "U2-PTYnPmCM", "Catcher Blocking", "Ripken Baseball", 67, addedIn = 2),
         kidPitch(Skill.CATCHING, "NaFuBrLfj78", "Catcher's Throwing Hand Position", "Ripken Baseball", 59, addedIn = 2),
         kidPitch(Skill.CATCHING, "NmAsa944EN4", "The Low Strike", "Ripken Baseball", 60, addedIn = 2),
+        iqBasic("-3cUVRvwUiU", "Force Out vs. Tag Out", "D-BAT", 152),
+        iqBasic("ZZgrq4iJi9I", "Force Outs", "TheOnDeckCircle", 312),
+        iqBasic("_SZhK8baRA4", "How Tagging Up Works", "Be Well Played", 74),
+        iqBasic("HdLIgsH1ZP0", "Why Not to Run on a Pop Fly", "Ball Basics", 115),
+        iqBasic("vjoIcUIgv5o", "Tagging Up and Sacrifice Flies", "TheOnDeckCircle", 213),
+        iqSituation("LD4H96mlpr8", "Backing Up Bases", "Antonelli Baseball", 353),
+        iqSituation("wIU9NdCBBkE", "Cutoffs and Relays", "ELITE YOUTH BASEBALL", 646),
+        iqSituation("ON07qcMZuhg", "Who Is the Cutoff?", "Antonelli Baseball", 377),
+        iqSituation("OAbBekHAk_g", "Rundowns", "Antonelli Baseball", 344),
+        iqSituation("iphFBx_Ejk4", "The Infield Fly Rule", "MLB Clubhouse", 218),
     )

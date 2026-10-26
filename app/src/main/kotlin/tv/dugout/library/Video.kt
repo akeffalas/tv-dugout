@@ -13,6 +13,7 @@ enum class Skill(
     BASERUNNING("Baserunning", R.drawable.ic_skill_baserunning),
     PITCHING("Pitching", R.drawable.ic_skill_pitching),
     CATCHING("Catching", R.drawable.ic_skill_catching),
+    IQ("Baseball IQ", R.drawable.ic_skill_iq),
 }
 
 /** The kind of baseball a video suits, used by the setup wizard to recommend videos. */

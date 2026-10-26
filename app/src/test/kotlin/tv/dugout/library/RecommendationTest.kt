@@ -25,10 +25,20 @@ class RecommendationTest {
     }
 
     @Test
-    fun wrongLevelIsNotRecommended() {
+    fun coachPitchGetsOnlyTheIqBasics() {
+        val recommended =
+            BundledVideoLibrary().videos().filter { it.isRecommendedFor(AgeRange.SEVEN_TO_EIGHT, Level.COACH_PITCH) }
+
+        assertThat(recommended.map { it.id })
+            .containsExactly("-3cUVRvwUiU", "ZZgrq4iJi9I", "_SZhK8baRA4", "HdLIgsH1ZP0", "vjoIcUIgv5o")
+            .inOrder()
+    }
+
+    @Test
+    fun kidPitchElevenToTwelveGetsEveryVideo() {
         val videos = BundledVideoLibrary().videos()
 
-        assertThat(videos.none { it.isRecommendedFor(AgeRange.NINE_TO_TEN, Level.COACH_PITCH) }).isTrue()
+        assertThat(videos.all { it.isRecommendedFor(AgeRange.ELEVEN_TO_TWELVE, Level.KID_PITCH) }).isTrue()
     }
 
     @Test

@@ -52,10 +52,10 @@ screens   picker (start), parent PIN (first screen on a fresh install, then the 
           player (full-screen YouTube embed with fading baseball controls), up next,
           parent settings (progress and reset, profile, videos with New marks, remove;
           add a player, change PIN)
-data      47-video bundled library with age, level, and library-version tags; profiles
-          (with age range, level, and offered version), each child's video list, watch
-          progress, and the hashed parent PIN saved in Room; a fresh install has no
-          children and no PIN
+data      57-video bundled library (five body skills plus Baseball IQ) with age, level,
+          and library-version tags; profiles (with age range, level, and offered
+          version), each child's video list, watch progress, and the hashed parent PIN
+          saved in Room; a fresh install has no children and no PIN
 recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```

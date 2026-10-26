@@ -57,7 +57,7 @@ class TvLayoutTest {
         }
         compose.waitForIdle()
 
-        val chip = compose.onNodeWithTag("videos_skill_CATCHING").getUnclippedBoundsInRoot()
+        val chip = compose.onNodeWithTag("videos_skill_${Skill.entries.last().name}").getUnclippedBoundsInRoot()
         val firstRow = compose.onNodeWithTag("videos_video_${hitting[0].id}").getUnclippedBoundsInRoot()
         // A squeezed chip wraps its label into a tall column on a real TV.
         assertThat(chip.right - chip.left).isGreaterThan(150.dp)

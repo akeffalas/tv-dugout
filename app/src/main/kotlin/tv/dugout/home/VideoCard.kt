@@ -50,6 +50,7 @@ fun Skill.gradient(): Brush =
             Skill.BASERUNNING -> listOf(Color(0xFF7B2CBF), Color(0xFF4A148C))
             Skill.PITCHING -> listOf(Color(0xFF457B9D), Color(0xFF1D3557))
             Skill.CATCHING -> listOf(Color(0xFFF4A261), Color(0xFFC96B28))
+            Skill.IQ -> listOf(Color(0xFFE9C46A), Color(0xFFB08A2E))
         },
     )
 

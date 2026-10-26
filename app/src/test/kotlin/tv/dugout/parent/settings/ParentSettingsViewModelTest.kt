@@ -292,7 +292,7 @@ class ParentSettingsViewModelTest {
         assertThat(graph.profiles.profile("sam")?.name).isEqualTo("Sam")
     }
 
-    private val added0005 = library.videos().filter { it.addedIn == 2 }.map { it.id }
+    private val addedSince1 = library.videos().filter { it.addedIn > 1 }.map { it.id }
 
     private fun openVideos(viewModel: ParentSettingsViewModel = viewModel()) =
         viewModel.apply {
@@ -331,12 +331,12 @@ class ParentSettingsViewModelTest {
                 .filter { it.new }
                 .map { it.video.id }
 
-        assertThat(newIds).isEqualTo(hitting.filter { it in added0005 })
+        assertThat(newIds).isEqualTo(hitting.filter { it in addedSince1 })
         val newPerSkill =
             Skill.entries.associateWith { skill ->
                 library.videos().count {
                     it.skill == skill &&
-                        it.addedIn == 2
+                        it.addedIn > 1
                 }
             }
         assertThat(viewModel.state.videoChips.mapValues { it.value.second }).isEqualTo(newPerSkill)

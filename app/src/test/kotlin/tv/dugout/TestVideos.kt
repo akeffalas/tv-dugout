@@ -48,5 +48,6 @@ val SMALL_LIBRARY =
             testVideo("b1", Skill.BASERUNNING),
             testVideo("p1", Skill.PITCHING),
             testVideo("c1", Skill.CATCHING),
+            testVideo("q1", Skill.IQ),
         ),
     )
