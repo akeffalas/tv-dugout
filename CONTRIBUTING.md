@@ -6,13 +6,16 @@ This guide covers setup, conventions, and the process for changes. If you are an
 ## Setup
 
 1. **JDK 17.** Any distribution; `java -version` should report 17.
-2. **Android SDK** with the platform for API 37 and the Google TV emulator image:
+2. **Android SDK** with the command-line tools, platform tools, emulator, the platform for
+   API 37, and the Google TV emulator image:
 
    ```sh
-   sdkmanager "platforms;android-37.0" "system-images;android-34;google-tv;arm64-v8a"
+   sdkmanager "cmdline-tools;latest" "platform-tools" "emulator" \
+     "platforms;android-37.0" "system-images;android-34;google-tv;arm64-v8a"
    ```
 
-   The SDK is found through `ANDROID_HOME`, or at `~/Library/Android/sdk` on macOS.
+   The SDK is found through `ANDROID_HOME`, then `ANDROID_SDK_ROOT`, or at
+   `~/Library/Android/sdk` on macOS.
 3. **Tools:** `brew install just prek`.
 4. **Hooks:** `just hooks` (once per clone).
 5. **Check it works:** `just check`, then `just acceptance`.
