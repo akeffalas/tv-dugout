@@ -877,4 +877,19 @@ class PlayerViewModelTest {
         assertThat(player.plays).isEqualTo(0)
         assertThat(vm.uiState.value.playing).isTrue()
     }
+
+    @Test
+    fun aReplayWhoseSeekIsLostEndsFiveSecondsOn() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+        player.confirmRate(true)
+
+        player.emitPosition(41f)
+        assertThat(vm.uiState.value.replaying).isTrue()
+
+        player.emitPosition(45f)
+        assertThat(vm.uiState.value.replaying).isFalse()
+        assertThat(player.slowMoRequests.last()).isFalse()
+    }
 }

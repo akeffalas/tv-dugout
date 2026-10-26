@@ -123,7 +123,8 @@ class PlayerViewModel(
                 replayReturnPoint?.let {
                     if (seconds < it) {
                         replayArmed = true
-                    } else if (replayArmed) {
+                    } else if (replayArmed || seconds >= it + REPLAY_SECONDS) {
+                        // Five seconds past the press point means YouTube dropped the seek: stop slowing down.
                         endReplay()
                     }
                 }
