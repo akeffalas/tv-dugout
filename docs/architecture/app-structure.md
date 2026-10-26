@@ -143,8 +143,9 @@ outline and scale to 1.06, as in [the mockup](../mockups/tv-mockup.html).
   Entering the tab row from below lands on the selected tab; a tab switches content when
   it gains focus. After a video, focus returns to that video in the row it was started
   from, else in its own skill row (`focusAfterReturn`).
-- **Player:** Play/Pause. The YouTube view blocks descendant focus, so the remote never
-  enters it.
+- **Player:** Pause when the controls show; the screen root while they are hidden, so the
+  next press wakes them without acting. Up from the buttons selects the progress bar. The
+  YouTube view blocks descendant focus, so the remote never enters it.
 - **Up next:** Play next, or Back to <Skill> when the skill has no other video.
 - **PIN screens:** the 5 key on the number pad; the remote's number keys also type
   digits. On the recovery code screen, "I've saved it".

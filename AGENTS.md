@@ -49,8 +49,9 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 ```text
 screens   picker (start), parent PIN (first screen on a fresh install, then the setup
           wizard), setup wizard (add a player), home (skill tabs with progress),
-          player (YouTube embed), up next, parent settings (progress and reset,
-          profile, videos with New marks, remove; add a player, change PIN)
+          player (full-screen YouTube embed with fading baseball controls), up next,
+          parent settings (progress and reset, profile, videos with New marks, remove;
+          add a player, change PIN)
 data      47-video bundled library with age, level, and library-version tags; profiles
           (with age range, level, and offered version), each child's video list, watch
           progress, and the hashed parent PIN saved in Room; a fresh install has no
@@ -105,8 +106,9 @@ The canonical slice to copy is `picker/`: `ProfilePickerViewModel.kt` with its t
   `DugoutBackground`, which provides the chalk content color.
 - **The YouTube player needs a WebView, which Robolectric cannot run.** Tests inject a fake
   `PlayerSurface` through `AppGraph`; real playback is checked on a TV (ADR-0006).
-- **Nothing may be drawn over the YouTube player**, and remote focus must stay out of it
-  (its view blocks descendant focus). Controls go below the video.
+- **Only the app's own player controls may draw over the YouTube player**, and only while
+  the app is unpublished (ADR-0008). Remote focus must stay out of it (its view blocks
+  descendant focus).
 - **Saved data loads off the main thread before any screen shows.** Robolectric tests that
   launch the real `MainActivity` must wait for it (`DugoutAppTest` waits for the picker;
   `awaitGraph()` waits for the graph). Tests that call `DugoutApp(testGraph())` need not.
