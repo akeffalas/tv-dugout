@@ -4,10 +4,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
@@ -20,7 +22,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import tv.dugout.home.GameCardState
 import tv.dugout.home.HomeScreen
+import tv.dugout.home.HomeSection
 import tv.dugout.home.HomeTab
 import tv.dugout.home.HomeUiState
 import tv.dugout.home.SkillProgress
@@ -139,6 +143,36 @@ class SixSkillsLayoutTest {
         }
         assertSameHeight(skillTabs)
         assertSameHeight(listOf(HomeTab.Home.tag(), HomeTab.MyList.tag()))
+    }
+
+    @Test
+    fun topBarWithSectionsFitsATv() {
+        compose.setContent {
+            DugoutTheme {
+                HomeScreen(
+                    state =
+                        HomeUiState(
+                            profileName = "Maximilian",
+                            avatarColor = 0xFFE63946,
+                            watchedTotal = 57,
+                            skills = Skill.entries.map { SkillProgress(it, 10, 10) },
+                            selectedTab = HomeTab.Home,
+                            rows = emptyList(),
+                            focus = null,
+                            game = GameCardState(4, 12, 30),
+                        ),
+                    onTabSelected = {},
+                    onVideoSelected = { _, _, _ -> },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        val sections = HomeSection.entries.map { it.tag() }
+        sections.forEach(::assertOnScreen)
+        assertFitsOnOneLine(sections)
+        compose.onNodeWithText("Maximilian").assertIsDisplayed()
+        assertOnScreen(HomeTab.Home.tag())
     }
 
     private fun press(key: Key) {

@@ -52,7 +52,27 @@ data class FocusTarget(
     val videoId: String,
 )
 
-/** One child's home: [rows] holds the content of [selectedTab]; [focus] is set after returning from a video. */
+/** The parts of Home, in the order the section row shows them. */
+enum class HomeSection(
+    val label: String,
+) {
+    VIDEOS("Videos"),
+    GAMES("Games"),
+}
+
+/** The What's the Play? card: the best round (none before a first round) and plays mastered out of the child's pool. */
+data class GameCardState(
+    val bestRuns: Int?,
+    val mastered: Int,
+    val total: Int,
+) {
+    val complete: Boolean get() = total > 0 && mastered == total
+}
+
+/**
+ * One child's home: [rows] holds the content of [selectedTab]; [focus] is set after returning from a video.
+ * [game] is null when no play suits the child, which hides the section row.
+ */
 data class HomeUiState(
     val profileName: String,
     val avatarColor: Long,
@@ -61,4 +81,6 @@ data class HomeUiState(
     val selectedTab: HomeTab,
     val rows: List<HomeRow>,
     val focus: FocusTarget?,
+    val section: HomeSection = HomeSection.VIDEOS,
+    val game: GameCardState? = null,
 )

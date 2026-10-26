@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -30,6 +31,8 @@ class HomeScreenTest {
 
     private val selectedTabs = mutableListOf<HomeTab>()
     private val selectedVideos = mutableListOf<Triple<HomeTab, RowKey, String>>()
+    private val selectedSections = mutableListOf<HomeSection>()
+    private var gamesOpened = 0
 
     private fun card(
         id: String,
@@ -51,6 +54,8 @@ class HomeScreenTest {
         skills: List<SkillProgress> = listOf(SkillProgress(Skill.HITTING, 1, 2), SkillProgress(Skill.FIELDING, 2, 2)),
         tab: HomeTab = HomeTab.Home,
         focus: FocusTarget? = null,
+        section: HomeSection = HomeSection.VIDEOS,
+        game: GameCardState? = GameCardState(bestRuns = 4, mastered = 12, total = 30),
     ) = HomeUiState(
         profileName = "Sam",
         avatarColor = 0xFFE63946,
@@ -59,6 +64,8 @@ class HomeScreenTest {
         selectedTab = tab,
         rows = rows,
         focus = focus,
+        section = section,
+        game = game,
     )
 
     private fun show(state: HomeUiState) {
@@ -68,6 +75,8 @@ class HomeScreenTest {
                     state = state,
                     onTabSelected = { selectedTabs += it },
                     onVideoSelected = { tab, row, id -> selectedVideos += Triple(tab, row, id) },
+                    onSectionSelected = { selectedSections += it },
+                    onGameSelected = { gamesOpened++ },
                 )
             }
         }
@@ -220,5 +229,88 @@ class HomeScreenTest {
         show(state().copy(watchedTotal = 1))
 
         compose.onNodeWithText("1 video watched").assertIsDisplayed()
+    }
+
+    @Test
+    fun upFromTabsReachesSections() {
+        show(state())
+
+        press(Key.DirectionUp)
+        press(Key.DirectionUp)
+
+        compose.onNodeWithTag("section_videos").assertIsFocused()
+    }
+
+    @Test
+    fun focusingGamesSelectsIt() {
+        show(state())
+
+        press(Key.DirectionUp)
+        press(Key.DirectionUp)
+        press(Key.DirectionRight)
+
+        compose.onNodeWithTag("section_games").assertIsFocused()
+        assertThat(selectedSections).containsExactly(HomeSection.GAMES)
+    }
+
+    @Test
+    fun gamesHidesTabsAndShowsShelf() {
+        show(state(section = HomeSection.GAMES))
+
+        assertThat(compose.onAllNodesWithTagCount("tab_home")).isEqualTo(0)
+        compose.onNodeWithTag("game_card_whats_the_play").assertIsDisplayed()
+        compose.onNodeWithText("What's the Play?").assertIsDisplayed()
+        compose.onNodeWithText("Best 4 of 5").assertIsDisplayed()
+        compose.onNodeWithText("12 of 30 plays").assertIsDisplayed()
+    }
+
+    @Test
+    fun gameCardBeforeAnyRound() {
+        show(state(section = HomeSection.GAMES, game = GameCardState(null, 0, 15)))
+
+        compose.onNodeWithText("No rounds yet").assertIsDisplayed()
+        compose.onNodeWithText("0 of 15 plays").assertIsDisplayed()
+    }
+
+    @Test
+    fun everyPlayMasteredShowsACheck() {
+        show(state(section = HomeSection.GAMES, game = GameCardState(5, 15, 15)))
+
+        compose.onNodeWithTag("game_card_complete", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun returningToGamesFocusesTheCard() {
+        show(state(section = HomeSection.GAMES))
+
+        compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
+    }
+
+    @Test
+    fun selectOnCardOpensGame() {
+        show(state(section = HomeSection.GAMES))
+
+        press(Key.DirectionCenter)
+
+        assertThat(gamesOpened).isEqualTo(1)
+    }
+
+    @Test
+    fun backFromShelfFocusesGamesSection() {
+        show(state(section = HomeSection.GAMES))
+
+        compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
+        Espresso.pressBack()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("section_games").assertIsFocused()
+    }
+
+    @Test
+    fun noSectionRowWhenThePoolIsEmpty() {
+        show(state(game = null))
+
+        assertThat(compose.onAllNodesWithTagCount("section_videos")).isEqualTo(0)
+        compose.onNodeWithTag("card_row_hitting_h1").assertIsFocused()
     }
 }

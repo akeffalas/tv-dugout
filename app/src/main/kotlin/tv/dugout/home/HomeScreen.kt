@@ -1,5 +1,6 @@
 package tv.dugout.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +56,8 @@ fun HomeScreen(
     state: HomeUiState,
     onTabSelected: (HomeTab) -> Unit,
     onVideoSelected: (HomeTab, RowKey, String) -> Unit,
+    onSectionSelected: (HomeSection) -> Unit = {},
+    onGameSelected: () -> Unit = {},
 ) {
     val tabs = listOf<HomeTab>(HomeTab.Home) + state.skills.map { HomeTab.SkillTab(it.skill) } + HomeTab.MyList
     val tabRequesters = remember(tabs) { tabs.associateWith { FocusRequester() } }
@@ -64,13 +68,26 @@ fun HomeScreen(
                     row.cards.map { cardTag(row.key, it.video.id) }
                 }.associateWith { FocusRequester() }
         }
+    val sectionRequesters = remember { HomeSection.entries.associateWith { FocusRequester() } }
+    val gameCard = remember { FocusRequester() }
+    var shelfFocused by remember { mutableStateOf(false) }
     var arrived by rememberSaveable { mutableStateOf(false) }
+
+    // Back from the shelf goes up to the Games section first; from there it leaves Home as before.
+    BackHandler(enabled = state.section == HomeSection.GAMES && shelfFocused) {
+        sectionRequesters.getValue(HomeSection.GAMES).requestFocus()
+    }
 
     LaunchedEffect(state.focus, cardRequesters) {
         val target = state.focus?.let { cardRequesters[cardTag(it.row, it.videoId)] }
         when {
             target != null -> {
                 target.requestFocus()
+            }
+
+            // Coming back from a game: the card it was started from.
+            state.section == HomeSection.GAMES && state.game != null -> {
+                gameCard.requestFocus()
             }
 
             !arrived -> {
@@ -89,7 +106,18 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 26.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            TopBar(state)
+            TopBar(state) {
+                if (state.game != null) SectionRow(state.section, sectionRequesters, onSectionSelected)
+            }
+            if (state.section == HomeSection.GAMES && state.game != null) {
+                GamesShelf(
+                    state.game,
+                    gameCard,
+                    onGameSelected,
+                    modifier = Modifier.onFocusChanged { shelfFocused = it.hasFocus },
+                )
+                return@Column
+            }
             SkillTabs(state.skills, state.selectedTab, tabRequesters, onTabSelected)
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -120,7 +148,10 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TopBar(state: HomeUiState) {
+private fun TopBar(
+    state: HomeUiState,
+    sections: @Composable () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -130,6 +161,7 @@ private fun TopBar(state: HomeUiState) {
             Text("⚾ Dugout ", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
             Text("TV", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = FocusGold)
         }
+        sections()
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (state.watchedTotal ==

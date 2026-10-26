@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import tv.dugout.AppGraph
+import tv.dugout.game.GameRecord
+import tv.dugout.game.PlayLibrary
 import tv.dugout.history.WatchProgress
 import tv.dugout.history.fraction
 import tv.dugout.history.started
@@ -24,10 +26,21 @@ class HomeViewModel(
     private val selectedTab = MutableStateFlow<HomeTab>(HomeTab.Home)
     private val focus = MutableStateFlow<FocusTarget?>(null)
     private var origin: FocusTarget? = null
+    private val section = MutableStateFlow(HomeSection.VIDEOS)
+    private val pool = PlayLibrary.poolFor(profile.ageRange).mapTo(HashSet()) { it.id }
+    private val games = graph.games.record(profileId)
 
     val uiState: StateFlow<HomeUiState> =
-        combine(selectedTab, focus, progress, ::build)
-            .stateIn(viewModelScope, SharingStarted.Eagerly, build(selectedTab.value, focus.value, progress.value))
+        combine(selectedTab, focus, progress, section, games, ::build)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                build(selectedTab.value, focus.value, progress.value, section.value, games.value),
+            )
+
+    fun onSectionSelected(selected: HomeSection) {
+        section.value = selected
+    }
 
     fun onTabSelected(tab: HomeTab) {
         selectedTab.value = tab
@@ -65,6 +78,8 @@ class HomeViewModel(
         tab: HomeTab,
         focusTarget: FocusTarget?,
         progress: Map<String, WatchProgress>,
+        section: HomeSection,
+        record: GameRecord,
     ) = HomeUiState(
         profileName = profile.name,
         avatarColor = profile.avatarColor,
@@ -77,6 +92,17 @@ class HomeViewModel(
         selectedTab = tab,
         rows = rowsFor(tab, progress),
         focus = focusTarget,
+        section = section,
+        game =
+            if (pool.isEmpty()) {
+                null
+            } else {
+                GameCardState(
+                    record.bestRuns,
+                    record.mastered.count { it in pool },
+                    pool.size,
+                )
+            },
     )
 
     private fun skillsPresent() = Skill.entries.filter { skill -> videos.any { it.skill == skill } }

@@ -6,9 +6,13 @@ import org.junit.Test
 import tv.dugout.FixedProfileVideos
 import tv.dugout.MainDispatcherRule
 import tv.dugout.SMALL_LIBRARY
+import tv.dugout.game.InMemoryGameProgress
 import tv.dugout.history.InMemoryWatchHistory
+import tv.dugout.library.AgeRange
 import tv.dugout.library.ProfileVideos
 import tv.dugout.library.Skill
+import tv.dugout.profile.InMemoryProfileRepository
+import tv.dugout.profile.Profile
 import tv.dugout.testGraph
 
 class HomeViewModelTest {
@@ -189,5 +193,53 @@ class HomeViewModelTest {
         vm.onTabSelected(HomeTab.MyList)
 
         assertThat(vm.uiState.value.focus).isNull()
+    }
+
+    private val games = InMemoryGameProgress()
+
+    private fun aged(ageRange: AgeRange) =
+        HomeViewModel(
+            "sam",
+            testGraph(
+                library = SMALL_LIBRARY,
+                profiles = InMemoryProfileRepository(listOf(Profile("sam", "Sam", 0xFFE63946, ageRange))),
+                history = history,
+                games = games,
+            ),
+        )
+
+    @Test
+    fun opensOnVideos() {
+        assertThat(viewModel().uiState.value.section).isEqualTo(HomeSection.VIDEOS)
+    }
+
+    @Test
+    fun gameCardCountsThePool() {
+        assertThat(aged(AgeRange.NINE_TO_TEN).uiState.value.game).isEqualTo(GameCardState(null, 0, 30))
+        assertThat(aged(AgeRange.SEVEN_TO_EIGHT).uiState.value.game).isEqualTo(GameCardState(null, 0, 15))
+    }
+
+    @Test
+    fun noGameCardForFourToSix() {
+        assertThat(aged(AgeRange.FOUR_TO_SIX).uiState.value.game).isNull()
+    }
+
+    @Test
+    fun gameCardFollowsProgress() {
+        val home = aged(AgeRange.SEVEN_TO_EIGHT)
+        games.markMastered("sam", "p01")
+        // A situation play is not in a 7 to 8 child's pool, so it does not count toward their total.
+        games.markMastered("sam", "p20")
+        games.finishRound("sam", 3)
+
+        assertThat(home.uiState.value.game).isEqualTo(GameCardState(3, 1, 15))
+    }
+
+    @Test
+    fun selectingASectionShowsIt() {
+        val home = viewModel()
+        home.onSectionSelected(HomeSection.GAMES)
+
+        assertThat(home.uiState.value.section).isEqualTo(HomeSection.GAMES)
     }
 }
