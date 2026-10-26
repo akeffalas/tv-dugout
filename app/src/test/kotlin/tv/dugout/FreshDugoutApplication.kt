@@ -4,6 +4,6 @@ import tv.dugout.parent.FixedPinKey
 import tv.dugout.parent.PinKey
 
 /** The real app on an empty database, with a PIN key that needs no Android Keystore. */
-class FreshDugoutApplication : DugoutApplication() {
+class FreshDugoutApplication : OfflineDugoutApplication() {
     override fun pinKey(): PinKey = FixedPinKey()
 }
