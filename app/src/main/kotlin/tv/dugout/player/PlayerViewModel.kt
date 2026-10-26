@@ -136,12 +136,6 @@ class PlayerViewModel(
         if (uiState.value.state == PlaybackState.PLAYING) player?.pause() else player?.play()
     }
 
-    fun onBackTenSeconds() {
-        val target = (uiState.value.positionSeconds - 10f).coerceAtLeast(0f)
-        player?.seekTo(target)
-        state.update { it.copy(positionSeconds = target) }
-    }
-
     fun onSlowMoToggle() {
         clearReplay()
         val wantSlowMo = !uiState.value.slowMo

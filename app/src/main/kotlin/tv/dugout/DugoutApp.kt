@@ -436,13 +436,19 @@ private fun PlayerDestination(
             navController.returnHome(video.id, openSkill = null)
         }
     }
-    BackHandler(onBack = leave)
+    BackHandler { if (!playerViewModel.onBackPressed()) leave() }
     PlayerScreen(
         state = state,
         surface = { modifier -> graph.playerSurface.Content(modifier, playerViewModel::attach) },
         onPlayPause = playerViewModel::onPlayPause,
-        onBackTenSeconds = playerViewModel::onBackTenSeconds,
+        onStartOver = playerViewModel::onStartOver,
+        onReplay = playerViewModel::onReplay,
         onSlowMoToggle = playerViewModel::onSlowMoToggle,
+        onScrub = playerViewModel::onScrub,
+        onScrubCommit = playerViewModel::onScrubCommit,
+        onMediaKey = playerViewModel::onMediaKey,
+        onWake = playerViewModel::onWake,
+        onUserActivity = playerViewModel::onUserActivity,
         onBack = leave,
     )
 }

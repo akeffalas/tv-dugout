@@ -1,13 +1,23 @@
 package tv.dugout.player
 
+import android.view.View
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.pressKey
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -17,27 +27,49 @@ import tv.dugout.library.Skill
 import tv.dugout.testVideo
 import tv.dugout.ui.theme.DugoutTheme
 
+@OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
 class PlayerScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private var backs = 0
+    private val calls = mutableListOf<String>()
+    private val scrubs = mutableListOf<Boolean>()
+    private val mediaKeys = mutableListOf<MediaKey>()
+    private val screen = mutableStateOf<PlayerUiState?>(null)
+    private lateinit var view: View
+
+    private fun count(name: String) = calls.count { it == name }
 
     private fun show(state: PlayerUiState) {
+        screen.value = state
         compose.setContent {
+            view = LocalView.current
             DugoutTheme {
                 PlayerScreen(
-                    state = state,
+                    state = screen.value!!,
                     surface = { modifier -> Box(modifier.testTag("player_surface")) },
-                    onPlayPause = {},
-                    onBackTenSeconds = {},
-                    onSlowMoToggle = {},
-                    onBack = { backs++ },
+                    onPlayPause = { calls += "playPause" },
+                    onStartOver = { calls += "startOver" },
+                    onReplay = { calls += "replay" },
+                    onSlowMoToggle = { calls += "slowMo" },
+                    onScrub = { forward, _ -> scrubs += forward },
+                    onScrubCommit = { calls += "commit" },
+                    onMediaKey = { mediaKeys += it },
+                    onWake = { calls += "wake" },
+                    onUserActivity = { calls += "activity" },
+                    onBack = { calls += "back" },
                 )
             }
         }
     }
+
+    private fun press(key: Key) {
+        compose.onRoot().performKeyInput { pressKey(key) }
+        compose.waitForIdle()
+    }
+
+    private fun focused(tag: String) = compose.onNodeWithTag(tag).assertIsFocused()
 
     private val playing =
         PlayerUiState(
@@ -45,14 +77,188 @@ class PlayerScreenTest {
             PlaybackState.PLAYING,
             positionSeconds = 30f,
             durationSeconds = 100f,
+            hasPlayed = true,
         )
+
+    @Test
+    fun surfaceFillsTheScreen() {
+        show(playing)
+
+        val root = compose.onNodeWithTag("player_root").getBoundsInRoot()
+        val surface = compose.onNodeWithTag("player_surface").getBoundsInRoot()
+
+        assertThat(surface).isEqualTo(root)
+    }
+
+    @Test
+    fun controlsDrawOverTheBottomOfTheSurface() {
+        show(playing)
+
+        val surface = compose.onNodeWithTag("player_surface").getBoundsInRoot()
+        val control = compose.onNodeWithTag("control_playpause").getBoundsInRoot()
+
+        assertThat(control.top.value).isGreaterThan((surface.top + surface.bottom).value / 2)
+        assertThat(control.bottom.value).isAtMost(surface.bottom.value)
+    }
 
     @Test
     fun focusStartsOnPlayPause() {
         show(playing)
 
-        compose.onNodeWithTag("control_playpause").assertIsFocused()
+        focused("control_playpause")
         compose.onNodeWithText("Pause").assertIsDisplayed()
+    }
+
+    @Test
+    fun buttonsInOrder() {
+        show(playing)
+
+        press(Key.DirectionLeft)
+        focused("control_startover")
+        press(Key.DirectionRight)
+        press(Key.DirectionRight)
+        focused("control_replay")
+        press(Key.DirectionRight)
+        focused("control_slowmo")
+    }
+
+    @Test
+    fun upFromAnyButtonSelectsTheBar() {
+        show(playing)
+
+        listOf("control_startover", "control_playpause", "control_replay", "control_slowmo").forEach {
+            compose.onNodeWithTag(it).performSemanticsAction(SemanticsActions.RequestFocus)
+            press(Key.DirectionUp)
+            focused("control_progress")
+        }
+    }
+
+    @Test
+    fun downFromTheBarCommitsAndReturnsToPause() {
+        show(playing)
+        press(Key.DirectionUp)
+
+        press(Key.DirectionDown)
+
+        assertThat(count("commit")).isEqualTo(1)
+        focused("control_playpause")
+    }
+
+    @Test
+    fun leftAndRightOnTheBarScrub() {
+        show(playing)
+        press(Key.DirectionUp)
+
+        press(Key.DirectionRight)
+        press(Key.DirectionLeft)
+
+        assertThat(scrubs).containsExactly(true, false).inOrder()
+        focused("control_progress")
+    }
+
+    @Test
+    fun buttonsCallTheirActions() {
+        show(playing)
+
+        listOf("control_startover", "control_playpause", "control_replay", "control_slowmo").forEach {
+            compose.onNodeWithTag(it).performSemanticsAction(SemanticsActions.OnClick)
+        }
+
+        assertThat(calls).containsExactly("startOver", "playPause", "replay", "slowMo").inOrder()
+    }
+
+    @Test
+    fun hiddenControlsAreNotShown() {
+        show(playing.copy(controlsVisible = false))
+
+        compose.onNodeWithTag("player_controls").assertDoesNotExist()
+    }
+
+    @Test
+    fun okWhileHiddenOnlyShowsControls() {
+        show(playing.copy(controlsVisible = false))
+
+        // On a real remote the key-up arrives after the controls have appeared with Pause focused.
+        compose.onRoot().performKeyInput { keyDown(Key.DirectionCenter) }
+        screen.value = playing
+        compose.waitForIdle()
+        compose.onRoot().performKeyInput { keyUp(Key.DirectionCenter) }
+        compose.waitForIdle()
+
+        assertThat(count("wake")).isEqualTo(1)
+        assertThat(count("playPause")).isEqualTo(0)
+    }
+
+    @Test
+    fun directionWhileHiddenOnlyShowsControls() {
+        show(playing.copy(controlsVisible = false))
+
+        press(Key.DirectionRight)
+
+        assertThat(count("wake")).isEqualTo(1)
+        assertThat(scrubs).isEmpty()
+    }
+
+    @Test
+    fun pressAfterHideStillWakes() {
+        show(playing)
+        screen.value = playing.copy(controlsVisible = false)
+        compose.waitForIdle()
+
+        press(Key.DirectionUp)
+
+        assertThat(count("wake")).isEqualTo(1)
+    }
+
+    @Test
+    fun wakingFocusesPause() {
+        show(playing.copy(controlsVisible = false))
+
+        screen.value = playing
+        compose.waitForIdle()
+
+        focused("control_playpause")
+    }
+
+    @Test
+    fun pressesWhileShowingCountAsActivity() {
+        show(playing)
+
+        press(Key.DirectionRight)
+
+        assertThat(count("activity")).isEqualTo(1)
+        assertThat(count("wake")).isEqualTo(0)
+    }
+
+    @Test
+    fun mediaKeysReachTheViewModelHiddenOrShown() {
+        show(playing.copy(controlsVisible = false))
+        press(Key.MediaPlayPause)
+        assertThat(mediaKeys).containsExactly(MediaKey.PLAY_PAUSE)
+
+        screen.value = playing
+        compose.waitForIdle()
+        press(Key.MediaRewind)
+
+        assertThat(mediaKeys).containsExactly(MediaKey.PLAY_PAUSE, MediaKey.REWIND).inOrder()
+        focused("control_progress")
+    }
+
+    @Test
+    fun bubbleShowsWhileScrubbing() {
+        show(playing.copy(scrubTarget = 74f, scrubOrigin = 34f))
+
+        compose.onNodeWithText("1:14 +40s").assertIsDisplayed()
+    }
+
+    @Test
+    fun spinnerUntilFirstPlay() {
+        show(playing.copy(state = PlaybackState.LOADING, hasPlayed = false))
+        compose.onNodeWithTag("player_loading").assertIsDisplayed()
+
+        screen.value = playing
+        compose.waitForIdle()
+        compose.onNodeWithTag("player_loading").assertDoesNotExist()
     }
 
     @Test
@@ -60,16 +266,6 @@ class PlayerScreenTest {
         show(playing.copy(state = PlaybackState.PAUSED))
 
         compose.onNodeWithText("Play").assertIsDisplayed()
-    }
-
-    @Test
-    fun controlsSitBelowTheSurface() {
-        show(playing)
-
-        val surface = compose.onNodeWithTag("player_surface").getBoundsInRoot()
-        val control = compose.onNodeWithTag("control_playpause").getBoundsInRoot()
-
-        assertThat(control.top.value).isAtLeast(surface.bottom.value)
     }
 
     @Test
@@ -84,13 +280,10 @@ class PlayerScreenTest {
     @Test
     fun slowMoLabelFollowsState() {
         show(playing)
-        compose.onNodeWithText("Slow-mo 0.5×").assertIsDisplayed()
-    }
+        compose.onNodeWithText("Slow-mo").assertIsDisplayed()
 
-    @Test
-    fun slowMoOnOffersNormalSpeed() {
-        show(playing.copy(slowMo = true))
-
+        screen.value = playing.copy(slowMo = true)
+        compose.waitForIdle()
         compose.onNodeWithText("Normal speed").assertIsDisplayed()
     }
 
@@ -106,6 +299,16 @@ class PlayerScreenTest {
         show(playing.copy(failure = PlayerFailure.NOT_EMBEDDABLE))
 
         compose.onNodeWithText("This video can't play right now").assertIsDisplayed()
-        compose.onNodeWithTag("player_error_back").assertIsFocused()
+        focused("player_error_back")
+        compose.onNodeWithTag("player_controls").assertDoesNotExist()
+    }
+
+    @Test
+    fun keepsScreenOnOnlyWhilePlaying() {
+        show(playing)
+        compose.runOnIdle { assertThat(view.keepScreenOn).isTrue() }
+
+        screen.value = playing.copy(state = PlaybackState.PAUSED)
+        compose.runOnIdle { assertThat(view.keepScreenOn).isFalse() }
     }
 }

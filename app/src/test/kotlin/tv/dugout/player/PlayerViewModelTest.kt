@@ -100,27 +100,6 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun backTenSecondsClampsAtZero() {
-        val vm = attached()
-        vm.playingAt(4f)
-
-        vm.onBackTenSeconds()
-
-        assertThat(player.seeks).containsExactly(0f)
-    }
-
-    @Test
-    fun backTenSecondsSeeksBack() {
-        val vm = attached()
-        vm.playingAt(30f)
-
-        vm.onBackTenSeconds()
-
-        assertThat(player.seeks).containsExactly(20f)
-        assertThat(vm.uiState.value.positionSeconds).isEqualTo(20f)
-    }
-
-    @Test
     fun slowMoShowsOnlyAfterConfirmation() {
         val vm = attached()
 

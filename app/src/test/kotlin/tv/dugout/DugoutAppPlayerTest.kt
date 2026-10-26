@@ -71,6 +71,20 @@ class DugoutAppPlayerTest {
     }
 
     @Test
+    fun backWhilePlayingHidesThenLeaves() {
+        start()
+        press(Key.DirectionCenter)
+        compose.runOnIdle { surface.current.emitState(PlaybackState.PLAYING) }
+
+        back()
+        compose.onNodeWithTag("player_surface").assertIsDisplayed()
+        compose.onNodeWithTag("player_controls").assertDoesNotExist()
+
+        back()
+        compose.onNodeWithTag("card_row_hitting_h1").assertIsFocused()
+    }
+
+    @Test
     fun doubleSelectCardThenBackReturnsHome() {
         start()
         compose.mainClock.autoAdvance = false
