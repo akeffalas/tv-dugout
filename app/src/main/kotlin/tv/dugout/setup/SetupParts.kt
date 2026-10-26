@@ -2,9 +2,11 @@ package tv.dugout.setup
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
@@ -25,7 +27,8 @@ private val ChoiceScale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f)
 
 /**
  * A rounded choice in the wizard: navy when off, chalk when [on]. A [on] of null is a plain
- * button; otherwise it reads as a toggle to accessibility services and tests.
+ * button; otherwise it reads as a toggle to accessibility services and tests. [centered] puts
+ * the label in the middle of a choice given a fixed width.
  */
 @Composable
 internal fun Choice(
@@ -35,6 +38,7 @@ internal fun Choice(
     hint: String? = null,
     on: Boolean? = null,
     highlight: Boolean = false,
+    centered: Boolean = false,
 ) {
     val filled = on == true || highlight
     val background = if (filled) (if (highlight) FocusGold else Chalk) else CardNavy
@@ -55,7 +59,13 @@ internal fun Choice(
         scale = ChoiceScale,
         border = ClickableSurfaceDefaults.border(focusedBorder = Border(BorderStroke(3.dp, FocusGold))),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp)) {
+        Column(
+            modifier =
+                Modifier
+                    .then(if (centered) Modifier.fillMaxWidth() else Modifier)
+                    .padding(horizontal = 22.dp, vertical = 14.dp),
+            horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+        ) {
             Text(
                 if (on ==
                     true

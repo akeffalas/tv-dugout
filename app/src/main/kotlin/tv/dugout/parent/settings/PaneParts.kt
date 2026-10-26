@@ -113,6 +113,8 @@ internal fun PaneRow(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        // Barely grows on focus, so a full-width row stays inside the pane.
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
         colors =
             ClickableSurfaceDefaults.colors(
                 containerColor = container,

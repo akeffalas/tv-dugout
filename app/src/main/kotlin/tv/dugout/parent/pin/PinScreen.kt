@@ -99,5 +99,5 @@ private fun PadKey(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Choice(label = label, onClick = onClick, modifier = modifier.width(KeyWidth).testTag(tag))
+    Choice(label = label, onClick = onClick, centered = true, modifier = modifier.width(KeyWidth).testTag(tag))
 }
