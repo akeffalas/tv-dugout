@@ -1,7 +1,7 @@
 # Design: Baseball IQ videos
 
 - **Date:** 2026-10-25
-- **Status:** Draft
+- **Status:** Accepted
 
 ## Intent
 
@@ -24,10 +24,10 @@ the app.
 
 1. Home shows a Baseball IQ tab, after Catching, for any child whose list has an IQ
    video. Existing tabs keep their order, and Hitting stays first.
-2. Basics videos (outs, force outs, tagging up, scoring, positions) are tagged ages 7 to
+2. Basics videos (force outs, tag outs, tagging up) are tagged ages 7 to
    12, coach pitch and kid pitch, so the setup wizard recommends them to both children.
-3. Game situation videos (cutoffs and relays, backing up, rundowns, first and third,
-   the infield fly) are tagged ages 10 to 12, kid pitch.
+3. Game situation videos (cutoffs and relays, backing up, rundowns, the infield
+   fly) are tagged ages 10 to 12, kid pitch.
 4. The new videos carry library version 3, so parent settings marks them New for
    children who already exist and a parent can add them there.
 5. The setup wizard offers Baseball IQ as a skill alongside the other five, and the
@@ -45,45 +45,50 @@ the app.
 ## The videos
 
 All were checked on 2026-10-25 to be embeddable, marked family safe, and under 15
-minutes. Lengths are in seconds. The owner has not watched them yet; see
-[Waiting on the owner](#waiting-on-the-owner).
+minutes. Lengths are in seconds. The owner asked the builder to choose; the choice
+favors videos that talk to children rather than to coaches.
 
 ### Basics (ages 7 to 12, coach pitch and kid pitch)
 
 | YouTube ID | Title | Channel | Length |
 |---|---|---|---|
-| -3cUVRvwUiU | Force Out vs. Tag Out, Explained for Kids | D-BAT | 152 |
-| ZZgrq4iJi9I | Intro to Baseball: Force Outs | TheOnDeckCircle | 312 |
-| 5NPbQBECF0w | How Can You Get Out in Baseball? | MLB | 252 |
+| -3cUVRvwUiU | Force Out vs. Tag Out | D-BAT | 152 |
+| ZZgrq4iJi9I | Force Outs | TheOnDeckCircle | 312 |
 | _SZhK8baRA4 | How Tagging Up Works | Be Well Played | 74 |
-| HdLIgsH1ZP0 | Tagging Up: Why Not to Run on a Pop Fly | Ball Basics | 115 |
-| vjoIcUIgv5o | Intro to Baseball: Tagging Up and Sacrifice Flies | TheOnDeckCircle | 213 |
-| aM3G1J84VM8 | How Do You Score in Baseball? | MLB | 234 |
-| T0r8oZxRC4Q | Intro to Baseball: Positions | TheOnDeckCircle | 416 |
-| 7v7RHPZFu0k | What Are Baseball Situations? | Building Better Baseball | 655 |
+| HdLIgsH1ZP0 | Why Not to Run on a Pop Fly | Ball Basics | 115 |
+| vjoIcUIgv5o | Tagging Up and Sacrifice Flies | TheOnDeckCircle | 213 |
 
 ### Game situations (ages 10 to 12, kid pitch)
 
 | YouTube ID | Title | Channel | Length |
 |---|---|---|---|
-| iABVs3XOLCk | Situational Play: Build Baseball IQ | Dominate The Diamond | 196 |
-| wIU9NdCBBkE | Basic Cutoffs and Relays | ELITE YOUTH BASEBALL | 646 |
-| FP5lEv-L0xE | Advanced Cutoffs and Relays | ELITE YOUTH BASEBALL | 302 |
-| ON07qcMZuhg | Baseball IQ Test: Who Is the Cutoff on a Single to Right? | Antonelli Baseball | 377 |
 | LD4H96mlpr8 | Backing Up Bases | Antonelli Baseball | 353 |
-| OAbBekHAk_g | Baseball Rundown: Tips and Drills | Antonelli Baseball | 344 |
-| Z5d6zbJOv3M | First and Third Defense | YouGoProBaseball | 326 |
-| iphFBx_Ejk4 | The Infield Fly, Explained | MLB Clubhouse | 218 |
+| wIU9NdCBBkE | Cutoffs and Relays | ELITE YOUTH BASEBALL | 646 |
+| ON07qcMZuhg | Who Is the Cutoff? | Antonelli Baseball | 377 |
+| OAbBekHAk_g | Rundowns | Antonelli Baseball | 344 |
+| iphFBx_Ejk4 | The Infield Fly Rule | MLB Clubhouse | 218 |
 
 The order within each table is the display order: basics first, then situations, each
-running from simplest to hardest. That makes the tab's first video a short one that any
-child can follow. The library grows from 47 to 64 videos.
+running from simplest to hardest. The tab's first video is a short one made for
+children. The library grows from 47 to 57 videos, and the IQ skill has 10.
+
+### Considered and left out
+
+| YouTube ID | Title | Why not |
+|---|---|---|
+| 7v7RHPZFu0k | What Are Baseball Situations? | Promotes a coaching workshop; 11 minutes |
+| Z5d6zbJOv3M | 1st and 3rd Defense | Addressed to coaches running a team |
+| iABVs3XOLCk | Situational Play | Addressed to coaches |
+| FP5lEv-L0xE | Advanced Cutoffs and Relays | Double cuts are past ages 10 to 11 |
+| T0r8oZxRC4Q | Intro to Baseball: Positions | Children who play already know this |
+| 5NPbQBECF0w | How Can You Get Out in Baseball? | Made for adults new to the sport |
+| aM3G1J84VM8 | How Do You Score in Baseball? | Made for adults new to the sport |
 
 ## How it fits
 
 ```mermaid
 flowchart LR
-    Lib[VideoLibrary: 17 new entries, skill IQ, addedIn 3] --> Wiz[Setup wizard: recommends by age and level]
+    Lib[VideoLibrary: 10 new entries, skill IQ, addedIn 3] --> Wiz[Setup wizard: recommends by age and level]
     Lib --> PS[Parent settings: New marks for version 3]
     Wiz --> List[Child's saved list]
     PS --> List
@@ -102,13 +107,7 @@ flowchart LR
 
 - Videos first, game later, as two specs.
 - One tab for both children, split by age tags rather than by two tabs.
-
-## Waiting on the owner
-
-- Watch the 17 videos and strike any that are dull, aimed at coaches rather than
-  children, or wrong for these two children. Several situation videos (ELITE YOUTH
-  BASEBALL, Antonelli, YouGoProBaseball, Dominate The Diamond) are made for coaches and
-  may talk over a child's head.
+- The builder chooses the videos.
 
 ## Builder's calls (the owner may override)
 
