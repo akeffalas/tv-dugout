@@ -1,5 +1,7 @@
 package tv.dugout
 
+import tv.dugout.game.GameProgress
+import tv.dugout.game.InMemoryGameProgress
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.history.WatchHistory
 import tv.dugout.library.BundledVideoLibrary
@@ -13,6 +15,7 @@ import tv.dugout.player.PlayerSurface
 import tv.dugout.profile.InMemoryProfileRepository
 import tv.dugout.profile.Profile
 import tv.dugout.profile.ProfileRepository
+import kotlin.random.Random
 
 /** Gives each of [profiles] every video in [library], as a list children can be added to. */
 fun everyVideo(
@@ -30,4 +33,6 @@ fun testGraph(
     playerSurface: PlayerSurface = FakePlayerSurface(),
     clock: () -> Long = { 0L },
     lock: ParentLock = noPinLock(),
-) = AppGraph(profiles, library, profileVideos, history, playerSurface, clock, lock)
+    games: GameProgress = InMemoryGameProgress(),
+    random: Random = Random.Default,
+) = AppGraph(profiles, library, profileVideos, history, playerSurface, clock, lock, games, random)
