@@ -350,4 +350,66 @@ class PlayerScreenTest {
         screen.value = playing.copy(state = PlaybackState.PAUSED)
         compose.runOnIdle { assertThat(view.keepScreenOn).isFalse() }
     }
+
+    @Test
+    fun bufferingAfterPlayShowsPause() {
+        show(playing.copy(state = PlaybackState.LOADING))
+
+        compose.onNodeWithText("Pause").assertIsDisplayed()
+    }
+
+    @Test
+    fun holdingAWakingKeyDoesNotMoveFocus() {
+        show(playing.copy(controlsVisible = false))
+
+        compose.onRoot().performKeyInput { keyDown(Key.DirectionUp) }
+        screen.value = playing
+        compose.waitForIdle()
+        compose.onRoot().performKeyInput {
+            advanceEventTime(1_000)
+            keyUp(Key.DirectionUp)
+        }
+        compose.waitForIdle()
+
+        focused("control_playpause")
+        assertThat(count("wake")).isEqualTo(1)
+    }
+
+    @Test
+    fun holdingPlayPauseTogglesOnce() {
+        show(playing)
+
+        compose.onRoot().performKeyInput {
+            keyDown(Key.MediaPlayPause)
+            advanceEventTime(1_000)
+            keyUp(Key.MediaPlayPause)
+        }
+        compose.waitForIdle()
+
+        assertThat(mediaKeys).containsExactly(MediaKey.PLAY_PAUSE)
+    }
+
+    @Test
+    fun holdingFastForwardKeepsMoving() {
+        show(playing)
+
+        compose.onRoot().performKeyInput {
+            keyDown(Key.MediaFastForward)
+            advanceEventTime(1_000)
+            keyUp(Key.MediaFastForward)
+        }
+        compose.waitForIdle()
+
+        assertThat(mediaKeys.size).isGreaterThan(1)
+    }
+
+    @Test
+    fun bubbleStaysClearOfTheTitle() {
+        show(playing.copy(scrubTarget = 5f, scrubOrigin = 30f))
+
+        val title = compose.onNodeWithText(playing.video.title).getBoundsInRoot()
+        val bubble = compose.onNodeWithTag("scrub_bubble", useUnmergedTree = true).getBoundsInRoot()
+
+        assertThat(bubble.top.value).isAtLeast(title.bottom.value)
+    }
 }

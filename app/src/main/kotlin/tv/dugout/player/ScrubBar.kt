@@ -53,7 +53,11 @@ fun ScrubBar(
     val share = if (durationSeconds > 0f) (shown / durationSeconds).coerceIn(0f, 1f) else 0f
     val thickness = if (selected) 12.dp else 8.dp
     val marker = if (selected) 30.dp else 20.dp
-    BoxWithConstraints(modifier = modifier.fillMaxWidth().height(32.dp), contentAlignment = Alignment.CenterStart) {
+    // Room above the bar for the bubble, so it never covers the title.
+    BoxWithConstraints(
+        modifier = modifier.padding(top = 28.dp).fillMaxWidth().height(32.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
         val x = maxWidth * share
         Box(
             Modifier
@@ -89,13 +93,13 @@ fun ScrubBar(
                 fontWeight = FontWeight.Bold,
                 modifier =
                     Modifier
-                        .testTag("scrub_bubble")
                         .layout { measurable, constraints ->
                             val bubble = measurable.measure(constraints)
                             layout(bubble.width, bubble.height) {
                                 bubble.place(x.roundToPx() - bubble.width / 2, -bubble.height - 6.dp.roundToPx())
                             }
-                        }.background(FocusGold, RoundedCornerShape(12.dp))
+                        }.testTag("scrub_bubble")
+                        .background(FocusGold, RoundedCornerShape(12.dp))
                         .padding(horizontal = 10.dp, vertical = 3.dp),
             )
         }

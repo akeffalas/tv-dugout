@@ -79,6 +79,8 @@ private val MEDIA_KEYS =
         Key.MediaFastForward to MediaKey.FAST_FORWARD,
     )
 
+private val TOGGLE_KEYS = setOf(MediaKey.PLAY_PAUSE, MediaKey.PLAY, MediaKey.PAUSE)
+
 /**
  * The app's player: the video fills the screen, and the controls fade in over its bottom edge
  * (allowed while the app is unpublished, ADR-0008). The press that wakes hidden controls does
@@ -126,13 +128,16 @@ fun PlayerScreen(
 
     fun handleKey(event: KeyEvent): Boolean {
         val down = event.type == KeyEventType.KeyDown
-        if (event.type == KeyEventType.KeyUp && event.key == swallowedKey) {
-            swallowedKey = null
+        if (event.key == swallowedKey) {
+            // The press that woke the controls does nothing else, however long it is held.
+            if (event.type == KeyEventType.KeyUp) swallowedKey = null
             return true
         }
         val media = MEDIA_KEYS[event.key]
         if (media != null) {
-            if (down) {
+            // Holding Play or Pause acts once; holding Rewind or Fast-forward keeps moving.
+            val repeat = event.nativeKeyEvent.repeatCount > 0
+            if (down && !(repeat && media in TOGGLE_KEYS)) {
                 onMediaKey(media, event.nativeKeyEvent.eventTime - event.nativeKeyEvent.downTime)
                 if (media == MediaKey.REWIND || media == MediaKey.FAST_FORWARD) {
                     if (visible) bar.requestFocus() else focusBarNext = true
@@ -314,7 +319,7 @@ private fun ControlStrip(
                 horizontalArrangement = Arrangement.spacedBy(44.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                val playing = state.state == PlaybackState.PLAYING
+                val playing = state.playing
                 BaseballButton("⏮", "Start over", onStartOver, Modifier.testTag("control_startover"))
                 BaseballButton(
                     if (playing) "❚❚" else "▶",
