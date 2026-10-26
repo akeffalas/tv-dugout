@@ -227,4 +227,31 @@ class ProgressWriterTest {
 
             assertThat(events).containsExactly("save started", "save done", "delete").inOrder()
         }
+
+    @Test
+    fun aSaveFailingWhileAResetWaitsIsNotTriedAgain() =
+        runTest(StandardTestDispatcher()) {
+            val gate = CompletableDeferred<Unit>()
+            val writer =
+                ProgressWriter(
+                    backgroundScope,
+                    save = { profileId, videoId, progress ->
+                        if (!gate.isCompleted) gate.await()
+                        saves += Triple(profileId, videoId, progress)
+                    },
+                    delete = { profileId, videoIds -> deletes += profileId to videoIds },
+                )
+            writer.changed("sam", "v", p1)
+            writer.flush()
+            runCurrent()
+
+            writer.reset("sam", setOf("v"))
+            runCurrent()
+            gate.completeExceptionally(IllegalStateException("disk full"))
+            advanceTimeBy(SAVE_INTERVAL_MILLIS * 10)
+            runCurrent()
+
+            assertThat(deletes).containsExactly("sam" to setOf("v"))
+            assertThat(saves).isEmpty()
+        }
 }

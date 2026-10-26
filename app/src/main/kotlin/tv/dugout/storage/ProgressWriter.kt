@@ -71,20 +71,27 @@ class ProgressWriter(
         videoIds: Set<String>,
     ) {
         scope.launch {
-            videoIds.map { profileId to it }.forEach { key ->
-                pending.remove(key)
-                scheduled.remove(key)?.cancel()
-                failures.remove(key)
-            }
+            val keys = videoIds.map { profileId to it }
+            keys.forEach(::forget)
             // After any save already under way, so that save cannot land after the delete.
             try {
-                saving.withLock { delete(profileId, videoIds) }
+                saving.withLock {
+                    // That save may have failed and queued a retry while this waited.
+                    keys.forEach(::forget)
+                    delete(profileId, videoIds)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Resetting progress for $profileId failed", e)
             }
         }
+    }
+
+    private fun forget(key: Pair<String, String>) {
+        pending.remove(key)
+        scheduled.remove(key)?.cancel()
+        failures.remove(key)
     }
 
     private suspend fun write(key: Pair<String, String>) {
