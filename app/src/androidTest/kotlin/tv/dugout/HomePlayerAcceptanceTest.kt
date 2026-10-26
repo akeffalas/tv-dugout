@@ -1,9 +1,11 @@
 package tv.dugout
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -35,8 +37,7 @@ class HomePlayerAcceptanceTest {
         compose.waitForIdle()
     }
 
-    @Test
-    fun remoteBrowsesPlaysAndReturns() {
+    private fun startApp() {
         val library = BundledVideoLibrary()
         val graph =
             AppGraph(
@@ -54,6 +55,11 @@ class HomePlayerAcceptanceTest {
                 lock = noPinLock(),
             )
         compose.setContent { DugoutTheme { DugoutApp(graph) } }
+    }
+
+    @Test
+    fun remoteBrowsesPlaysAndReturns() {
+        startApp()
 
         remote { pressDPadCenter() }
         compose.onNodeWithTag("card_row_hitting_TjH37PpeX7k").assertIsFocused()
@@ -63,6 +69,8 @@ class HomePlayerAcceptanceTest {
         compose.onNodeWithTag("control_playpause").assertIsFocused()
         assertThat(surface.current.loadedId).isEqualTo("ocJ8O_Rs6Es")
 
+        // The video is playing, so the first Back only hides the controls.
+        remote { pressBack() }
         remote { pressBack() }
         compose.onNodeWithTag("card_row_hitting_ocJ8O_Rs6Es").assertIsFocused()
 
@@ -76,7 +84,39 @@ class HomePlayerAcceptanceTest {
         assertThat(surface.current.loadedId).isEqualTo("ylfNFzwBRrA")
 
         remote { pressBack() }
+        remote { pressBack() }
         compose.onNodeWithText("1 video watched").assertIsDisplayed()
         compose.onNodeWithTag("card_row_hitting_ylfNFzwBRrA").assertIsFocused()
+    }
+
+    @Test
+    fun remoteWakesReplaysAndScrubs() {
+        startApp()
+        remote { pressDPadCenter() }
+        remote { pressDPadCenter() }
+        compose.onNodeWithTag("control_playpause").assertIsFocused()
+        val player = surface.current
+
+        compose.waitUntil(8_000) { compose.onAllNodesWithTag("control_playpause").fetchSemanticsNodes().isEmpty() }
+        remote { pressDPadRight() }
+        compose.onNodeWithTag("control_playpause").assertIsFocused()
+        assertThat(player.pauses).isEqualTo(0)
+
+        remote { pressDPadRight() }
+        compose.onNodeWithTag("control_replay").assertIsFocused()
+        remote { pressDPadCenter() }
+        assertThat(player.seeks).containsExactly(25f)
+
+        remote { pressDPadUp() }
+        compose.onNodeWithTag("control_progress").assertIsFocused()
+        remote { pressDPadRight() }
+        compose.onNodeWithText("0:35 +10s").assertIsDisplayed()
+        compose.waitUntil(3_000) { player.seeks.size == 2 }
+        assertThat(player.seeks.last()).isEqualTo(35f)
+
+        remote { pressBack() }
+        compose.onAllNodesWithTag("control_playpause").assertCountEquals(0)
+        remote { pressBack() }
+        compose.onNodeWithTag("card_row_hitting_TjH37PpeX7k").assertIsFocused()
     }
 }

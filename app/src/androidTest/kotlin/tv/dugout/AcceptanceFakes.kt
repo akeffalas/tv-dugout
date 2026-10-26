@@ -12,6 +12,9 @@ import tv.dugout.player.VideoPlayer
 /** A player that plays nothing, so acceptance runs need no network. */
 class AcceptancePlayer : VideoPlayer {
     var loadedId: String? = null
+    var plays = 0
+    var pauses = 0
+    val seeks = mutableListOf<Float>()
     private var listener: VideoPlayer.Listener? = null
 
     override fun load(
@@ -21,13 +24,21 @@ class AcceptancePlayer : VideoPlayer {
         loadedId = sourceId
         listener?.onDuration(100f)
         listener?.onState(PlaybackState.PLAYING)
+        listener?.onPosition(30f)
     }
 
-    override fun play() = Unit
+    override fun play() {
+        plays++
+    }
 
-    override fun pause() = Unit
+    override fun pause() {
+        pauses++
+    }
 
-    override fun seekTo(seconds: Float) = Unit
+    override fun seekTo(seconds: Float) {
+        seeks += seconds
+        listener?.onPosition(seconds)
+    }
 
     override fun requestSlowMo(enabled: Boolean) = Unit
 
