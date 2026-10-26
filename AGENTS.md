@@ -48,14 +48,16 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 
 ```text
 screens   picker (start), parent PIN (first screen on a fresh install, then the setup
-          wizard), setup wizard (add a player), home (skill tabs with progress),
-          player (full-screen YouTube embed with fading baseball controls), up next,
-          parent settings (progress and reset, profile, videos with New marks, remove;
-          add a player, change PIN)
+          wizard), setup wizard (add a player), home (Videos and Games sections; skill
+          tabs with progress), player (full-screen YouTube embed with fading baseball
+          controls), up next, What's the Play? game (drawn diamond, D-pad answers,
+          animated replays, 5-play rounds), parent settings (progress and reset,
+          profile, videos with New marks, remove; add a player, change PIN)
 data      57-video bundled library (five body skills plus Baseball IQ) with age, level,
-          and library-version tags; profiles (with age range, level, and offered
-          version), each child's video list, watch progress, and the hashed parent PIN
-          saved in Room; a fresh install has no children and no PIN
+          and library-version tags; 30 bundled plays with age tiers; profiles (with
+          age range, level, and offered version), each child's video list, watch
+          progress, best round and mastered plays, and the hashed parent PIN saved in
+          Room; a fresh install has no children and no PIN
 recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```
@@ -116,6 +118,11 @@ The canonical slice to copy is `picker/`: `ProfilePickerViewModel.kt` with its t
   Never use a destructive fallback: it erases children's progress.
 - **Robolectric has no Android Keystore.** Tests use `FixedPinKey`; `KeystorePinKey` runs
   only in the acceptance suite.
+- **Back from a focused child of a `focusable()` parent only moves focus out to the
+  parent** and never reaches navigation. Put key handling on a sibling, as the game does
+  on its diamond, not on a box around the buttons.
+- **Compose test idling does not advance a bare `delay`.** Time a pause as part of an
+  animation (as the game's replay does) or advance `mainClock` by hand.
 - **Robolectric measures text as zero width by default.** A test about how text fits (such
   as chips squeezing at TV size) needs `@GraphicsMode(GraphicsMode.Mode.NATIVE)`.
 - `@Composable` functions are exempt from ktlint's lowercase naming rule
