@@ -8,7 +8,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -79,8 +81,7 @@ class ProfilePickerAcceptanceTest {
         compose.onNodeWithText("Who's up to bat?").assertIsDisplayed()
 
         remote { pressBack() }
-        device.waitForIdle()
 
-        assertThat(device.currentPackageName).isNotEqualTo("tv.dugout")
+        assertThat(device.wait(Until.gone(By.pkg("tv.dugout")), 5_000)).isTrue()
     }
 }
