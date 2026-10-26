@@ -40,7 +40,6 @@ import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import kotlinx.coroutines.delay
 import tv.dugout.ui.theme.BadgeNavy
 import tv.dugout.ui.theme.CardNavy
 import tv.dugout.ui.theme.Chalk
@@ -84,7 +83,9 @@ fun PlayGameScreen(
     val finished by rememberUpdatedState(onReplayFinished)
     val replaying = state.phase == Phase.CHOICE_REPLAY || state.phase == Phase.RIGHT_REPLAY
     val moment = listOf(state.play?.id, state.phase, state.playNumber, state.retrying)
-    val progress = remember(moment) { Animatable(if (replaying) 0f else 1f) }
+    // Milliseconds into the replay: the ball and runners move, then the stamp holds for a moment.
+    val elapsed = remember(moment) { Animatable(if (replaying) 0f else (REPLAY_MILLIS + STAMP_MILLIS).toFloat()) }
+    val progress = (elapsed.value / REPLAY_MILLIS).coerceAtMost(1f)
 
     LaunchedEffect(moment) {
         when (state.phase) {
@@ -93,30 +94,16 @@ fun PlayGameScreen(
             else -> root.requestFocus()
         }
         if (replaying) {
-            progress.animateTo(1f, tween(REPLAY_MILLIS, easing = LinearEasing))
-            delay(STAMP_MILLIS.toLong())
+            elapsed.animateTo(
+                (REPLAY_MILLIS + STAMP_MILLIS).toFloat(),
+                tween(REPLAY_MILLIS + STAMP_MILLIS, easing = LinearEasing),
+            )
             finished()
         }
     }
 
     DugoutBackground {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .focusRequester(root)
-                    .onKeyEvent { event ->
-                        val answer = event.key.answer()
-                        // Only a fresh press while asked answers; a held key's repeats and its release do nothing.
-                        val fresh = event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0
-                        if (state.phase == Phase.QUESTION && fresh && answer != null) {
-                            onAnswer(answer)
-                            true
-                        } else {
-                            false
-                        }
-                    }.focusable(),
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             val play = state.play
             if (state.phase == Phase.SUMMARY || play == null) {
                 Summary(state, playAgain, onPlayAgain, onDone)
@@ -127,7 +114,7 @@ fun PlayGameScreen(
                         Phase.CHOICE_REPLAY -> state.chosen
                         else -> play.answer
                     }
-                val stampShown = replaying && progress.value >= STAMP_FROM
+                val stampShown = replaying && progress >= STAMP_FROM
                 Row(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 26.dp),
                     horizontalArrangement = Arrangement.spacedBy(28.dp),
@@ -150,10 +137,28 @@ fun PlayGameScreen(
                     Diamond(
                         play = play,
                         shown = shown,
-                        progress = progress.value,
+                        progress = progress,
                         stamp = state.stamp.takeIf { stampShown },
                         asking = state.phase == Phase.QUESTION,
-                        modifier = Modifier.fillMaxHeight(),
+                        // The diamond takes the remote's answers. It sits beside the buttons rather than around
+                        // them, so Back from a button leaves the game instead of moving focus out to it.
+                        modifier =
+                            Modifier
+                                .fillMaxHeight()
+                                .focusRequester(root)
+                                .onKeyEvent { event ->
+                                    val answer = event.key.answer()
+                                    // Only a fresh press while asked answers; a held key's repeats and release do nothing.
+                                    val fresh =
+                                        event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0
+                                    if (state.phase == Phase.QUESTION && fresh && answer != null) {
+                                        onAnswer(answer)
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                }.focusable()
+                                .testTag("game_diamond"),
                     )
                 }
             }

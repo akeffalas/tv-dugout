@@ -16,6 +16,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import tv.dugout.game.PlayGameScreen
+import tv.dugout.game.PlayGameViewModel
 import tv.dugout.home.HomeScreen
 import tv.dugout.home.HomeViewModel
 import tv.dugout.library.Skill
@@ -58,6 +60,8 @@ const val RESULT_OPEN_SKILL = "openSkill"
 const val RESULT_ADDED_PROFILE = "addedProfileId"
 
 fun homeRoute(profileId: String): String = "home/$profileId"
+
+fun gameRoute(profileId: String): String = "game/$profileId"
 
 private const val PLAYER_ROUTE_PATTERN = "player/{$PROFILE_ID_ARG}/{$VIDEO_ID_ARG}"
 private const val UP_NEXT_ROUTE_PATTERN = "upnext/{$PROFILE_ID_ARG}/{$VIDEO_ID_ARG}"
@@ -146,6 +150,7 @@ fun DugoutApp(
         }
         composable("home/{$PROFILE_ID_ARG}") { entry -> HomeDestination(graph, navController, entry) }
         composable(PLAYER_ROUTE_PATTERN) { entry -> PlayerDestination(graph, navController, entry) }
+        composable("game/{$PROFILE_ID_ARG}") { entry -> GameDestination(graph, navController, entry) }
         composable(UP_NEXT_ROUTE_PATTERN) { entry -> UpNextDestination(graph, navController, entry) }
         composable(FIRST_PIN_ROUTE) { entry ->
             PinDestination(graph, navController, entry, PinFlow.FIRST_RUN) {
@@ -394,6 +399,36 @@ private fun HomeDestination(
                 navController.navigate(playerRoute(profile.id, videoId))
             }
         },
+        onSectionSelected = homeViewModel::onSectionSelected,
+        onGameSelected = {
+            if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                navController.navigate(gameRoute(profile.id))
+            }
+        },
+    )
+}
+
+/** What's the Play? for one child; Done and Back both return to Home's Games shelf. */
+@Composable
+private fun GameDestination(
+    graph: AppGraph,
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+) {
+    val profile = entry.arguments?.getString(PROFILE_ID_ARG)?.let(graph.profiles::profile)
+    if (profile == null) {
+        LaunchedEffect(Unit) { navController.popBackStack(PICKER_ROUTE, inclusive = false) }
+        return
+    }
+    val gameViewModel = viewModel { PlayGameViewModel(profile.id, graph) }
+    val state by gameViewModel.uiState.collectAsStateWithLifecycle()
+    PlayGameScreen(
+        state = state,
+        onAnswer = gameViewModel::onAnswer,
+        onReplayFinished = gameViewModel::onReplayFinished,
+        onNext = gameViewModel::onNext,
+        onPlayAgain = gameViewModel::onPlayAgain,
+        onDone = { if (navController.currentBackStackEntry == entry) navController.popBackStack() },
     )
 }
 
