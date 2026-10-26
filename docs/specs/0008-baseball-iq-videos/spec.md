@@ -124,6 +124,11 @@ flowchart LR
   spacing drops from 16dp to 10dp.
 - The wizard's Videos step lists the skills in a column above Done. With six skills
   Done fell below a 1080p screen, so that column scrolls to the focused entry too.
+- The wizard starts with only the skills that have a recommended video for the chosen
+  age and level ticked, or every skill when none do. Otherwise a coach pitch child,
+  recommended only the IQ basics, could not finish without picking a video in each
+  of the other five skills. The owner asked for this after review. Choosing the same
+  age and level again keeps the parent's skill edits.
 
 ## Left to the builder
 

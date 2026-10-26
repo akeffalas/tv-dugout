@@ -28,6 +28,9 @@ class SetupViewModel(
 ) : ViewModel() {
     // Checked video IDs per chosen skill. A skill missing here starts from its recommendations.
     private var checks: Map<Skill, Set<String>> = emptyMap()
+
+    // The age and level the skill choices were started for; choosing them again keeps the parent's edits.
+    private var skillsFor: Pair<AgeRange, Level>? = null
     private val state = MutableStateFlow(fresh())
     val uiState: StateFlow<SetupUiState> = state.asStateFlow()
 
@@ -50,7 +53,10 @@ class SetupViewModel(
 
     fun onLevelSelected(level: Level) {
         if (level != state.value.level) checks = emptyMap()
-        state.update { it.copy(level = level, step = SetupStep.SKILLS) }
+        val age = requireNotNull(state.value.age)
+        val skills = if (age to level == skillsFor) state.value.skills else startingSkills(age, level)
+        skillsFor = age to level
+        state.update { it.copy(level = level, skills = skills, step = SetupStep.SKILLS) }
     }
 
     fun onSkillToggled(skill: Skill) {
@@ -148,6 +154,15 @@ class SetupViewModel(
     private fun fresh() = SetupUiState(canAddAnother = profiles.profiles.value.size < MAX_PLAYERS)
 
     private fun videosOf(skill: Skill) = library.videos().filter { it.skill == skill }
+
+    // Skills with a recommended video, so a level the library barely covers does not demand picks for the rest.
+    private fun startingSkills(
+        age: AgeRange,
+        level: Level,
+    ): Set<Skill> {
+        val recommended = library.videos().filter { it.isRecommendedFor(age, level) }.mapTo(HashSet()) { it.skill }
+        return recommended.ifEmpty { Skill.entries.toSet() }
+    }
 
     private fun recommendedIds(skill: Skill): Set<String> {
         val age = state.value.age ?: return emptySet()

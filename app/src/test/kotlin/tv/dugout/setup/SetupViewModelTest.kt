@@ -134,6 +134,66 @@ class SetupViewModelTest {
         assertThat(viewModel().state.skills).containsExactlyElementsIn(Skill.entries)
     }
 
+    private fun SetupViewModel.toSkills(
+        age: AgeRange,
+        level: Level,
+    ) = apply {
+        onNameChanged("Maya")
+        onNameSubmitted()
+        onAgeSelected(age)
+        onLevelSelected(level)
+    }
+
+    @Test
+    fun coachPitchStartsWithOnlyTheSkillsThatHaveRecommendations() =
+        runTest {
+            val viewModel = viewModel().toSkills(AgeRange.SEVEN_TO_EIGHT, Level.COACH_PITCH)
+
+            assertThat(viewModel.state.skills).containsExactly(Skill.IQ)
+
+            viewModel.onSkillsSubmitted()
+            viewModel.onDone()
+
+            assertThat(viewModel.state.emptySkill).isNull()
+            assertThat(saved.single().second).hasSize(5)
+        }
+
+    @Test
+    fun kidPitchStartsWithEverySkill() {
+        val viewModel = viewModel().toSkills(AgeRange.NINE_TO_TEN, Level.KID_PITCH)
+
+        assertThat(viewModel.state.skills).containsExactlyElementsIn(Skill.entries)
+    }
+
+    @Test
+    fun aLevelWithNoRecommendationsStartsWithEverySkill() {
+        val viewModel = viewModel().toSkills(AgeRange.FOUR_TO_SIX, Level.TEE_BALL)
+
+        assertThat(viewModel.state.skills).containsExactlyElementsIn(Skill.entries)
+    }
+
+    @Test
+    fun choosingTheSameLevelAgainKeepsTheSkillChoices() {
+        val viewModel = viewModel().toSkills(AgeRange.NINE_TO_TEN, Level.KID_PITCH)
+        viewModel.onSkillToggled(Skill.HITTING)
+
+        viewModel.onAgeSelected(AgeRange.NINE_TO_TEN)
+        viewModel.onLevelSelected(Level.KID_PITCH)
+
+        assertThat(viewModel.state.skills).doesNotContain(Skill.HITTING)
+    }
+
+    @Test
+    fun choosingANewLevelStartsTheSkillsOver() {
+        val viewModel = viewModel().toSkills(AgeRange.NINE_TO_TEN, Level.KID_PITCH)
+        viewModel.onSkillToggled(Skill.HITTING)
+
+        viewModel.onAgeSelected(AgeRange.SEVEN_TO_EIGHT)
+        viewModel.onLevelSelected(Level.COACH_PITCH)
+
+        assertThat(viewModel.state.skills).containsExactly(Skill.IQ)
+    }
+
     @Test
     fun lastSkillCannotBeTurnedOff() {
         val viewModel = viewModel()
