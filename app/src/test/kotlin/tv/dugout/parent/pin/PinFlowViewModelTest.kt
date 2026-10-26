@@ -2,6 +2,8 @@ package tv.dugout.parent.pin
 
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import tv.dugout.MainDispatcherRule
@@ -119,6 +121,35 @@ class PinFlowViewModelTest {
 
         assertThat(viewModel.state.finished).isTrue()
     }
+
+    @Test
+    fun lockMessageCountsDown() =
+        runTest(main.dispatcher) {
+            val clock = longArrayOf(0)
+            val key = FixedPinKey()
+            val timed =
+                InMemoryParentLock(
+                    null,
+                    PinHasher(key, 1),
+                    key,
+                    elapsed = { clock[0] },
+                    hashing = EmptyCoroutineContext,
+                )
+            timed.commit(timed.prepare("1234"))
+            val viewModel = PinFlowViewModel(PinFlow.UNLOCK, timed)
+            repeat(5) { viewModel.type("0000") }
+            clock[0] += 60_000
+            repeat(5) { viewModel.type("0000") }
+            assertThat(viewModel.state.message).isEqualTo("Try again in 2 minutes")
+
+            clock[0] += 61_000
+            advanceTimeBy(1_001)
+            assertThat(viewModel.state.message).isEqualTo("Try again in 1 minute")
+
+            clock[0] += 60_000
+            advanceTimeBy(1_001)
+            assertThat(viewModel.state.message).isNull()
+        }
 
     @Test
     fun alreadyLockedShowsTheWaitOnOpen() {

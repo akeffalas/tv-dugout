@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +17,7 @@ import tv.dugout.parent.ParentLock
 import tv.dugout.parent.PendingPin
 
 private const val MINUTE_MILLIS = 60_000L
+private const val COUNTDOWN_TICK_MILLIS = 1_000L
 private const val TAG = "PinFlow"
 private const val SOMETHING_WENT_WRONG = "Something went wrong. Try again."
 
@@ -33,6 +36,12 @@ class PinFlowViewModel(
 
     private val state = MutableStateFlow(startState())
     val uiState: StateFlow<PinUiState> = state.asStateFlow()
+
+    private var countdown: Job? = null
+
+    init {
+        countDown()
+    }
 
     private fun startState(): PinUiState {
         val step =
@@ -78,6 +87,28 @@ class PinFlowViewModel(
         return if (minutes == 1) "Try again in 1 minute" else "Try again in $minutes minutes"
     }
 
+    /** Keeps "Try again in N minutes" current while locked, and clears it once the wait is over. */
+    private fun countDown() {
+        if (lockMessage() == null || countdown?.isActive == true) return
+        countdown =
+            viewModelScope.launch {
+                while (true) {
+                    delay(COUNTDOWN_TICK_MILLIS)
+                    val message = lockMessage()
+                    state.update {
+                        if (it.step == PinStep.ENTER ||
+                            it.step == PinStep.RECOVER
+                        ) {
+                            it.copy(message = message)
+                        } else {
+                            it
+                        }
+                    }
+                    if (message == null) break
+                }
+            }
+    }
+
     private fun takesDigits(): Boolean {
         val current = state.value
         val pad = current.step == PinStep.ENTER || current.step == PinStep.CHOOSE || current.step == PinStep.CONFIRM
@@ -90,6 +121,7 @@ class PinFlowViewModel(
             val locked = lockMessage()
             if (locked != null) {
                 state.update { it.copy(message = locked) }
+                countDown()
                 return
             }
         }
@@ -169,6 +201,7 @@ class PinFlowViewModel(
 
                 is Check.Locked -> {
                     state.update { it.copy(busy = false, message = lockMessage()) }
+                    countDown()
                 }
             }
         }
