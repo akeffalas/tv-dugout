@@ -55,7 +55,7 @@ class PlayerScreenTest {
                     onSlowMoToggle = { calls += "slowMo" },
                     onScrub = { forward, _ -> scrubs += forward },
                     onScrubCommit = { calls += "commit" },
-                    onMediaKey = { mediaKeys += it },
+                    onMediaKey = { key, _ -> mediaKeys += key },
                     onWake = { calls += "wake" },
                     onUserActivity = { calls += "activity" },
                     onBack = { calls += "back" },
@@ -145,6 +145,21 @@ class PlayerScreenTest {
     }
 
     @Test
+    fun okOnTheBarReturnsToPauseWithoutPausing() {
+        show(playing)
+        press(Key.DirectionUp)
+
+        compose.onRoot().performKeyInput { keyDown(Key.DirectionCenter) }
+        compose.waitForIdle()
+        compose.onRoot().performKeyInput { keyUp(Key.DirectionCenter) }
+        compose.waitForIdle()
+
+        assertThat(count("commit")).isEqualTo(1)
+        assertThat(count("playPause")).isEqualTo(0)
+        focused("control_playpause")
+    }
+
+    @Test
     fun leftAndRightOnTheBarScrub() {
         show(playing)
         press(Key.DirectionUp)
@@ -190,13 +205,37 @@ class PlayerScreenTest {
     }
 
     @Test
-    fun directionWhileHiddenOnlyShowsControls() {
+    fun upOrDownWhileHiddenOnlyShowsControls() {
+        show(playing.copy(controlsVisible = false))
+
+        press(Key.DirectionUp)
+        press(Key.DirectionDown)
+
+        assertThat(count("wake")).isEqualTo(2)
+        assertThat(scrubs).isEmpty()
+        assertThat(mediaKeys).isEmpty()
+    }
+
+    @Test
+    fun leftAndRightWhileHiddenMoveTheVideo() {
         show(playing.copy(controlsVisible = false))
 
         press(Key.DirectionRight)
+        press(Key.DirectionLeft)
 
-        assertThat(count("wake")).isEqualTo(1)
-        assertThat(scrubs).isEmpty()
+        assertThat(mediaKeys).containsExactly(MediaKey.FAST_FORWARD, MediaKey.REWIND).inOrder()
+        assertThat(count("wake")).isEqualTo(0)
+    }
+
+    @Test
+    fun leftOrRightWhileHiddenSelectsTheBarOnceShown() {
+        show(playing.copy(controlsVisible = false))
+
+        press(Key.DirectionRight)
+        screen.value = playing.copy(scrubTarget = 40f, scrubOrigin = 30f)
+        compose.waitForIdle()
+
+        focused("control_progress")
     }
 
     @Test

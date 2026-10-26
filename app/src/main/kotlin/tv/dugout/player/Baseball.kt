@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,7 +74,8 @@ fun BaseballButton(
     Surface(
         onClick = onClick,
         modifier = modifier.onFocusChanged { focused = it.isFocused },
-        shape = ClickableSurfaceDefaults.shape(CircleShape),
+        // The Surface clips to its shape; a circle would crop labels wider than the ball.
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors =
             ClickableSurfaceDefaults.colors(
                 containerColor = Color.Transparent,

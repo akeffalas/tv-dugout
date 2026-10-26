@@ -68,6 +68,8 @@ private val WAKE_KEYS =
         Key.NumPadEnter,
     )
 
+private val OK_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
+
 private val MEDIA_KEYS =
     mapOf(
         Key.MediaPlayPause to MediaKey.PLAY_PAUSE,
@@ -92,7 +94,7 @@ fun PlayerScreen(
     onSlowMoToggle: () -> Unit,
     onScrub: (forward: Boolean, heldMillis: Long) -> Unit,
     onScrubCommit: () -> Unit,
-    onMediaKey: (MediaKey) -> Unit,
+    onMediaKey: (key: MediaKey, heldMillis: Long) -> Unit,
     onWake: () -> Unit,
     onUserActivity: () -> Unit,
     onBack: () -> Unit,
@@ -131,7 +133,7 @@ fun PlayerScreen(
         val media = MEDIA_KEYS[event.key]
         if (media != null) {
             if (down) {
-                onMediaKey(media)
+                onMediaKey(media, event.nativeKeyEvent.eventTime - event.nativeKeyEvent.downTime)
                 if (media == MediaKey.REWIND || media == MediaKey.FAST_FORWARD) {
                     if (visible) bar.requestFocus() else focusBarNext = true
                 }
@@ -140,6 +142,18 @@ fun PlayerScreen(
         }
         if (failed || !down) return false
         if (!visible) {
+            // Left and Right move the video, as in other TV video apps; the other keys only wake.
+            val seek =
+                when (event.key) {
+                    Key.DirectionLeft -> MediaKey.REWIND
+                    Key.DirectionRight -> MediaKey.FAST_FORWARD
+                    else -> null
+                }
+            if (seek != null) {
+                onMediaKey(seek, event.nativeKeyEvent.eventTime - event.nativeKeyEvent.downTime)
+                focusBarNext = true
+                return true
+            }
             if (event.key !in WAKE_KEYS) return false
             onWake()
             swallowedKey = event.key
@@ -225,7 +239,7 @@ private fun ControlStrip(
         contentAlignment = Alignment.BottomCenter,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp, vertical = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 48.dp, end = 48.dp, top = 16.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -251,6 +265,14 @@ private fun ControlStrip(
                             .focusProperties { down = playPause }
                             .onFocusChanged { barFocused = it.isFocused }
                             .onKeyEvent { event ->
+                                // OK acts on key-up, so its key-up never reaches Pause and pauses the video.
+                                if (event.key in OK_KEYS) {
+                                    if (event.type == KeyEventType.KeyUp) {
+                                        onScrubCommit()
+                                        playPause.requestFocus()
+                                    }
+                                    return@onKeyEvent true
+                                }
                                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                                 when (event.key) {
                                     Key.DirectionLeft, Key.DirectionRight -> {
@@ -259,7 +281,7 @@ private fun ControlStrip(
                                         true
                                     }
 
-                                    Key.DirectionDown, Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
+                                    Key.DirectionDown -> {
                                         onScrubCommit()
                                         playPause.requestFocus()
                                         true

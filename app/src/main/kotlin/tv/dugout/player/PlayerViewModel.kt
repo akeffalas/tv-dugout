@@ -78,6 +78,9 @@ class PlayerViewModel(
     private var slowMoTimeout: Job? = null
     private var hideJob: Job? = null
     private var replayReturnPoint: Float? = null
+
+    // YouTube reports a rate only when it changes, so asking for the rate already in force gets no reply.
+    private var atHalfSpeed = false
     private var settleJob: Job? = null
 
     // Without a network the embedded player never loads and never reports anything.
@@ -115,6 +118,7 @@ class PlayerViewModel(
 
             override fun onRateConfirmed(slowMo: Boolean) {
                 slowMoTimeout?.cancel()
+                atHalfSpeed = slowMo
                 // A replay's half speed is not the child's Slow-mo choice.
                 if (replayReturnPoint == null) state.update { it.copy(slowMo = slowMo, slowMoUnavailable = false) }
             }
@@ -140,7 +144,9 @@ class PlayerViewModel(
         clearReplay()
         val wantSlowMo = !uiState.value.slowMo
         slowMoTimeout?.cancel()
-        if (wantSlowMo) {
+        if (wantSlowMo && atHalfSpeed) {
+            state.update { it.copy(slowMo = true, slowMoUnavailable = false) }
+        } else if (wantSlowMo) {
             requestHalfSpeed()
         } else {
             player?.requestSlowMo(false)
@@ -198,15 +204,18 @@ class PlayerViewModel(
         state.update { it.copy(scrubTarget = null) }
     }
 
-    fun onMediaKey(key: MediaKey) {
+    fun onMediaKey(
+        key: MediaKey,
+        heldMillis: Long = 0,
+    ) {
         onWake()
         val playing = uiState.value.state == PlaybackState.PLAYING
         when (key) {
             MediaKey.PLAY_PAUSE -> onPlayPause()
             MediaKey.PLAY -> if (!playing) player?.play()
             MediaKey.PAUSE -> if (playing) player?.pause()
-            MediaKey.REWIND -> onScrub(forward = false, heldMillis = 0)
-            MediaKey.FAST_FORWARD -> onScrub(forward = true, heldMillis = 0)
+            MediaKey.REWIND -> onScrub(forward = false, heldMillis = heldMillis)
+            MediaKey.FAST_FORWARD -> onScrub(forward = true, heldMillis = heldMillis)
         }
     }
 
@@ -216,12 +225,14 @@ class PlayerViewModel(
     }
 
     private fun requestHalfSpeed() {
+        if (atHalfSpeed) return
         player?.requestSlowMo(true)
         slowMoTimeout?.cancel()
         slowMoTimeout =
             viewModelScope.launch {
                 delay(SLOW_MO_CONFIRM_MILLIS)
                 clearReplay()
+                player?.requestSlowMo(false)
                 state.update { it.copy(slowMoUnavailable = true, controlsVisible = true) }
                 scheduleHide()
             }
@@ -251,7 +262,7 @@ class PlayerViewModel(
     fun onBackPressed(): Boolean {
         onScrubCommit()
         val current = uiState.value
-        if (!current.controlsVisible || !current.hideable) return false
+        if (current.failure != null || !current.controlsVisible || !current.hideable) return false
         hideJob?.cancel()
         state.update { it.copy(controlsVisible = false) }
         return true

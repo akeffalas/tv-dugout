@@ -726,4 +726,71 @@ class PlayerViewModelTest {
         assertThat(vm.uiState.value.scrubTarget).isEqualTo(40f)
         assertThat(vm.uiState.value.scrubOrigin).isEqualTo(30f)
     }
+
+    @Test
+    fun replayAgainAtHalfSpeedDoesNotTimeOut() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(40f)
+            vm.onReplay()
+            player.confirmRate(true)
+            player.emitPosition(37f)
+
+            vm.onReplay()
+            wait(SLOW_MO_CONFIRM_MILLIS + 1)
+
+            assertThat(vm.uiState.value.slowMoUnavailable).isFalse()
+            assertThat(vm.uiState.value.replaying).isTrue()
+            player.emitPosition(40f)
+            assertThat(player.slowMoRequests.last()).isFalse()
+        }
+
+    @Test
+    fun slowMoDuringAConfirmedReplayTurnsOnAtOnce() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(40f)
+            vm.onReplay()
+            player.confirmRate(true)
+
+            vm.onSlowMoToggle()
+            wait(SLOW_MO_CONFIRM_MILLIS + 1)
+
+            assertThat(vm.uiState.value.slowMo).isTrue()
+            assertThat(vm.uiState.value.slowMoUnavailable).isFalse()
+            vm.onSlowMoToggle()
+            assertThat(player.slowMoRequests.last()).isFalse()
+        }
+
+    @Test
+    fun refusedHalfSpeedAsksForNormalSpeed() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(40f)
+            vm.onReplay()
+
+            wait(SLOW_MO_CONFIRM_MILLIS + 1)
+
+            assertThat(player.slowMoRequests.last()).isFalse()
+        }
+
+    @Test
+    fun heldFastForwardMovesThirty() {
+        val vm = attached()
+        vm.playingAt(30f)
+
+        vm.onMediaKey(MediaKey.FAST_FORWARD, heldMillis = SCRUB_HELD_AFTER_MILLIS)
+
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(60f)
+    }
+
+    @Test
+    fun backOnTheErrorScreenLeavesAtOnce() {
+        val vm = attached()
+        vm.playingAt(10f)
+
+        player.fail(PlayerFailure.OTHER)
+
+        assertThat(vm.onBackPressed()).isFalse()
+    }
 }

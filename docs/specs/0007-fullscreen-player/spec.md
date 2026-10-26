@@ -126,7 +126,8 @@ proposal; the builder may change them with a reason.
 stateDiagram-v2
     [*] --> Showing: video opens
     Showing --> Hidden: 5 s with no press while playing
-    Hidden --> Showing: any D-pad or OK press (not acted on)
+    Hidden --> Showing: Up, Down, or OK (not acted on)
+    Hidden --> Showing: Left or Right (moves the video)
     Hidden --> Showing: media key (acted on)
     Showing --> Hidden: Back while playing
     Showing --> Home: Back while paused
@@ -136,8 +137,12 @@ stateDiagram-v2
 
 - A video opens with the controls showing and focus on Pause, so a child sees they
   exist. They hide after 5 seconds without a press once the video is playing.
-- While hidden, any D-pad direction or OK shows the controls with focus on Pause and does
-  nothing else. The press that woke them is not passed on.
+- While hidden, Up, Down, or OK shows the controls with focus on Pause and does nothing
+  else. The press that woke them is not passed on.
+- While hidden, Left and Right move the video 10 seconds back or forward, exactly like the
+  remote's rewind and fast-forward keys: the controls show with the progress bar selected
+  and its bubble, and holding speeds up. (Changed by the owner on the TV check: they
+  expected Left and Right to control the video, as in other TV video apps.)
 - Every press while the controls show restarts the 5-second timer, including presses on
   the progress bar.
 - While the video is paused or still loading for the first time, the controls stay up

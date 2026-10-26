@@ -98,7 +98,7 @@ class HomePlayerAcceptanceTest {
         val player = surface.current
 
         compose.waitUntil(8_000) { compose.onAllNodesWithTag("control_playpause").fetchSemanticsNodes().isEmpty() }
-        remote { pressDPadRight() }
+        remote { pressDPadDown() }
         compose.onNodeWithTag("control_playpause").assertIsFocused()
         assertThat(player.pauses).isEqualTo(0)
 
@@ -113,6 +113,11 @@ class HomePlayerAcceptanceTest {
         compose.onNodeWithText("0:35 +10s").assertIsDisplayed()
         compose.waitUntil(3_000) { player.seeks.size == 2 }
         assertThat(player.seeks.last()).isEqualTo(35f)
+
+        compose.waitUntil(8_000) { compose.onAllNodesWithTag("control_playpause").fetchSemanticsNodes().isEmpty() }
+        remote { pressDPadLeft() }
+        compose.onNodeWithTag("control_progress").assertIsFocused()
+        compose.onNodeWithText("0:25 -10s").assertIsDisplayed()
 
         remote { pressBack() }
         compose.onAllNodesWithTag("control_playpause").assertCountEquals(0)
