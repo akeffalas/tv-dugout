@@ -11,6 +11,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -56,8 +57,10 @@ object YouTubePlayerSurface : PlayerSurface {
         DisposableEffect(view, lifecycle) {
             lifecycle.addObserver(view)
             onDispose {
+                // The view releases itself when the screen's lifecycle is destroyed first.
+                val destroyed = lifecycle.currentState == Lifecycle.State.DESTROYED
                 lifecycle.removeObserver(view)
-                view.release()
+                if (!destroyed) view.release()
             }
         }
         AndroidView(factory = { view }, modifier = modifier)
