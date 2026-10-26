@@ -36,7 +36,23 @@ private fun throwPlay(
     rightStamp: Stamp? = OUT,
     wrong: Map<Answer, Stamp> = emptyMap(),
     kind: PlayKind = PlayKind.THROW,
-) = Play(id, tier, kind, Role.Fielder(position), outs, runners, ballTo, caught, prompt, answer, rightStamp, why, wrong)
+    steal: Base? = null,
+) = Play(
+    id,
+    tier,
+    kind,
+    Role.Fielder(position),
+    outs,
+    runners,
+    ballTo,
+    caught,
+    prompt,
+    answer,
+    rightStamp,
+    why,
+    wrong,
+    steal,
+)
 
 private fun runPlay(
     id: String,
@@ -76,6 +92,7 @@ private fun backUpPlay(
     prompt: String,
     answer: Answer,
     why: String,
+    steal: Base? = null,
 ) = throwPlay(
     id,
     Tier.SITUATIONS,
@@ -88,6 +105,7 @@ private fun backUpPlay(
     ballTo = ballTo,
     rightStamp = null,
     kind = PlayKind.BACK_UP,
+    steal = steal,
 )
 
 private val NONE = emptySet<Base>()
@@ -408,6 +426,7 @@ private val SITUATIONS =
             "You're in center field. The runner steals, and the catcher throws to second.",
             SECOND,
             "Back up second in case the throw gets away.",
+            steal = Base.FIRST,
         ),
         throwPlay(
             "p28",
@@ -420,6 +439,7 @@ private val SITUATIONS =
             "A throw to second lets the run score. Look the runner back to third.",
             rightStamp = null,
             wrong = mapOf(SECOND to SAFE),
+            steal = Base.FIRST,
         ),
         runPlay(
             "p29",
