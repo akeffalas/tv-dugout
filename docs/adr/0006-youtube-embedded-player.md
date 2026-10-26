@@ -1,6 +1,6 @@
 # ADR-0006: YouTube's embedded player for video playback
 
-- **Status:** Accepted
+- **Status:** Amended by ADR-0008
 - **Date:** 2026-10-25
 
 ## Context

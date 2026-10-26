@@ -32,5 +32,6 @@ moment it is made, so the reasoning survives after the context that produced it 
 | [0003](./0003-testing-and-coverage-standard.md) | Testing and coverage standard | Accepted |
 | [0004](./0004-spotless-ktlint-and-android-lint.md) | Spotless with ktlint, and strict Android Lint | Accepted |
 | [0005](./0005-prek-git-hooks.md) | prek for git hooks | Accepted |
-| [0006](./0006-youtube-embedded-player.md) | YouTube's embedded player for video playback | Accepted |
+| [0006](./0006-youtube-embedded-player.md) | YouTube's embedded player for video playback | Amended by ADR-0008 |
 | [0007](./0007-room-for-saved-data.md) | Room for saved data | Accepted |
+| [0008](./0008-controls-over-the-player-while-unpublished.md) | App controls over the YouTube player while the app is unpublished | Accepted |

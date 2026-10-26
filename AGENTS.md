@@ -18,7 +18,7 @@ relevant part when a task touches it.
   (packages, data flow, navigation, focus) and the development workflow, including
   deploying to a TV.
 - [docs/adr/](./docs/adr/README.md): accepted decisions and their rationale (ADR-0001 to
-  0007).
+  0008).
 - [docs/specs/](./docs/specs/): one numbered `NNNN-topic/` directory per feature
   (`spec.md` plus `plan.md`). The directory names are the feature index; `git log` holds
   the rest.
