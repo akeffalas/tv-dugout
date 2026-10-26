@@ -19,6 +19,9 @@ const val SLOW_MO_CONFIRM_MILLIS = 2_000L
 /** How long to wait for any word from the player (it never loads without a network) before showing an error. */
 const val PLAYER_START_TIMEOUT_MILLIS = 20_000L
 
+/** How far Replay jumps back before playing at half speed. */
+const val REPLAY_SECONDS = 5f
+
 /** How long the controls stay up without a press while the video plays. */
 const val CONTROLS_HIDE_MILLIS = 5_000L
 
@@ -32,6 +35,7 @@ data class PlayerUiState(
     val failure: PlayerFailure? = null,
     val controlsVisible: Boolean = true,
     val hasPlayed: Boolean = false,
+    val replaying: Boolean = false,
 ) {
     /** The baseball spins only until the video first plays; later buffering is YouTube's to show. */
     val showSpinner: Boolean get() = !hasPlayed && failure == null
@@ -58,6 +62,7 @@ class PlayerViewModel(
     private var player: VideoPlayer? = null
     private var slowMoTimeout: Job? = null
     private var hideJob: Job? = null
+    private var replayReturnPoint: Float? = null
 
     // Without a network the embedded player never loads and never reports anything.
     private val startTimeout =
@@ -83,6 +88,7 @@ class PlayerViewModel(
             override fun onPosition(seconds: Float) {
                 startTimeout.cancel()
                 state.update { it.copy(positionSeconds = seconds) }
+                replayReturnPoint?.let { if (seconds >= it) endReplay() }
                 val duration = uiState.value.durationSeconds
                 if (duration > 0f) history.record(profileId, video.id, seconds, duration, clock())
             }
@@ -93,7 +99,8 @@ class PlayerViewModel(
 
             override fun onRateConfirmed(slowMo: Boolean) {
                 slowMoTimeout?.cancel()
-                state.update { it.copy(slowMo = slowMo, slowMoUnavailable = false) }
+                // A replay's half speed is not the child's Slow-mo choice.
+                if (replayReturnPoint == null) state.update { it.copy(slowMo = slowMo, slowMoUnavailable = false) }
             }
 
             override fun onFailure(failure: PlayerFailure) {
@@ -120,19 +127,62 @@ class PlayerViewModel(
     }
 
     fun onSlowMoToggle() {
+        clearReplay()
         val wantSlowMo = !uiState.value.slowMo
-        player?.requestSlowMo(wantSlowMo)
         slowMoTimeout?.cancel()
         if (wantSlowMo) {
-            slowMoTimeout =
-                viewModelScope.launch {
-                    delay(SLOW_MO_CONFIRM_MILLIS)
-                    state.update { it.copy(slowMoUnavailable = true, controlsVisible = true) }
-                    scheduleHide()
-                }
+            requestHalfSpeed()
         } else {
+            player?.requestSlowMo(false)
             state.update { it.copy(slowMo = false, slowMoUnavailable = false) }
         }
+    }
+
+    fun onStartOver() {
+        endReplay()
+        seek(0f)
+        player?.play()
+    }
+
+    fun onReplay() {
+        val position = uiState.value.positionSeconds
+        seek((position - REPLAY_SECONDS).coerceAtLeast(0f))
+        if (!uiState.value.slowMo) {
+            if (replayReturnPoint == null) replayReturnPoint = position
+            state.update { it.copy(replaying = true) }
+            requestHalfSpeed()
+        }
+        player?.play()
+    }
+
+    private fun seek(seconds: Float) {
+        player?.seekTo(seconds)
+        state.update { it.copy(positionSeconds = seconds) }
+    }
+
+    private fun requestHalfSpeed() {
+        player?.requestSlowMo(true)
+        slowMoTimeout?.cancel()
+        slowMoTimeout =
+            viewModelScope.launch {
+                delay(SLOW_MO_CONFIRM_MILLIS)
+                clearReplay()
+                state.update { it.copy(slowMoUnavailable = true, controlsVisible = true) }
+                scheduleHide()
+            }
+    }
+
+    private fun clearReplay() {
+        replayReturnPoint = null
+        state.update { it.copy(replaying = false) }
+    }
+
+    /** Ends a replay and puts the speed back to the child's own Slow-mo choice. */
+    private fun endReplay() {
+        if (replayReturnPoint == null) return
+        clearReplay()
+        slowMoTimeout?.cancel()
+        player?.requestSlowMo(uiState.value.slowMo)
     }
 
     fun onUserActivity() = scheduleHide()

@@ -422,4 +422,150 @@ class PlayerViewModelTest {
 
             assertThat(vm.uiState.value.controlsVisible).isTrue()
         }
+
+    @Test
+    fun startOverSeeksToZeroAndPlays() {
+        val vm = attached()
+        vm.playingAt(40f)
+
+        vm.onStartOver()
+
+        assertThat(player.seeks).containsExactly(0f)
+        assertThat(player.plays).isEqualTo(1)
+        assertThat(vm.uiState.value.positionSeconds).isEqualTo(0f)
+    }
+
+    @Test
+    fun replaySeeksBackFiveAndAsksForHalfSpeed() {
+        val vm = attached()
+        vm.playingAt(40f)
+
+        vm.onReplay()
+
+        assertThat(player.seeks).containsExactly(35f)
+        assertThat(player.slowMoRequests).containsExactly(true)
+        assertThat(player.plays).isEqualTo(1)
+        assertThat(vm.uiState.value.replaying).isTrue()
+    }
+
+    @Test
+    fun replayNearTheStartSeeksToZero() {
+        val vm = attached()
+        vm.playingAt(3f)
+
+        vm.onReplay()
+
+        assertThat(player.seeks).containsExactly(0f)
+    }
+
+    @Test
+    fun replayReturnsToNormalAtThePressPoint() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+        player.confirmRate(true)
+
+        player.emitPosition(39.9f)
+        assertThat(vm.uiState.value.replaying).isTrue()
+
+        player.emitPosition(40f)
+        assertThat(vm.uiState.value.replaying).isFalse()
+        assertThat(player.slowMoRequests).containsExactly(true, false).inOrder()
+    }
+
+    @Test
+    fun replayHalfSpeedDoesNotTurnOnSlowMoLabel() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+
+        player.confirmRate(true)
+
+        assertThat(vm.uiState.value.slowMo).isFalse()
+    }
+
+    @Test
+    fun replayWithSlowMoOnOnlySeeks() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onSlowMoToggle()
+        player.confirmRate(true)
+
+        vm.onReplay()
+
+        assertThat(player.seeks).containsExactly(35f)
+        assertThat(player.slowMoRequests).containsExactly(true)
+        assertThat(vm.uiState.value.replaying).isFalse()
+        assertThat(vm.uiState.value.slowMo).isTrue()
+    }
+
+    @Test
+    fun replayAgainKeepsTheFirstReturnPoint() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+        player.emitPosition(37f)
+
+        vm.onReplay()
+        assertThat(player.seeks).containsExactly(35f, 32f).inOrder()
+
+        player.emitPosition(39.9f)
+        assertThat(vm.uiState.value.replaying).isTrue()
+        player.emitPosition(40f)
+        assertThat(vm.uiState.value.replaying).isFalse()
+    }
+
+    @Test
+    fun slowMoDuringReplayEndsItAndTurnsSlowMoOn() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+        player.confirmRate(true)
+
+        vm.onSlowMoToggle()
+        assertThat(vm.uiState.value.replaying).isFalse()
+        assertThat(player.slowMoRequests.last()).isTrue()
+
+        player.confirmRate(true)
+        assertThat(vm.uiState.value.slowMo).isTrue()
+    }
+
+    @Test
+    fun startOverEndsAReplay() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+
+        vm.onStartOver()
+
+        assertThat(vm.uiState.value.replaying).isFalse()
+        assertThat(player.slowMoRequests.last()).isFalse()
+    }
+
+    @Test
+    fun pauseDoesNotEndAReplay() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+
+        vm.onPlayPause()
+
+        assertThat(player.pauses).isEqualTo(1)
+        assertThat(vm.uiState.value.replaying).isTrue()
+    }
+
+    @Test
+    fun replayWhenSlowMoRefusedShowsUnavailableAndEnds() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(40f)
+            wait(CONTROLS_HIDE_MILLIS + 1)
+            vm.onReplay()
+
+            wait(SLOW_MO_CONFIRM_MILLIS + 1)
+
+            assertThat(vm.uiState.value.slowMoUnavailable).isTrue()
+            assertThat(vm.uiState.value.replaying).isFalse()
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+        }
 }
