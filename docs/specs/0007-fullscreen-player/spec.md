@@ -140,9 +140,11 @@ stateDiagram-v2
   nothing else. The press that woke them is not passed on.
 - Every press while the controls show restarts the 5-second timer, including presses on
   the progress bar.
-- While the video is paused, still loading for the first time, or showing the slow-mo
-  unavailable message, the controls stay up (designer's call for loading and the
-  message). The timer starts again once it is playing. Buffering after the video has
+- While the video is paused or still loading for the first time, the controls stay up
+  (designer's call for loading). The timer starts again once it is playing. When the
+  slow-mo unavailable message appears, the controls show and the timer restarts, so the
+  child sees it (designer's call; the message never clears on its own, so it cannot hold
+  the controls up). Buffering after the video has
   played once (after a seek or a network stall) neither keeps the controls up nor brings
   them back (designer's call), so they never sit over YouTube's own buffering spinner
   for long.
