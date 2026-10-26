@@ -62,6 +62,41 @@ data class WatchProgressEntity(
     val watched: Boolean,
 )
 
+/** One child's best round of What's the Play?, in runs out of five. */
+@Entity(
+    tableName = "game_best",
+    foreignKeys = [
+        ForeignKey(
+            entity = ProfileEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["profile_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class GameBestEntity(
+    @PrimaryKey @ColumnInfo(name = "profile_id") val profileId: String,
+    @ColumnInfo(name = "best_runs") val bestRuns: Int,
+)
+
+/** A play one child has gotten right. [playId] refers to the bundled plays. */
+@Entity(
+    tableName = "mastered_play",
+    primaryKeys = ["profile_id", "play_id"],
+    foreignKeys = [
+        ForeignKey(
+            entity = ProfileEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["profile_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class MasteredPlayEntity(
+    @ColumnInfo(name = "profile_id") val profileId: String,
+    @ColumnInfo(name = "play_id") val playId: String,
+)
+
 /**
  * The parent PIN, kept as one row when a PIN is set. The hashes are never the PIN or code
  * themselves (see `PinHasher`); [lockWaitMs] is the wait in force after too many wrong tries,

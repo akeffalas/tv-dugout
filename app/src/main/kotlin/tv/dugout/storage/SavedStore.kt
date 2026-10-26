@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tv.dugout.AppGraph
+import tv.dugout.game.GameRecord
+import tv.dugout.game.GameSink
+import tv.dugout.game.InMemoryGameProgress
+import tv.dugout.game.PlayLibrary
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.history.WatchProgress
 import tv.dugout.library.AgeRange
@@ -127,6 +131,20 @@ class SavedStore(
                 elapsed = elapsed,
                 bootCount = bootCount,
             )
+        val bests = dao.gameBests().associate { it.profileId to it.bestRuns }
+        val mastered =
+            dao
+                .masteredPlays()
+                .filter { PlayLibrary.play(it.playId) != null }
+                .groupBy({ it.profileId }, { it.playId })
+        val games =
+            InMemoryGameProgress(
+                initial =
+                    (bests.keys + mastered.keys).associateWith { id ->
+                        GameRecord(bests[id], mastered[id].orEmpty().toSet())
+                    },
+                sink = GameSink { profileId, record -> scope.launch { saveGame(dao, profileId, record) } },
+            )
         return AppGraph(
             profiles = InMemoryProfileRepository(profiles, profileVideos, saver),
             library = library,
@@ -135,8 +153,18 @@ class SavedStore(
             playerSurface = playerSurface,
             clock = clock,
             lock = lock,
+            games = games,
         )
     }
+}
+
+private suspend fun saveGame(
+    dao: DugoutDao,
+    profileId: String,
+    record: GameRecord,
+) {
+    record.bestRuns?.let { dao.saveGameBest(GameBestEntity(profileId, it)) }
+    record.mastered.forEach { dao.saveMasteredPlay(MasteredPlayEntity(profileId, it)) }
 }
 
 private fun ParentLockEntity.toRecord() =

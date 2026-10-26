@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.SAMPLE_PROFILES
 import tv.dugout.eventually
+import tv.dugout.game.GameRecord
 import tv.dugout.library.AgeRange
 import tv.dugout.library.BundledVideoLibrary
 import tv.dugout.library.Level
@@ -191,5 +192,45 @@ class SavedStoreTest {
 
             assertThat(store.ready()).isSameInstanceAs(graph)
             assertThat(attempts).isEqualTo(1)
+        }
+
+    @Test
+    fun gameProgressSurvivesReopening() =
+        runBlocking<Unit> {
+            val name = "game-test.db"
+            context.deleteDatabase(name)
+            val open = { dugoutDatabase(context, name, seed) }
+            val games = store(open = open).apply { start() }.ready().games
+            games.markMastered("sam", "p01")
+            games.finishRound("sam", 3)
+
+            val expected = GameRecord(bestRuns = 3, mastered = setOf("p01"))
+            val reopened =
+                eventually {
+                    store(open = open)
+                        .apply { start() }
+                        .ready()
+                        .games
+                        .record("sam")
+                        .value
+                        .takeIf { it == expected }
+                }
+            assertThat(reopened).isEqualTo(expected)
+        }
+
+    @Test
+    fun unknownPlayIdsAreDropped() =
+        runBlocking<Unit> {
+            val database = dugoutDatabase(context, name = null, seed)
+            database.dao().saveMasteredPlay(MasteredPlayEntity("sam", "p99"))
+            database.dao().saveMasteredPlay(MasteredPlayEntity("sam", "p02"))
+
+            val graph = store(open = { database }).apply { start() }.ready()
+
+            assertThat(
+                graph.games
+                    .record("sam")
+                    .value.mastered,
+            ).containsExactly("p02")
         }
 }

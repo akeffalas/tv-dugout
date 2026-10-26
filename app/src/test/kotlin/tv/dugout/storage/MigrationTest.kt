@@ -132,4 +132,32 @@ class MigrationTest {
             assertThat(dao.parentLock()).isNull()
             database.close()
         }
+
+    @Test
+    fun upgradeFromThreeKeepsChildrenAndAddsGameTables() =
+        runBlocking<Unit> {
+            createAt(3) {
+                add("profile") {
+                    put("id", "a")
+                    put("name", "a")
+                    put("avatar_color", 0xFFE63946)
+                    put("position", 0)
+                    put("age_range", "SEVEN_TO_EIGHT")
+                    put("level", "COACH_PITCH")
+                    put("offered_library_version", 3)
+                }
+            }
+
+            val database = dugoutDatabase(context, name)
+            val dao = database.dao()
+
+            assertThat(dao.profiles().map { it.id }).containsExactly("a")
+            assertThat(dao.profiles().single().offeredLibraryVersion).isEqualTo(3)
+            assertThat(dao.gameBests()).isEmpty()
+            assertThat(dao.masteredPlays()).isEmpty()
+            dao.saveGameBest(GameBestEntity("a", 4))
+            dao.saveMasteredPlay(MasteredPlayEntity("a", "p01"))
+            assertThat(dao.gameBests()).containsExactly(GameBestEntity("a", 4))
+            database.close()
+        }
 }

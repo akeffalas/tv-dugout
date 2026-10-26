@@ -25,3 +25,20 @@ val MIGRATION_2_3 =
             )
         }
     }
+
+/** Version 4 adds each child's best round and mastered plays for What's the Play? (spec 0009). */
+val MIGRATION_3_4 =
+    object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `game_best` (`profile_id` TEXT NOT NULL, `best_runs` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`profile_id`), FOREIGN KEY(`profile_id`) REFERENCES `profile`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `mastered_play` (`profile_id` TEXT NOT NULL, `play_id` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`profile_id`, `play_id`), FOREIGN KEY(`profile_id`) REFERENCES `profile`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+        }
+    }

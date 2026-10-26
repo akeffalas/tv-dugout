@@ -2,6 +2,7 @@ package tv.dugout.storage
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
@@ -79,4 +80,16 @@ interface DugoutDao {
 
     @Upsert
     suspend fun saveParentLock(row: ParentLockEntity)
+
+    @Query("SELECT * FROM game_best")
+    suspend fun gameBests(): List<GameBestEntity>
+
+    @Query("SELECT * FROM mastered_play")
+    suspend fun masteredPlays(): List<MasteredPlayEntity>
+
+    @Upsert
+    suspend fun saveGameBest(row: GameBestEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun saveMasteredPlay(row: MasteredPlayEntity)
 }

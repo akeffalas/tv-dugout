@@ -192,4 +192,33 @@ class DugoutDaoTest {
 
             assertThat(dao.parentLock()).isEqualTo(lock.copy(failedAttempts = 6))
         }
+
+    @Test
+    fun gameProgressRoundTrips() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", position = 0)))
+            dao.saveGameBest(GameBestEntity("a", 2))
+            dao.saveGameBest(GameBestEntity("a", 5))
+            dao.saveMasteredPlay(MasteredPlayEntity("a", "p01"))
+            dao.saveMasteredPlay(MasteredPlayEntity("a", "p01"))
+            dao.saveMasteredPlay(MasteredPlayEntity("a", "p02"))
+
+            assertThat(dao.gameBests()).containsExactly(GameBestEntity("a", 5))
+            assertThat(dao.masteredPlays())
+                .containsExactly(MasteredPlayEntity("a", "p01"), MasteredPlayEntity("a", "p02"))
+        }
+
+    @Test
+    fun removingAChildDeletesGameProgress() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", position = 0), profile("b", position = 1)))
+            dao.saveGameBest(GameBestEntity("a", 3))
+            dao.saveMasteredPlay(MasteredPlayEntity("a", "p01"))
+            dao.saveMasteredPlay(MasteredPlayEntity("b", "p01"))
+
+            dao.removeProfile("a")
+
+            assertThat(dao.gameBests()).isEmpty()
+            assertThat(dao.masteredPlays()).containsExactly(MasteredPlayEntity("b", "p01"))
+        }
 }
