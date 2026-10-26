@@ -568,4 +568,183 @@ class PlayerViewModelTest {
             assertThat(vm.uiState.value.replaying).isFalse()
             assertThat(vm.uiState.value.controlsVisible).isTrue()
         }
+
+    @Test
+    fun scrubMovesTheTargetTenSeconds() {
+        val vm = attached()
+        vm.playingAt(30f)
+
+        vm.onScrub(forward = true, heldMillis = 0)
+
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(40f)
+        assertThat(vm.uiState.value.scrubOrigin).isEqualTo(30f)
+        assertThat(player.seeks).isEmpty()
+    }
+
+    @Test
+    fun heldScrubMovesThirty() {
+        val vm = attached()
+        vm.playingAt(30f)
+
+        vm.onScrub(forward = true, heldMillis = SCRUB_HELD_AFTER_MILLIS)
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(60f)
+
+        vm.onScrub(forward = false, heldMillis = SCRUB_HELD_AFTER_MILLIS - 1)
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(50f)
+    }
+
+    @Test
+    fun scrubStepsAddUpFromTheOrigin() {
+        val vm = attached()
+        vm.playingAt(30f)
+
+        repeat(3) { vm.onScrub(forward = true, heldMillis = 0) }
+
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(60f)
+        assertThat(vm.uiState.value.scrubOrigin).isEqualTo(30f)
+    }
+
+    @Test
+    fun scrubSeeksAfterHalfASecondOfQuiet() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(30f)
+            vm.onScrub(forward = true, heldMillis = 0)
+
+            wait(SCRUB_SETTLE_MILLIS - 1)
+            assertThat(player.seeks).isEmpty()
+
+            wait(2)
+            assertThat(player.seeks).containsExactly(40f)
+            assertThat(vm.uiState.value.scrubTarget).isNull()
+            assertThat(vm.uiState.value.positionSeconds).isEqualTo(40f)
+        }
+
+    @Test
+    fun scrubClampsAtZero() {
+        val vm = attached()
+        vm.playingAt(5f)
+
+        vm.onScrub(forward = false, heldMillis = 0)
+
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(0f)
+    }
+
+    @Test
+    fun scrubClampsOneSecondBeforeTheEnd() {
+        val vm = attached()
+        vm.playingAt(95f, duration = 100f)
+
+        vm.onScrub(forward = true, heldMillis = 0)
+
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(99f)
+    }
+
+    @Test
+    fun scrubBeforeDurationKnownStaysAtZero() {
+        val vm = attached()
+        player.emitState(PlaybackState.PLAYING)
+
+        vm.onScrub(forward = true, heldMillis = 0)
+
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(0f)
+    }
+
+    @Test
+    fun positionUpdatesDoNotMoveAPendingTarget() {
+        val vm = attached()
+        vm.playingAt(30f)
+        vm.onScrub(forward = true, heldMillis = 0)
+
+        player.emitPosition(31f)
+
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(40f)
+    }
+
+    @Test
+    fun commitSeeksAtOnce() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(30f)
+            vm.onScrub(forward = true, heldMillis = 0)
+
+            vm.onScrubCommit()
+            assertThat(player.seeks).containsExactly(40f)
+
+            wait(1_000)
+            assertThat(player.seeks).containsExactly(40f)
+        }
+
+    @Test
+    fun scrubCommitEndsAReplay() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+        vm.onScrub(forward = true, heldMillis = 0)
+
+        vm.onScrubCommit()
+
+        assertThat(vm.uiState.value.replaying).isFalse()
+    }
+
+    @Test
+    fun backCommitsPendingScrub() {
+        val vm = attached()
+        vm.playingAt(30f)
+        vm.onScrub(forward = true, heldMillis = 0)
+
+        vm.onBackPressed()
+
+        assertThat(player.seeks).containsExactly(40f)
+    }
+
+    @Test
+    fun scrubKeepsControlsUp() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.playingAt(30f)
+            wait(4_000)
+
+            vm.onScrub(forward = true, heldMillis = 0)
+            wait(4_000)
+
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+        }
+
+    @Test
+    fun playPauseKeyTogglesAndShowsControls() =
+        runTest(main.dispatcher) {
+            val vm = hiddenWhilePlaying()
+
+            vm.onMediaKey(MediaKey.PLAY_PAUSE)
+
+            assertThat(player.pauses).isEqualTo(1)
+            assertThat(vm.uiState.value.controlsVisible).isTrue()
+        }
+
+    @Test
+    fun playKeyWhilePlayingDoesNothing() {
+        val vm = attached()
+        vm.playingAt(30f)
+
+        vm.onMediaKey(MediaKey.PLAY)
+        assertThat(player.plays).isEqualTo(0)
+
+        vm.onMediaKey(MediaKey.PAUSE)
+        assertThat(player.pauses).isEqualTo(1)
+    }
+
+    @Test
+    fun rewindAndFastForwardScrub() {
+        val vm = attached()
+        vm.playingAt(30f)
+
+        vm.onMediaKey(MediaKey.REWIND)
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(20f)
+
+        vm.onMediaKey(MediaKey.FAST_FORWARD)
+        vm.onMediaKey(MediaKey.FAST_FORWARD)
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(40f)
+        assertThat(vm.uiState.value.scrubOrigin).isEqualTo(30f)
+    }
 }

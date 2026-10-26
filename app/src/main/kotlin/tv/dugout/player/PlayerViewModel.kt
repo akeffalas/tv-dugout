@@ -22,8 +22,21 @@ const val PLAYER_START_TIMEOUT_MILLIS = 20_000L
 /** How far Replay jumps back before playing at half speed. */
 const val REPLAY_SECONDS = 5f
 
+/** How far one press on the progress bar moves, and how far once the press is held. */
+const val SCRUB_STEP_SECONDS = 10f
+const val SCRUB_HELD_STEP_SECONDS = 30f
+const val SCRUB_HELD_AFTER_MILLIS = 1_000L
+
+/** The video seeks once the child stops moving the progress bar for this long. */
+const val SCRUB_SETTLE_MILLIS = 500L
+
+/** Moving the bar stops this far before the end, so it never jumps straight to Up next. */
+const val END_MARGIN_SECONDS = 1f
+
 /** How long the controls stay up without a press while the video plays. */
 const val CONTROLS_HIDE_MILLIS = 5_000L
+
+enum class MediaKey { PLAY_PAUSE, PLAY, PAUSE, REWIND, FAST_FORWARD }
 
 data class PlayerUiState(
     val video: Video,
@@ -36,6 +49,8 @@ data class PlayerUiState(
     val controlsVisible: Boolean = true,
     val hasPlayed: Boolean = false,
     val replaying: Boolean = false,
+    val scrubTarget: Float? = null,
+    val scrubOrigin: Float = 0f,
 ) {
     /** The baseball spins only until the video first plays; later buffering is YouTube's to show. */
     val showSpinner: Boolean get() = !hasPlayed && failure == null
@@ -63,6 +78,7 @@ class PlayerViewModel(
     private var slowMoTimeout: Job? = null
     private var hideJob: Job? = null
     private var replayReturnPoint: Float? = null
+    private var settleJob: Job? = null
 
     // Without a network the embedded player never loads and never reports anything.
     private val startTimeout =
@@ -155,6 +171,51 @@ class PlayerViewModel(
         player?.play()
     }
 
+    fun onScrub(
+        forward: Boolean,
+        heldMillis: Long,
+    ) {
+        val current = uiState.value
+        val step = if (heldMillis >= SCRUB_HELD_AFTER_MILLIS) SCRUB_HELD_STEP_SECONDS else SCRUB_STEP_SECONDS
+        val from = current.scrubTarget ?: current.positionSeconds
+        val last = (current.durationSeconds - END_MARGIN_SECONDS).coerceAtLeast(0f)
+        val target = (from + if (forward) step else -step).coerceIn(0f, last)
+        state.update {
+            it.copy(
+                scrubTarget = target,
+                scrubOrigin = if (it.scrubTarget == null) it.positionSeconds else it.scrubOrigin,
+                controlsVisible = true,
+            )
+        }
+        scheduleHide()
+        settleJob?.cancel()
+        settleJob =
+            viewModelScope.launch {
+                delay(SCRUB_SETTLE_MILLIS)
+                onScrubCommit()
+            }
+    }
+
+    fun onScrubCommit() {
+        val target = uiState.value.scrubTarget ?: return
+        settleJob?.cancel()
+        endReplay()
+        seek(target)
+        state.update { it.copy(scrubTarget = null) }
+    }
+
+    fun onMediaKey(key: MediaKey) {
+        onWake()
+        val playing = uiState.value.state == PlaybackState.PLAYING
+        when (key) {
+            MediaKey.PLAY_PAUSE -> onPlayPause()
+            MediaKey.PLAY -> if (!playing) player?.play()
+            MediaKey.PAUSE -> if (playing) player?.pause()
+            MediaKey.REWIND -> onScrub(forward = false, heldMillis = 0)
+            MediaKey.FAST_FORWARD -> onScrub(forward = true, heldMillis = 0)
+        }
+    }
+
     private fun seek(seconds: Float) {
         player?.seekTo(seconds)
         state.update { it.copy(positionSeconds = seconds) }
@@ -194,6 +255,7 @@ class PlayerViewModel(
 
     /** Hides the controls while playing and returns true; false means the caller should leave. */
     fun onBackPressed(): Boolean {
+        onScrubCommit()
         val current = uiState.value
         if (!current.controlsVisible || !current.hideable) return false
         hideJob?.cancel()
