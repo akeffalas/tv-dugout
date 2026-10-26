@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dugout TV whats-the-play-mockup</title>
+<style>body{background:#0b1220;color:#F3F1EA;font-family:system-ui;margin:2rem}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:1.5rem}.card{background:#1B2A44;border-radius:12px;overflow:hidden}.card-body{padding:1rem}.subtitle{color:#9FB0C8}</style>
+</head>
+<body>
+<h2>What's the Play? : the question screen</h2>
+<p class="subtitle">Which way should the field be drawn? Both show the same play: one out, runner on first, ground ball to the shortstop. The child presses a direction to throw.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a">
+    <div class="card-image" style="background:#0F1A2B;padding:0">
+      <svg viewBox="0 0 640 360" style="width:100%;display:block;font-family:system-ui">
+        <!-- scoreboard -->
+        <rect x="16" y="14" width="150" height="58" rx="8" fill="#1B2A44" stroke="#2B3F63"/>
+        <text x="28" y="36" fill="#9FB0C8" font-size="11">PLAY 2 OF 5</text>
+        <text x="28" y="60" fill="#FFD23F" font-size="20" font-weight="700">RUNS 1</text>
+        <rect x="474" y="14" width="150" height="58" rx="8" fill="#1B2A44" stroke="#2B3F63"/>
+        <text x="486" y="36" fill="#9FB0C8" font-size="11">OUTS</text>
+        <circle cx="500" cy="54" r="8" fill="#E63946"/><circle cx="522" cy="54" r="8" fill="none" stroke="#9FB0C8" stroke-width="2"/>
+        <!-- grass + dirt -->
+        <path d="M320 330 L120 130 A283 283 0 0 1 520 130 Z" fill="#2E7D4F"/>
+        <polygon points="320,320 400,240 320,160 240,240" fill="#B5793F"/>
+        <polygon points="320,300 382,240 320,180 258,240" fill="#2E7D4F"/>
+        <!-- bases -->
+        <rect x="392" y="232" width="16" height="16" fill="#F3F1EA" transform="rotate(45 400 240)"/>
+        <rect x="312" y="152" width="16" height="16" fill="#F3F1EA" transform="rotate(45 320 160)"/>
+        <rect x="232" y="232" width="16" height="16" fill="#F3F1EA" transform="rotate(45 240 240)"/>
+        <polygon points="312,314 328,314 328,322 320,330 312,322" fill="#F3F1EA"/>
+        <!-- runner on first -->
+        <circle cx="414" cy="226" r="10" fill="#E63946" stroke="#F3F1EA" stroke-width="2"/>
+        <!-- ball at SS -->
+        <circle cx="272" cy="186" r="7" fill="#fff" stroke="#E63946" stroke-width="1.5"/>
+        <path d="M320 318 Q300 250 272 186" stroke="#fff" stroke-dasharray="4 5" fill="none" opacity=".7"/>
+        <!-- dpad hints -->
+        <text x="320" y="140" fill="#FFD23F" font-size="13" text-anchor="middle">▲ 2nd</text>
+        <text x="425" y="270" fill="#FFD23F" font-size="13">▶ 1st</text>
+        <text x="215" y="270" fill="#FFD23F" font-size="13" text-anchor="end">3rd ◀</text>
+        <text x="320" y="350" fill="#FFD23F" font-size="13" text-anchor="middle">▼ Home   ●  Hold it</text>
+        <!-- question -->
+        <text x="16" y="110" fill="#F3F1EA" font-size="15" font-weight="700">Ground ball to you</text>
+        <text x="16" y="130" fill="#F3F1EA" font-size="15" font-weight="700">at shortstop.</text>
+        <text x="16" y="152" fill="#9FB0C8" font-size="13">Where do you throw?</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>A. Top-down diamond</h3>
+      <p>Like a coach's whiteboard. The arrows match the bases exactly (up is 2nd, right is 1st), so the remote maps to the field with no thinking.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b">
+    <div class="card-image" style="background:#0F1A2B;padding:0">
+      <svg viewBox="0 0 640 360" style="width:100%;display:block;font-family:system-ui">
+        <rect x="0" y="0" width="640" height="120" fill="#1D3557"/>
+        <path d="M0 120 L640 120 L640 360 L0 360 Z" fill="#2E7D4F"/>
+        <path d="M0 125 Q320 95 640 125" stroke="#0F1A2B" stroke-width="10" fill="none"/>
+        <!-- perspective diamond -->
+        <polygon points="320,345 500,240 320,175 140,240" fill="#B5793F"/>
+        <polygon points="320,325 462,240 320,190 178,240" fill="#2E7D4F"/>
+        <rect x="490" y="234" width="20" height="12" fill="#F3F1EA"/>
+        <rect x="311" y="170" width="18" height="10" fill="#F3F1EA"/>
+        <rect x="130" y="234" width="20" height="12" fill="#F3F1EA"/>
+        <polygon points="308,340 332,340 332,348 320,356 308,348" fill="#F3F1EA"/>
+        <!-- runner -->
+        <circle cx="515" cy="222" r="12" fill="#E63946" stroke="#F3F1EA" stroke-width="2"/>
+        <circle cx="240" cy="196" r="8" fill="#fff" stroke="#E63946" stroke-width="1.5"/>
+        <!-- scoreboard strip -->
+        <rect x="16" y="14" width="608" height="40" rx="8" fill="#0F1A2B" stroke="#2B3F63"/>
+        <text x="30" y="40" fill="#9FB0C8" font-size="13">PLAY 2 OF 5</text>
+        <text x="250" y="40" fill="#FFD23F" font-size="16" font-weight="700">RUNS 1</text>
+        <text x="470" y="40" fill="#9FB0C8" font-size="13">OUTS</text>
+        <circle cx="520" cy="35" r="7" fill="#E63946"/><circle cx="540" cy="35" r="7" fill="none" stroke="#9FB0C8" stroke-width="2"/>
+        <text x="320" y="85" fill="#F3F1EA" font-size="16" font-weight="700" text-anchor="middle">Ground ball to you at shortstop. Where do you throw?</text>
+        <text x="320" y="160" fill="#FFD23F" font-size="13" text-anchor="middle">▲ 2nd</text>
+        <text x="560" y="262" fill="#FFD23F" font-size="13">▶ 1st</text>
+        <text x="80" y="262" fill="#FFD23F" font-size="13" text-anchor="end">3rd ◀</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>B. Behind home plate</h3>
+      <p>Looks like a TV broadcast and feels more like a video game, with sky and an outfield wall. The far bases are squashed, so runners and the ball read smaller.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:1.5em">My recommendation is A. It's clearer for an 8-year-old, and the arrows map straight onto the bases. The fun comes from the replay animation (ball flies, runner slides, a big OUT! stamp).</p>
+</body>
+</html>

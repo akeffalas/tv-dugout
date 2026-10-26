@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dugout TV sections-mockup</title>
+<style>body{background:#0b1220;color:#F3F1EA;font-family:system-ui;margin:2rem}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:1.5rem}.card{background:#1B2A44;border-radius:12px;overflow:hidden}.card-body{padding:1rem}.subtitle{color:#9FB0C8}</style>
+</head>
+<body>
+<h2>Where do Videos and Games live?</h2>
+<p class="subtitle">After a child picks their profile. Both leave room for more sections later.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a">
+    <div class="card-image" style="background:#0F1A2B;padding:0">
+      <svg viewBox="0 0 640 360" style="width:100%;display:block;font-family:system-ui">
+        <circle cx="34" cy="30" r="14" fill="#3ECF8E"/><text x="56" y="35" fill="#F3F1EA" font-size="14">Sam</text>
+        <!-- section nav -->
+        <rect x="200" y="14" width="110" height="34" rx="17" fill="#FFD23F"/>
+        <text x="255" y="36" fill="#0F1A2B" font-size="15" font-weight="700" text-anchor="middle">Videos</text>
+        <text x="370" y="36" fill="#9FB0C8" font-size="15" text-anchor="middle">Games</text>
+        <text x="460" y="36" fill="#2B3F63" font-size="13" text-anchor="middle">(later…)</text>
+        <!-- skill tabs -->
+        <g font-size="12" fill="#9FB0C8">
+          <rect x="16" y="70" width="90" height="28" rx="6" fill="#1D3557"/><text x="61" y="89" fill="#F3F1EA" text-anchor="middle">Hitting 2/6</text>
+          <text x="150" y="89" text-anchor="middle">Fielding</text><text x="240" y="89" text-anchor="middle">Baserunning</text>
+          <text x="330" y="89" text-anchor="middle">Pitching</text><text x="410" y="89" text-anchor="middle">Catching</text><text x="500" y="89" text-anchor="middle">Baseball IQ</text>
+        </g>
+        <!-- video cards -->
+        <g>
+          <rect x="16" y="116" width="190" height="110" rx="8" fill="#1B2A44"/>
+          <rect x="224" y="116" width="190" height="110" rx="8" fill="#1B2A44"/>
+          <rect x="432" y="116" width="190" height="110" rx="8" fill="#1B2A44"/>
+          <rect x="16" y="240" width="190" height="110" rx="8" fill="#1B2A44"/>
+          <rect x="224" y="240" width="190" height="110" rx="8" fill="#1B2A44"/>
+          <rect x="432" y="240" width="190" height="110" rx="8" fill="#1B2A44"/>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>A. Section row at the top of Home (recommended)</h3>
+      <p>Like Google TV's own top menu. Home opens on Videos as it does today, and pressing up then right reaches Games. Adding a section later just adds a word to the row.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b">
+    <div class="card-image" style="background:#0F1A2B;padding:0">
+      <svg viewBox="0 0 640 360" style="width:100%;display:block;font-family:system-ui">
+        <circle cx="34" cy="30" r="14" fill="#3ECF8E"/><text x="56" y="35" fill="#F3F1EA" font-size="14">Hi Sam! What do you want to do?</text>
+        <rect x="60" y="90" width="240" height="200" rx="16" fill="#1D3557" stroke="#FFD23F" stroke-width="4"/>
+        <text x="180" y="180" fill="#F3F1EA" font-size="44" text-anchor="middle">▶</text>
+        <text x="180" y="240" fill="#F3F1EA" font-size="22" font-weight="700" text-anchor="middle">Videos</text>
+        <text x="180" y="265" fill="#9FB0C8" font-size="13" text-anchor="middle">14 of 40 watched</text>
+        <rect x="340" y="90" width="240" height="200" rx="16" fill="#1B2A44"/>
+        <polygon points="460,140 500,180 460,220 420,180" fill="#B5793F"/>
+        <text x="460" y="240" fill="#F3F1EA" font-size="22" font-weight="700" text-anchor="middle">Games</text>
+        <text x="460" y="265" fill="#9FB0C8" font-size="13" text-anchor="middle">What's the Play?</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>B. A "pick what to do" screen</h3>
+      <p>Big friendly tiles right after the profile picker. Each choice is obvious, but every visit takes one extra press before any video, and Back has one more screen to step through.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
