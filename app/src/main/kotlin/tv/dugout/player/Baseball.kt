@@ -24,10 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -41,23 +44,45 @@ import tv.dugout.ui.theme.Chalk
 import tv.dugout.ui.theme.FocusGold
 import tv.dugout.ui.theme.Navy
 import tv.dugout.ui.theme.ProgressRed
+import kotlin.math.cos
+import kotlin.math.sin
 
-/** Draws a baseball: a chalk ball with two curved red stitch lines. */
+/** Draws a baseball: a chalk ball with two red seams curving in toward the middle, each crossed by stitches. */
 fun Modifier.baseball(): Modifier =
     drawBehind {
+        val d = size.minDimension
         drawCircle(Chalk)
-        val stroke =
-            Stroke(
-                width = size.minDimension * 0.045f,
-                pathEffect =
-                    PathEffect.dashPathEffect(
-                        floatArrayOf(size.minDimension * 0.06f, size.minDimension * 0.04f),
-                    ),
-            )
-        val seam = Size(size.width * 0.85f, size.height * 0.8f)
-        val top = size.height * 0.1f
-        drawArc(ProgressRed, -55f, 110f, false, Offset(-size.width * 0.6f, top), seam, style = stroke)
-        drawArc(ProgressRed, 125f, 110f, false, Offset(size.width * 0.75f, top), seam, style = stroke)
+        clipPath(Path().apply { addOval(Rect(Offset.Zero, size)) }) {
+            // Each seam is part of a larger circle centred outside the ball, so it bows toward the middle.
+            for (side in listOf(-1f, 1f)) {
+                val centre = Offset(center.x + side * d * 0.78f, center.y)
+                val radius = d * 0.5f
+                val facing = if (side < 0) 0f else 180f
+                drawArc(
+                    ProgressRed,
+                    facing - 60f,
+                    120f,
+                    false,
+                    centre - Offset(radius, radius),
+                    Size(radius * 2, radius * 2),
+                    style = Stroke(width = d * 0.022f),
+                )
+                for (i in -4..4) {
+                    val angle = Math.toRadians((facing + i * 13f).toDouble())
+                    val normal = Offset(cos(angle).toFloat(), sin(angle).toFloat())
+                    val tangent = Offset(-normal.y, normal.x)
+                    val point = centre + normal * radius
+                    val half = d * 0.055f
+                    drawLine(
+                        ProgressRed,
+                        point - normal * half - tangent * (half * 0.5f),
+                        point + normal * half + tangent * (half * 0.5f),
+                        strokeWidth = d * 0.028f,
+                        cap = StrokeCap.Round,
+                    )
+                }
+            }
+        }
     }
 
 /** A player control drawn as a baseball with its label below; the focused ball glows gold. */
