@@ -21,16 +21,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +60,8 @@ const val REPLAY_MILLIS = 3_000
 const val STAMP_MILLIS = 600
 
 private const val STAMP_FROM = 0.9f
+
+private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 
 private fun Key.answer(): Answer? =
     when (this) {
@@ -146,6 +152,8 @@ fun PlayGameScreen(
                             Modifier
                                 .fillMaxHeight()
                                 .focusRequester(root)
+                                // Once the why shows, Next play is the only place for focus.
+                                .focusProperties { canFocus = state.phase != Phase.WHY }
                                 .onKeyEvent { event ->
                                     val answer = event.key.answer()
                                     // Only a fresh press while asked answers; a held key's repeats and release do nothing.
@@ -221,7 +229,33 @@ private fun Why(
         color = if (state.correct) WatchedGreen else FocusGold,
     )
     Text(play.why, fontSize = 18.sp, modifier = Modifier.testTag("game_why"))
-    GameButton("Next play", Modifier.focusRequester(next).testTag("game_next"), onNext)
+    // A Select held since the answer must not skip the why: Next play acts only on a press that starts here.
+    var pressed by remember { mutableStateOf(false) }
+    GameButton(
+        "Next play",
+        Modifier
+            .focusRequester(next)
+            .onPreviewKeyEvent { event ->
+                if (event.key !in SELECT_KEYS) return@onPreviewKeyEvent false
+                when (event.type) {
+                    KeyEventType.KeyDown -> {
+                        if (event.nativeKeyEvent.repeatCount == 0) pressed = true
+                        !pressed
+                    }
+
+                    KeyEventType.KeyUp -> {
+                        val ignore = !pressed
+                        pressed = false
+                        ignore
+                    }
+
+                    else -> {
+                        false
+                    }
+                }
+            }.testTag("game_next"),
+        onNext,
+    )
 }
 
 @Composable

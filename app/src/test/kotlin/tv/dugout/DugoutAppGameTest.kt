@@ -133,4 +133,25 @@ class DugoutAppGameTest {
 
         compose.onNodeWithTag("profile_tile_sam").assertIsDisplayed()
     }
+
+    @Test
+    fun backFromTheGameAfterAVideoFocusesTheCard() {
+        compose.setContent { DugoutTheme { DugoutApp(graph) } }
+        press(Key.DirectionCenter)
+        compose.waitForIdle()
+        press(Key.DirectionCenter)
+        compose.onNodeWithTag("control_playpause").assertIsFocused()
+        back()
+        compose.onNodeWithTag("card_row_hitting_h1").assertIsFocused()
+
+        press(Key.DirectionUp)
+        press(Key.DirectionUp)
+        press(Key.DirectionRight)
+        press(Key.DirectionDown)
+        press(Key.DirectionCenter)
+        compose.onNodeWithTag("game_prompt").assertIsDisplayed()
+        back()
+
+        compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
+    }
 }

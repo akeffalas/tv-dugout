@@ -313,4 +313,12 @@ class HomeScreenTest {
         assertThat(compose.onAllNodesWithTagCount("section_videos")).isEqualTo(0)
         compose.onNodeWithTag("card_row_hitting_h1").assertIsFocused()
     }
+
+    @Test
+    fun gamesFocusesTheCardEvenWithAVideoToReturnTo() {
+        val watched = FocusTarget(HomeTab.Home, RowKey.SkillRow(Skill.HITTING), "h2")
+        show(state(section = HomeSection.GAMES, focus = watched))
+
+        compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
+    }
 }

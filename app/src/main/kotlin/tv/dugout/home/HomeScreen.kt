@@ -81,13 +81,14 @@ fun HomeScreen(
     LaunchedEffect(state.focus, cardRequesters) {
         val target = state.focus?.let { cardRequesters[cardTag(it.row, it.videoId)] }
         when {
-            target != null -> {
-                target.requestFocus()
-            }
-
-            // Coming back from a game: the card it was started from.
+            // Coming back from a game: the card it was started from. A video focus target left from
+            // earlier belongs to the Videos section, which is not showing.
             state.section == HomeSection.GAMES && state.game != null -> {
                 gameCard.requestFocus()
+            }
+
+            target != null -> {
+                target.requestFocus()
             }
 
             !arrived -> {

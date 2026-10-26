@@ -158,7 +158,7 @@ private val BASICS =
             "Ground ball back to you, the pitcher.",
             HOME,
             "Every runner is forced. The out at home stops a run.",
-            wrong = mapOf(FIRST to OUT, HOLD to SAFE),
+            wrong = mapOf(FIRST to OUT, SECOND to OUT, THIRD to OUT, HOLD to SAFE),
         ),
         throwPlay(
             "p05",

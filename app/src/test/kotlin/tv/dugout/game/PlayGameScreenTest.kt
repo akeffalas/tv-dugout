@@ -1,5 +1,8 @@
 package tv.dugout.game
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -184,5 +187,45 @@ class PlayGameScreenTest {
 
         compose.onNodeWithTag("game_try_again").assertIsDisplayed()
         compose.onNodeWithText("Try again").assertIsDisplayed()
+    }
+
+    @Test
+    fun releasingASelectHeldSinceTheAnswerDoesNotSkipWhy() {
+        var current by mutableStateOf(state())
+        compose.setContent {
+            DugoutTheme {
+                PlayGameScreen(
+                    state = current,
+                    onAnswer = { answers += it },
+                    onReplayFinished = {},
+                    onNext = { nexts++ },
+                    onPlayAgain = {},
+                    onDone = {},
+                )
+            }
+        }
+        compose.onRoot().performKeyInput { keyDown(Key.DirectionCenter) }
+        compose.waitForIdle()
+        current = state(phase = Phase.WHY, chosen = Answer.HOLD, correct = true)
+        compose.waitForIdle()
+        compose.onNodeWithTag("game_next").assertIsFocused()
+
+        compose.onRoot().performKeyInput { keyUp(Key.DirectionCenter) }
+        compose.waitForIdle()
+
+        assertThat(answers).containsExactly(Answer.HOLD)
+        assertThat(nexts).isEqualTo(0)
+        press(Key.DirectionCenter)
+        assertThat(nexts).isEqualTo(1)
+    }
+
+    @Test
+    fun rightInWhyKeepsFocusOnNextPlay() {
+        show(state(phase = Phase.WHY, chosen = Answer.SECOND, correct = true))
+
+        press(Key.DirectionRight)
+        press(Key.DirectionUp)
+
+        compose.onNodeWithTag("game_next").assertIsFocused()
     }
 }

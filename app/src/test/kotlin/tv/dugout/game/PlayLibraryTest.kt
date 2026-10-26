@@ -70,4 +70,10 @@ class PlayLibraryTest {
             assertThat(play.prompt + play.why).doesNotContainMatch("[—–]| - ")
         }
     }
+
+    @Test
+    fun basesLoadedForcesAreOutsEverywhere() {
+        assertThat(play("p04").stampFor(Answer.SECOND)).isEqualTo(Stamp.OUT)
+        assertThat(play("p04").stampFor(Answer.THIRD)).isEqualTo(Stamp.OUT)
+    }
 }
