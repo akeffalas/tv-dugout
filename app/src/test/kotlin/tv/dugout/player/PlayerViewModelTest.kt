@@ -620,13 +620,27 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun scrubBeforeDurationKnownStaysAtZero() {
+    fun scrubBeforeDurationKnownDoesNotMove() =
+        runTest(main.dispatcher) {
+            history.record("sam", "h1", 42f, 100f, now = 1)
+            val vm = attached()
+            player.emitState(PlaybackState.PLAYING)
+
+            vm.onScrub(forward = true, heldMillis = 0)
+            wait(SCRUB_SETTLE_MILLIS + 1)
+
+            assertThat(vm.uiState.value.scrubTarget).isNull()
+            assertThat(player.seeks).isEmpty()
+        }
+
+    @Test
+    fun scrubForwardInsideTheEndMarginStaysPut() {
         val vm = attached()
-        player.emitState(PlaybackState.PLAYING)
+        vm.playingAt(99.5f, duration = 100f)
 
         vm.onScrub(forward = true, heldMillis = 0)
 
-        assertThat(vm.uiState.value.scrubTarget).isEqualTo(0f)
+        assertThat(vm.uiState.value.scrubTarget).isEqualTo(99.5f)
     }
 
     @Test
@@ -792,5 +806,75 @@ class PlayerViewModelTest {
         player.fail(PlayerFailure.OTHER)
 
         assertThat(vm.onBackPressed()).isFalse()
+    }
+
+    @Test
+    fun replayWhileSlowMoIsPendingKeepsSlowMo() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onSlowMoToggle()
+
+        vm.onReplay()
+        player.confirmRate(true)
+
+        assertThat(player.seeks).containsExactly(35f)
+        assertThat(vm.uiState.value.replaying).isFalse()
+        assertThat(vm.uiState.value.slowMo).isTrue()
+        player.emitPosition(40f)
+        assertThat(player.slowMoRequests.last()).isTrue()
+    }
+
+    @Test
+    fun aStalePositionDoesNotEndAReplay() {
+        val vm = attached()
+        vm.playingAt(40f)
+        vm.onReplay()
+        player.confirmRate(true)
+
+        player.emitPosition(40.3f)
+        assertThat(vm.uiState.value.replaying).isTrue()
+
+        player.emitPosition(36f)
+        player.emitPosition(40f)
+        assertThat(vm.uiState.value.replaying).isFalse()
+    }
+
+    @Test
+    fun replayInTheFirstSecondOnlyStartsOver() {
+        val vm = attached()
+        vm.playingAt(0.5f)
+
+        vm.onReplay()
+
+        assertThat(player.seeks).containsExactly(0f)
+        assertThat(player.slowMoRequests).isEmpty()
+        assertThat(vm.uiState.value.replaying).isFalse()
+    }
+
+    @Test
+    fun leavingAfterAScrubSavesTheNewPosition() {
+        val vm = attached()
+        vm.playingAt(30f)
+        player.emitState(PlaybackState.PAUSED)
+        vm.onScrub(forward = true, heldMillis = 0)
+
+        vm.onBackPressed()
+        vm.onLeave()
+
+        assertThat(progress()?.lastSeconds).isEqualTo(40f)
+    }
+
+    @Test
+    fun pauseWhileBufferingPauses() {
+        val vm = attached()
+        vm.playingAt(30f)
+        player.emitState(PlaybackState.LOADING)
+
+        vm.onPlayPause()
+        vm.onMediaKey(MediaKey.PAUSE)
+
+        assertThat(player.pauses).isEqualTo(2)
+        assertThat(player.plays).isEqualTo(0)
+        assertThat(vm.uiState.value.playing).isTrue()
     }
 }

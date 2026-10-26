@@ -22,6 +22,9 @@ const val PLAYER_START_TIMEOUT_MILLIS = 20_000L
 /** How far Replay jumps back before playing at half speed. */
 const val REPLAY_SECONDS = 5f
 
+/** Replay pressed closer to the start than this only starts over: too little to slow down. */
+const val REPLAY_MIN_SECONDS = 1f
+
 /** How far one press on the progress bar moves, and how far once the press is held. */
 const val SCRUB_STEP_SECONDS = 10f
 const val SCRUB_HELD_STEP_SECONDS = 30f
@@ -57,9 +60,12 @@ data class PlayerUiState(
 
     val keepScreenOn: Boolean get() = state == PlaybackState.PLAYING && failure == null
 
-    /** Buffering after the first play counts as playing, so it neither holds nor brings back the controls. */
-    val hideable: Boolean
+    /** Buffering after the first play counts as playing, so Pause still pauses during a stall. */
+    val playing: Boolean
         get() = state == PlaybackState.PLAYING || (state == PlaybackState.LOADING && hasPlayed)
+
+    /** Buffering after the first play neither holds nor brings back the controls. */
+    val hideable: Boolean get() = playing
 }
 
 class PlayerViewModel(
@@ -78,6 +84,13 @@ class PlayerViewModel(
     private var slowMoTimeout: Job? = null
     private var hideJob: Job? = null
     private var replayReturnPoint: Float? = null
+
+    // A position reported before the replay's seek lands is at or past the return point; the replay
+    // may end only once a position before it shows the seek took effect.
+    private var replayArmed = false
+
+    // Slow-mo was asked for and YouTube has not answered yet.
+    private var slowMoPending = false
 
     // YouTube reports a rate only when it changes, so asking for the rate already in force gets no reply.
     private var atHalfSpeed = false
@@ -107,7 +120,13 @@ class PlayerViewModel(
             override fun onPosition(seconds: Float) {
                 startTimeout.cancel()
                 state.update { it.copy(positionSeconds = seconds) }
-                replayReturnPoint?.let { if (seconds >= it) endReplay() }
+                replayReturnPoint?.let {
+                    if (seconds < it) {
+                        replayArmed = true
+                    } else if (replayArmed) {
+                        endReplay()
+                    }
+                }
                 val duration = uiState.value.durationSeconds
                 if (duration > 0f) history.record(profileId, video.id, seconds, duration, clock())
             }
@@ -118,6 +137,7 @@ class PlayerViewModel(
 
             override fun onRateConfirmed(slowMo: Boolean) {
                 slowMoTimeout?.cancel()
+                slowMoPending = false
                 atHalfSpeed = slowMo
                 // A replay's half speed is not the child's Slow-mo choice.
                 if (replayReturnPoint == null) state.update { it.copy(slowMo = slowMo, slowMoUnavailable = false) }
@@ -137,7 +157,7 @@ class PlayerViewModel(
     }
 
     fun onPlayPause() {
-        if (uiState.value.state == PlaybackState.PLAYING) player?.pause() else player?.play()
+        if (uiState.value.playing) player?.pause() else player?.play()
     }
 
     fun onSlowMoToggle() {
@@ -147,8 +167,10 @@ class PlayerViewModel(
         if (wantSlowMo && atHalfSpeed) {
             state.update { it.copy(slowMo = true, slowMoUnavailable = false) }
         } else if (wantSlowMo) {
+            slowMoPending = true
             requestHalfSpeed()
         } else {
+            slowMoPending = false
             player?.requestSlowMo(false)
             state.update { it.copy(slowMo = false, slowMoUnavailable = false) }
         }
@@ -163,8 +185,12 @@ class PlayerViewModel(
     fun onReplay() {
         val position = uiState.value.positionSeconds
         seek((position - REPLAY_SECONDS).coerceAtLeast(0f))
-        if (!uiState.value.slowMo) {
-            if (replayReturnPoint == null) replayReturnPoint = position
+        val starting = replayReturnPoint == null
+        if (!uiState.value.slowMo && !slowMoPending && !(starting && position < REPLAY_MIN_SECONDS)) {
+            if (starting) {
+                replayReturnPoint = position
+                replayArmed = false
+            }
             state.update { it.copy(replaying = true) }
             requestHalfSpeed()
         }
@@ -176,9 +202,12 @@ class PlayerViewModel(
         heldMillis: Long,
     ) {
         val current = uiState.value
+        // Until YouTube reports the length there is no bar to move along.
+        if (current.durationSeconds <= 0f) return
         val step = if (heldMillis >= SCRUB_HELD_AFTER_MILLIS) SCRUB_HELD_STEP_SECONDS else SCRUB_STEP_SECONDS
         val from = current.scrubTarget ?: current.positionSeconds
-        val last = (current.durationSeconds - END_MARGIN_SECONDS).coerceAtLeast(0f)
+        // Already inside the end margin, a forward press stays put rather than stepping back.
+        val last = maxOf(current.durationSeconds - END_MARGIN_SECONDS, from)
         val target = (from + if (forward) step else -step).coerceIn(0f, last)
         state.update {
             it.copy(
@@ -209,7 +238,7 @@ class PlayerViewModel(
         heldMillis: Long = 0,
     ) {
         onWake()
-        val playing = uiState.value.state == PlaybackState.PLAYING
+        val playing = uiState.value.playing
         when (key) {
             MediaKey.PLAY_PAUSE -> onPlayPause()
             MediaKey.PLAY -> if (!playing) player?.play()
@@ -222,6 +251,9 @@ class PlayerViewModel(
     private fun seek(seconds: Float) {
         player?.seekTo(seconds)
         state.update { it.copy(positionSeconds = seconds) }
+        // Saved now, so leaving before YouTube reports the new position keeps it.
+        val duration = uiState.value.durationSeconds
+        if (duration > 0f) history.record(profileId, video.id, seconds, duration, clock())
     }
 
     private fun requestHalfSpeed() {
@@ -231,6 +263,7 @@ class PlayerViewModel(
         slowMoTimeout =
             viewModelScope.launch {
                 delay(SLOW_MO_CONFIRM_MILLIS)
+                slowMoPending = false
                 clearReplay()
                 player?.requestSlowMo(false)
                 state.update { it.copy(slowMoUnavailable = true, controlsVisible = true) }
