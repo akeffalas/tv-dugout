@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -34,8 +35,12 @@ fun VideosPane(
     state: ParentSettingsUiState,
     onSkillFocused: (Skill) -> Unit,
     onVideoToggled: (String) -> Unit,
+    onEntered: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(
+        modifier = Modifier.onFocusChanged { if (it.hasFocus) onEntered() },
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         SkillChips(
             skills = state.videoChips.keys.toList(),
             selected = state.videosSkill,

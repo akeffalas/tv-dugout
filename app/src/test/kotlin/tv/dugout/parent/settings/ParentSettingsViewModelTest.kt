@@ -295,7 +295,10 @@ class ParentSettingsViewModelTest {
     private val added0005 = library.videos().filter { it.addedIn == 2 }.map { it.id }
 
     private fun openVideos(viewModel: ParentSettingsViewModel = viewModel()) =
-        viewModel.apply { onTabFocused(ParentTab.VIDEOS) }
+        viewModel.apply {
+            onTabFocused(ParentTab.VIDEOS)
+            onVideosEntered()
+        }
 
     @Test
     fun allFiveSkillsAreListed() =
@@ -363,9 +366,23 @@ class ParentSettingsViewModelTest {
         viewModel.onChildFocused("jack")
         assertThat(graph.profiles.profile("sam")?.offeredVersion).isEqualTo(LIBRARY_VERSION)
 
-        viewModel.onTabFocused(ParentTab.VIDEOS)
+        openVideos(viewModel)
         viewModel.onLeave()
         assertThat(graph.profiles.profile("jack")?.offeredVersion).isEqualTo(LIBRARY_VERSION)
+    }
+
+    @Test
+    fun passingOverTheTabKeepsNewMarks() {
+        val viewModel = viewModel()
+
+        viewModel.onTabFocused(ParentTab.VIDEOS)
+        viewModel.onTabFocused(ParentTab.REMOVE)
+        viewModel.onTabFocused(ParentTab.VIDEOS)
+        viewModel.onChildFocused("jack")
+        viewModel.onLeave()
+
+        assertThat(graph.profiles.profile("sam")?.offeredVersion).isEqualTo(1)
+        assertThat(graph.profiles.profile("jack")?.offeredVersion).isEqualTo(1)
     }
 
     @Test

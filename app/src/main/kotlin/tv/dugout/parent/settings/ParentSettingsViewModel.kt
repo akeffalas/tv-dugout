@@ -42,6 +42,9 @@ class ParentSettingsViewModel(
 ) : ViewModel() {
     // The selected child's list as the Videos tab shows it; saves catch up one at a time, in order.
     private var chosen: Set<String> = emptySet()
+
+    // New marks clear only once focus has been inside the Videos pane, not when it passes over the tab.
+    private var videosSeen = false
     private val saving = Mutex()
 
     private val state =
@@ -241,6 +244,11 @@ class ParentSettingsViewModel(
         if (state.value.tab == ParentTab.VIDEOS) markOffered()
     }
 
+    /** Focus reached the Videos pane itself, so the parent has seen this child's New marks. */
+    fun onVideosEntered() {
+        videosSeen = true
+    }
+
     fun onVideosSkillFocused(skill: Skill) {
         state.update { it.copy(videosSkill = skill) }
         refreshVideos()
@@ -288,9 +296,10 @@ class ParentSettingsViewModel(
         val index = current.profiles.indexOfFirst { it.id == profileId }
         viewModelScope.launch {
             try {
-                // Progress first, so a write still waiting for this child cannot land after they are gone.
-                graph.history.reset(profileId, graph.library.videos().mapTo(HashSet()) { it.id })
+                // The child first: if that fails, their progress is untouched. Removing them deletes their saved
+                // progress too; the reset then clears memory and drops any write still waiting for them.
                 graph.profiles.remove(profileId)
+                graph.history.reset(profileId, graph.library.videos().mapTo(HashSet()) { it.id })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -315,6 +324,8 @@ class ParentSettingsViewModel(
 
     // The parent has now seen every library video for this child, so none shows as new again.
     private fun markOffered() {
+        if (!videosSeen) return
+        videosSeen = false
         val child = state.value.selected ?: return
         if (child.offeredVersion >= LIBRARY_VERSION) return
         // Not cancellable: leaving settings clears this ViewModel right after.

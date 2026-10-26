@@ -57,6 +57,7 @@ class VideosPaneTest {
                         state = state,
                         onSkillFocused = { calls += "skill:$it" },
                         onVideoToggled = { calls += "toggle:$it" },
+                        onEntered = { calls += "entered" },
                     )
                 }
             }
@@ -97,6 +98,19 @@ class VideosPaneTest {
         compose.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
         compose.waitForIdle()
 
-        assertThat(calls).containsExactly("toggle:${hitting[1].id}", "skill:FIELDING").inOrder()
+        assertThat(
+            calls.filterNot { it == "entered" },
+        ).containsExactly("toggle:${hitting[1].id}", "skill:FIELDING").inOrder()
+    }
+
+    @Test
+    fun focusInsideThePaneCountsAsEntering() {
+        show()
+        assertThat(calls).doesNotContain("entered")
+
+        compose.onNodeWithTag("videos_video_${hitting[1].id}").performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.waitForIdle()
+
+        assertThat(calls).contains("entered")
     }
 }

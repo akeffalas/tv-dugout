@@ -272,6 +272,7 @@ private fun ParentSettingsDestination(
                     state = state,
                     onSkillFocused = settingsViewModel::onVideosSkillFocused,
                     onVideoToggled = settingsViewModel::onVideoToggled,
+                    onEntered = settingsViewModel::onVideosEntered,
                 )
             }
 

@@ -52,7 +52,7 @@ class TvLayoutTest {
             )
         compose.setContent {
             DugoutTheme {
-                ParentSettingsScreen(state, {}, {}, {}, {}) { _, _ -> VideosPane(state, {}, {}) }
+                ParentSettingsScreen(state, {}, {}, {}, {}) { _, _ -> VideosPane(state, {}, {}, {}) }
             }
         }
         compose.waitForIdle()
