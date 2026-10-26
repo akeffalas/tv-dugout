@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TV launcher banner (16:9, scaled by the launcher): a baseball on the app's navy, with a gold base path. -->
+<!-- TV launcher banner (16:9, scaled by the launcher): a baseball on a gold-edged diamond over "DUGOUT TV".
+     The letters are drawn as strokes, since a vector drawable cannot hold text. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="160dp"
     android:height="90dp"
@@ -10,15 +11,21 @@
         android:pathData="M0,0h320v180h-320z" />
     <path
         android:fillColor="#FF1D3557"
-        android:pathData="M160,20L240,100L160,180L80,100Z" />
+        android:pathData="M160,14L214,68L160,122L106,68Z"
+        android:strokeColor="#FFFFD23F"
+        android:strokeLineJoin="round"
+        android:strokeWidth="3" />
     <path
         android:fillColor="#FFF3F1EA"
-        android:pathData="M160,60a40,40 0,1 1,0 80a40,40 0,1 1,0 -80z" />
+        android:pathData="M160,38a30,30 0,1 1,0 60a30,30 0,1 1,0 -60z" />
     <path
-        android:pathData="M137,68c12,18 12,46 0,64M183,68c-12,18 -12,46 0,64"
-        android:strokeWidth="4"
-        android:strokeColor="#FFE63946" />
+        android:pathData="M143,46c9,13 9,31 0,44M177,46c-9,13 -9,31 0,44"
+        android:strokeColor="#FFE63946"
+        android:strokeWidth="3" />
     <path
-        android:fillColor="#FFFFD23F"
-        android:pathData="M20,90h40v20h-40zM260,90h40v20h-40z" />
+        android:pathData="M70,136L74,136A12,12 0 0,1 74,160L70,160ZM92,136L92,152A8,8 0 0,0 108,152L108,136M127.1,138.8A8,12 0 1,0 130,150L123,150M144,136A8,12 0 0,1 144,160A8,12 0 0,1 144,136ZM158,136L158,152A8,8 0 0,0 174,152L174,136M180,136L196,136M188,136L188,160M212,136L228,136M220,136L220,160M234,136L242,160L250,136"
+        android:strokeColor="#FFF3F1EA"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="5" />
 </vector>

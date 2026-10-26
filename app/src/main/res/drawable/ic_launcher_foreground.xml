@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The square app icon's baseball, inside the adaptive icon's 66dp safe circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFF3F1EA"
+        android:pathData="M54,26a28,28 0,1 1,0 56a28,28 0,1 1,0 -56z" />
+    <path
+        android:pathData="M38,33.5c8.4,12.1 8.4,28.9 0,41M70,33.5c-8.4,12.1 -8.4,28.9 0,41"
+        android:strokeColor="#FFE63946"
+        android:strokeWidth="3" />
+</vector>
