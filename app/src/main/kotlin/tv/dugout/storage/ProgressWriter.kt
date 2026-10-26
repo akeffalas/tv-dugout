@@ -14,6 +14,9 @@ import tv.dugout.history.WatchProgress
 /** A playing video's progress is saved at most this often; a power cut loses no more than this. */
 const val SAVE_INTERVAL_MILLIS = 5_000L
 
+/** A save that fails is tried again an interval later, up to this many tries in all. */
+const val SAVE_ATTEMPTS = 3
+
 private const val TAG = "ProgressWriter"
 
 /**
@@ -30,6 +33,7 @@ class ProgressWriter(
 ) : ProgressSink {
     private val pending = mutableMapOf<Pair<String, String>, WatchProgress>()
     private val scheduled = mutableMapOf<Pair<String, String>, Job>()
+    private val failures = mutableMapOf<Pair<String, String>, Int>()
     private val saving = Mutex()
 
     override fun changed(
@@ -40,15 +44,18 @@ class ProgressWriter(
         val key = profileId to videoId
         scope.launch {
             pending[key] = progress
-            if (key !in scheduled) {
-                scheduled[key] =
-                    scope.launch {
-                        delay(intervalMillis)
-                        scheduled.remove(key)
-                        write(key)
-                    }
-            }
+            schedule(key)
         }
+    }
+
+    private fun schedule(key: Pair<String, String>) {
+        if (key in scheduled) return
+        scheduled[key] =
+            scope.launch {
+                delay(intervalMillis)
+                scheduled.remove(key)
+                write(key)
+            }
     }
 
     override fun flush() {
@@ -67,6 +74,7 @@ class ProgressWriter(
             videoIds.map { profileId to it }.forEach { key ->
                 pending.remove(key)
                 scheduled.remove(key)?.cancel()
+                failures.remove(key)
             }
             // After any save already under way, so that save cannot land after the delete.
             try {
@@ -83,11 +91,20 @@ class ProgressWriter(
         val progress = pending.remove(key) ?: return
         try {
             saving.withLock { save(key.first, key.second, progress) }
+            failures.remove(key)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // Memory keeps serving the screens; the video's next change is saved in full.
             Log.w(TAG, "Saving progress for ${key.second} failed", e)
+            // Tried again later unless a newer change has replaced it; memory keeps serving the screens meanwhile.
+            val failed = (failures[key] ?: 0) + 1
+            if (key in pending || failed >= SAVE_ATTEMPTS) {
+                failures.remove(key)
+            } else {
+                failures[key] = failed
+                pending[key] = progress
+                schedule(key)
+            }
         }
     }
 }

@@ -24,11 +24,16 @@ class ProgressWriterTest {
     private val p1 = progress(10f)
     private val p2 = progress(20f)
 
-    private fun TestScope.writer(failFirst: Boolean = false): ProgressWriter {
-        var failNext = failFirst
+    private var attempts = 0
+
+    private fun TestScope.writer(failFirst: Boolean = false): ProgressWriter = failing(if (failFirst) 1 else 0)
+
+    private fun TestScope.failing(times: Int): ProgressWriter {
+        var failures = times
         return ProgressWriter(backgroundScope) { profileId, videoId, progress ->
-            if (failNext) {
-                failNext = false
+            attempts++
+            if (failures > 0) {
+                failures--
                 error("disk full")
             }
             saves += Triple(profileId, videoId, progress)
@@ -120,6 +125,34 @@ class ProgressWriterTest {
             runCurrent()
 
             assertThat(saves).containsExactly(Triple("sam", "v", p2))
+        }
+
+    @Test
+    fun aFailedSaveIsTriedAgainAfterTheInterval() =
+        runTest(StandardTestDispatcher()) {
+            val writer = writer(failFirst = true)
+            writer.changed("sam", "v", p1)
+            writer.flush()
+            runCurrent()
+            assertThat(saves).isEmpty()
+
+            advanceTimeBy(SAVE_INTERVAL_MILLIS + 1)
+            runCurrent()
+
+            assertThat(saves).containsExactly(Triple("sam", "v", p1))
+        }
+
+    @Test
+    fun aSaveThatKeepsFailingIsDroppedAfterThreeTries() =
+        runTest(StandardTestDispatcher()) {
+            val writer = failing(times = Int.MAX_VALUE)
+            writer.changed("sam", "v", p1)
+            writer.flush()
+
+            advanceTimeBy(SAVE_INTERVAL_MILLIS * 10)
+            runCurrent()
+
+            assertThat(attempts).isEqualTo(3)
         }
 
     @Test
