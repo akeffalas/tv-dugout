@@ -234,6 +234,20 @@ class VideosStepTest {
     }
 
     @Test
+    fun readySaysOneSkillAndOneVideo() {
+        show(
+            videosState().copy(
+                step = SetupStep.READY,
+                saved = Profile("id", "Maya", 0xFFF4A261),
+                skills = setOf(Skill.HITTING),
+                chosenCounts = mapOf(Skill.HITTING to (1 to 3)),
+            ),
+        )
+
+        compose.onNodeWithText("1 skill, 1 video").assertIsDisplayed()
+    }
+
+    @Test
     fun addAnotherHiddenWhenFull() {
         val maya = Profile("id", "Maya", 0xFFF4A261)
         show(videosState().copy(step = SetupStep.READY, saved = maya, canAddAnother = false))

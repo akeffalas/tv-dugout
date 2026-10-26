@@ -93,7 +93,9 @@ internal fun SkillsStep(
     onSkillsSubmitted: () -> Unit,
 ) {
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    val next = remember { FocusRequester() }
+    // Back from Videos starts on Next, where OK cannot untick a skill by accident.
+    LaunchedEffect(Unit) { if (state.skillsSubmitted) next.requestFocus() else focus.requestFocus() }
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Skill.entries.forEach { skill ->
@@ -113,7 +115,7 @@ internal fun SkillsStep(
             label = "Next",
             highlight = true,
             onClick = onSkillsSubmitted,
-            modifier = Modifier.testTag("skills_next"),
+            modifier = Modifier.focusRequester(next).testTag("skills_next"),
         )
     }
 }

@@ -67,7 +67,9 @@ class SetupViewModel(
         val skills = state.value.skills
         checks = skills.associateWith { skill -> checks[skill] ?: recommendedIds(skill) }
         val first = Skill.entries.first { it in skills }
-        publishVideos(state.value.copy(step = SetupStep.VIDEOS, videoSkill = first, emptySkill = null))
+        publishVideos(
+            state.value.copy(step = SetupStep.VIDEOS, videoSkill = first, emptySkill = null, skillsSubmitted = true),
+        )
     }
 
     fun onVideoSkillFocused(skill: Skill) {

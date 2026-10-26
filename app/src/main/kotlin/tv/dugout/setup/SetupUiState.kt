@@ -31,6 +31,8 @@ data class SetupUiState(
     val level: Level? = null,
     val skills: Set<Skill> = Skill.entries.toSet(),
     val skillRefused: Boolean = false,
+    /** The skills were submitted once, so coming back to them from Videos starts on Next. */
+    val skillsSubmitted: Boolean = false,
     val videoSkill: Skill = Skill.entries.first(),
     val videos: List<VideoChoice> = emptyList(),
     val chosenCounts: Map<Skill, Pair<Int, Int>> = emptyMap(),

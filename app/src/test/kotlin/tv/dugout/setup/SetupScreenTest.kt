@@ -184,6 +184,13 @@ class SetupScreenTest {
     }
 
     @Test
+    fun backToSkillsFocusesNext() {
+        show(named.copy(step = SetupStep.SKILLS, skillsSubmitted = true))
+
+        compose.onNodeWithTag("skills_next").assertIsFocused()
+    }
+
+    @Test
     fun skillRefusalMessage() {
         show(named.copy(step = SetupStep.SKILLS, skills = setOf(Skill.HITTING), skillRefused = true))
 

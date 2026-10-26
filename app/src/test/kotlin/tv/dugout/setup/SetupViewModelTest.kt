@@ -347,6 +347,7 @@ class SetupViewModelTest {
 
         assertThat(viewModel.onBack()).isTrue()
         assertThat(viewModel.state.step).isEqualTo(SetupStep.SKILLS)
+        assertThat(viewModel.state.skillsSubmitted).isTrue()
         viewModel.onBack()
         viewModel.onBack()
         viewModel.onBack()

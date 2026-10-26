@@ -47,7 +47,7 @@ internal fun ReadyStep(
         }
         Text("${profile.name} is ready!", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold)
         Text(
-            "${state.skills.size} skills, $videoCount videos",
+            "${count(state.skills.size, "skill")}, ${count(videoCount, "video")}",
             style = MaterialTheme.typography.titleMedium,
             color = Slate,
         )
@@ -68,3 +68,8 @@ internal fun ReadyStep(
         }
     }
 }
+
+private fun count(
+    n: Int,
+    noun: String,
+) = if (n == 1) "1 $noun" else "$n ${noun}s"
