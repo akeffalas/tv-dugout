@@ -66,10 +66,10 @@ class BundledVideoLibraryTest {
         assertThat(
             library
                 .videos()
-                .filter { it.addedIn == 1 }
-                .map { it.skill }
+                .filter { it.addedIn != 2 && it.skill != Skill.IQ }
+                .map { it.addedIn }
                 .toSet(),
-        ).doesNotContain(Skill.IQ)
+        ).containsExactly(1)
     }
 
     @Test

@@ -151,6 +151,8 @@ class SixSkillsLayoutTest {
         val bounds = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
         assertThat(bounds.left).isAtLeast(screen.left)
         assertThat(bounds.right).isAtMost(screen.right)
+        assertThat(bounds.top).isAtLeast(screen.top)
+        assertThat(bounds.bottom).isAtMost(screen.bottom)
     }
 
     private fun assertSameHeight(tags: List<String>) {

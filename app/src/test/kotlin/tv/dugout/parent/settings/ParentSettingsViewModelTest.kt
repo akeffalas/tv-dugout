@@ -343,6 +343,18 @@ class ParentSettingsViewModelTest {
     }
 
     @Test
+    fun aChildOfferedVersionTwoSeesOnlyTheBaseballIqVideosAsNew() =
+        runTest {
+            val viewModel = viewModel()
+            graph.profiles.add(SAMPLE_PROFILES[0].copy(id = "maya", name = "Maya", offeredVersion = 2), emptyList())
+            viewModel.onReturnedWithAdded("maya")
+            openVideos(viewModel)
+
+            val newPerSkill = viewModel.state.videoChips.mapValues { it.value.second }
+            assertThat(newPerSkill.filterValues { it > 0 }).containsExactly(Skill.IQ, 10)
+        }
+
+    @Test
     fun recommendedFollowsTheChildsAgeAndLevel() {
         val viewModel = openVideos()
 
