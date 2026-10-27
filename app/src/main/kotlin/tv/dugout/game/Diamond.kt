@@ -27,6 +27,7 @@ import tv.dugout.ui.theme.Chalk
 import tv.dugout.ui.theme.FocusGold
 import tv.dugout.ui.theme.Grass
 import tv.dugout.ui.theme.InfieldDirt
+import tv.dugout.ui.theme.NavyLight
 import tv.dugout.ui.theme.ProgressRed
 
 /** Spots on the field as shares of a square drawing, home plate at the bottom. */
@@ -113,20 +114,26 @@ private const val MOVE_END = 0.9f
 /** How far into the second part of the replay [progress] is: the throw, the run, or the back-up. */
 private fun moveShare(progress: Float) = (progress - HIT_END) / (MOVE_END - HIT_END)
 
+/** Where the child fields the ball: their spot, or pulled off it toward second when the play says so. */
+internal fun Play.fieldSpot(): Offset = if (far) lerp(ballTo.spot(), Field.SECOND, 0.45f) else ballTo.spot()
+
+/** Whether [shown] is the right answer, so its replay may show the full right play (a relay, taking it alone). */
+private fun Play.rightly(shown: Answer?) = shown != null && isRight(shown)
+
 /** Where the ball is [progress] of the way through the replay of [shown]. */
 internal fun Play.ballAt(
     shown: Answer?,
     progress: Float,
 ): Offset {
-    if (progress < HIT_END) return lerp(Field.HOME, ballTo.spot(), progress / HIT_END)
+    val field = fieldSpot()
+    if (progress < HIT_END) return lerp(Field.HOME, field, progress / HIT_END)
+    val share = moveShare(progress)
+    if (kind == PlayKind.COVER) return lerp(field, answer.spot() ?: field, share)
     val target = shown?.spot()
-    return if (kind == PlayKind.THROW &&
-        target != null
-    ) {
-        lerp(ballTo.spot(), target, moveShare(progress))
-    } else {
-        ballTo.spot()
-    }
+    if (kind != PlayKind.THROW || target == null) return field
+    if (!(relay && rightly(shown))) return lerp(field, target, share)
+    // A double play: the first out, then on to first.
+    return if (share < 0.5f) lerp(field, target, share * 2) else lerp(target, Field.FIRST, share * 2 - 1)
 }
 
 /** Every runner's spot [progress] of the way through the replay, the child's own runner flagged. */
@@ -150,17 +157,35 @@ internal fun Play.runnersAt(
     return runners + batter
 }
 
-/** Where the child's fielder stands, or null when the child is a runner. */
-internal fun Play.fielderAt(
+/**
+ * All nine fielders, the child's own flagged. The covering player runs to the base while the ball is
+ * hit; the child runs there alone on a right take-it play, to a base on a cover play, or behind one on
+ * a back-up; on a double play the first baseman takes first for the relay.
+ */
+internal fun Play.fieldersAt(
     shown: Answer?,
     progress: Float,
-): Offset? {
-    val position = (role as? Role.Fielder)?.position ?: return null
+): List<Pair<Offset, Boolean>> {
+    val own = (role as? Role.Fielder)?.position
     val target = shown?.spot()
-    return if (kind == PlayKind.BACK_UP && target != null) {
-        lerp(position.spot(), behind(target), moveShare(progress))
-    } else {
-        position.spot()
+    val cover = shown?.let(::coverFor)
+    val hit = progress / HIT_END
+    val share = moveShare(progress)
+    return Position.entries.map { position ->
+        val start = if (position == own) fieldSpot() else position.spot()
+        val spot =
+            when {
+                target == null -> start
+                position == own && kind == PlayKind.BACK_UP -> lerp(start, behind(target), share)
+                position == own && kind == PlayKind.COVER -> lerp(start, target, hit)
+                position == own && takeIt && rightly(shown) -> lerp(start, target, if (relay) share * 2 else share)
+                position == own -> start
+                kind == PlayKind.COVER -> start
+                position == cover -> lerp(start, target, hit)
+                position == Position.FIRST_BASE && relay && rightly(shown) -> lerp(start, Field.FIRST, hit)
+                else -> start
+            }
+        spot to (position == own)
     }
 }
 
@@ -183,15 +208,17 @@ fun Diamond(
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawField()
             val moved = if (asking) 0f else progress
-            val ball = if (asking) play.ballTo.spot() else play.ballAt(shown, progress)
+            val ball = if (asking) play.fieldSpot() else play.ballAt(shown, progress)
             drawLine(
                 Chalk.copy(alpha = 0.6f),
                 Field.HOME.on(size),
-                play.ballTo.spot().on(size),
+                play.fieldSpot().on(size),
                 strokeWidth = 2.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 10f)),
             )
-            play.fielderAt(shown, moved)?.let { drawPlayer(it.on(size), FocusGold) }
+            play.fieldersAt(shown, moved).forEach { (spot, own) ->
+                if (own) drawPlayer(spot.on(size), FocusGold) else drawFielder(spot.on(size))
+            }
             play.runnersAt(shown, moved).forEach { (spot, own) ->
                 drawPlayer(spot.on(size), if (own) FocusGold else ProgressRed)
             }
@@ -208,9 +235,9 @@ fun Diamond(
         if (stamp != null) {
             Text(
                 stamp.label,
-                fontSize = 54.sp,
+                fontSize = if (stamp == Stamp.DOUBLE_PLAY) 38.sp else 54.sp,
                 fontWeight = FontWeight.Black,
-                color = if (stamp == Stamp.OUT) ProgressRed else Chalk,
+                color = if (stamp == Stamp.SAFE || stamp == Stamp.NO_PLAY) Chalk else ProgressRed,
                 modifier = Modifier.align(Alignment.Center).testTag("game_stamp"),
             )
         }
@@ -299,4 +326,9 @@ private fun DrawScope.drawPlayer(
 ) {
     drawCircle(colour, radius = 10.dp.toPx(), center = at)
     drawCircle(Chalk, radius = 10.dp.toPx(), center = at, style = Stroke(2.dp.toPx()))
+}
+
+private fun DrawScope.drawFielder(at: Offset) {
+    drawCircle(NavyLight, radius = 9.dp.toPx(), center = at)
+    drawCircle(Chalk, radius = 9.dp.toPx(), center = at, style = Stroke(2.dp.toPx()))
 }

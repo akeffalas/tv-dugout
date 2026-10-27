@@ -54,7 +54,7 @@ screens   picker (start), parent PIN (first screen on a fresh install, then the 
           animated replays, 5-play rounds), parent settings (progress and reset,
           profile, videos with New marks, remove; add a player, change PIN)
 data      57-video bundled library (five body skills plus Baseball IQ) with age, level,
-          and library-version tags; 30 bundled plays with age tiers; profiles (with
+          and library-version tags; 36 bundled plays with age tiers and who covers each base; profiles (with
           age range, level, and offered version), each child's video list, watch
           progress, best round and mastered plays, and the hashed parent PIN saved in
           Room; a fresh install has no children and no PIN
