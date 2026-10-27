@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -19,41 +19,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.disabled
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import tv.dugout.ui.theme.Chalk
 import tv.dugout.ui.theme.FocusGold
-import tv.dugout.ui.theme.Grass
-import tv.dugout.ui.theme.InfieldDirt
 import tv.dugout.ui.theme.Navy
-import tv.dugout.ui.theme.NavyLight
 import tv.dugout.ui.theme.ProgressRed
 import tv.dugout.ui.theme.WatchedGreen
 import kotlin.math.PI
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.sin
 
 /** How faint the players outside the play are during a replay: in the back, still readable on a TV. */
@@ -62,14 +44,11 @@ private const val FADED = 0.5f
 /** How faint a player is once put out, under their cross. */
 private const val PUT_OUT = 0.45f
 
-/** How large the stamp sits in the corner while the why shows. */
-private const val SETTLED_SCALE = 0.7f
+/** How large the stamp settles, beside the base where the play ends. */
+private const val STAMP_SCALE = 0.8f
 
 /** How long one pulse of the child's marker takes while the ball is hit. */
 private const val PULSE_MILLIS = 500
-
-/** How faint the hints are while the ball is still on its way. */
-private const val WAITING = 0.35f
 
 /** How long the stamp takes to land, and the tilt it settles at. */
 private const val LAND_MILLIS = 250
@@ -77,10 +56,10 @@ private const val STAMP_TILT = -7f
 
 /**
  * The field from above with [scene] drawn on it, [ms] into its replay. [ms] is read only while
- * drawing, so the replay redraws the field without recomposing the screen around it. Hints come
- * alive once the hit reaches the fielder; [stamp] lands at the replay's stampAt, with the [verdict]
- * (right or not) under it when there is one. Once [settled], the stamp waits smaller in the corner
- * so the result stays in view beside the why.
+ * drawing, so the replay redraws the field without recomposing the screen around it. While asking,
+ * arrows by the bases show which way to press, alive once [ready]. [stamp] lands at the replay's
+ * stampAt beside the base where the play ends, with the [verdict] (right or not) under it when there
+ * is one, and stays there while the why shows.
  */
 @Composable
 fun Diamond(
@@ -88,20 +67,18 @@ fun Diamond(
     stamp: Stamp?,
     verdict: Boolean?,
     ms: () -> Int,
+    ready: Boolean,
     modifier: Modifier = Modifier,
-    settled: Boolean = false,
 ) {
     val replay = scene.replay
     // Keyed on the clock too: a retried play draws a scene equal to its first try's, on a new clock.
-    val ready by remember(scene, ms) { derivedStateOf { scene.asking && ms() >= HIT_MILLIS } }
     val landed by remember(scene, ms) { derivedStateOf { !scene.asking && ms() >= replay.stampAt } }
     val labels = rememberLabels()
     Box(modifier = modifier.aspectRatio(1f)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize().field()) {
             val now = ms()
             val spots = replay.spotsAt(now)
             val ball = spots.getValue(Token.Ball)
-            drawField()
             if (scene.asking) {
                 drawLine(
                     Chalk.copy(alpha = 0.6f),
@@ -135,7 +112,7 @@ fun Diamond(
                     }
 
                     is Token.Runner, Token.Batter -> {
-                        drawPlayer(spot.on(size), if (own) FocusGold else ProgressRed, alpha)
+                        drawRunner(spot.on(size), if (own) FocusGold else ProgressRed, alpha)
                     }
 
                     Token.Ball -> {}
@@ -149,18 +126,57 @@ fun Diamond(
             }
             drawBall(inGlove(ball.on(size), spots, replay.bright))
         }
-        // Hints show through the hit, dimmed until presses count, so an early press is plainly early.
-        if (scene.asking) Hints(ready)
+        if (scene.asking) Arrows(ready)
         if (scene.ghost != null) Legend(Modifier.align(Alignment.BottomStart))
         if (landed && stamp != null) {
-            if (settled) {
-                StampMark(stamp, since = { LAND_MILLIS }, Modifier.align(Alignment.TopStart), SETTLED_SCALE)
-            } else {
-                StampMark(stamp, since = { ms() - replay.stampAt }, Modifier.align(Alignment.Center))
+            Result(stampSpot(replay.resultSpot)) {
+                StampMark(stamp, since = { ms() - replay.stampAt })
+                if (verdict != null) Verdict(verdict)
             }
         }
-        if (landed && verdict != null) {
-            Verdict(verdict, Modifier.align(Alignment.Center).offset(y = 64.dp))
+    }
+}
+
+/**
+ * Where the stamp sits for a play ending at [result]: in the empty ground beside that base, outside the
+ * foul lines for first, third, and home, and between second and center field for second. A play where
+ * nothing moves stamps there too.
+ */
+private fun stampSpot(result: Offset?): Offset =
+    when (result) {
+        Field.FIRST -> Offset(0.84f, 0.78f)
+        Field.THIRD -> Offset(0.16f, 0.78f)
+        Field.HOME -> Offset(0.8f, 0.93f)
+        else -> Offset(0.5f, 0.23f)
+    }
+
+private val RESULT_INSET = 12.dp
+
+/** Lays [content] out centred on [spot] of the field, kept inside it. */
+@Composable
+private fun Result(
+    spot: Offset,
+    content: @Composable () -> Unit,
+) {
+    Layout(
+        content = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) { content() }
+        },
+        modifier = Modifier.fillMaxSize(),
+    ) { measurables, constraints ->
+        val result = measurables.single().measure(Constraints())
+        // Room for the stamp's tilt, so its corners stay on the field too.
+        val inset = RESULT_INSET.roundToPx()
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            val x = (spot.x * constraints.maxWidth).toInt() - result.width / 2
+            val y = (spot.y * constraints.maxHeight).toInt() - result.height / 2
+            result.place(
+                x.coerceIn(inset, maxOf(inset, constraints.maxWidth - result.width - inset)),
+                y.coerceIn(inset, maxOf(inset, constraints.maxHeight - result.height - inset)),
+            )
         }
     }
 }
@@ -183,78 +199,66 @@ private fun LegendRow(
     label: String,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Canvas(modifier = Modifier.size(width = 34.dp, height = 10.dp)) {
+        Canvas(modifier = Modifier.size(width = 34.dp, height = 12.dp)) {
             drawTrail(Trail(listOf(Offset(0f, 0.5f), Offset(1f, 0.5f)), done = false, mine = ghost), ghost)
         }
         Text(label, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (ghost) FocusGold else Chalk)
     }
 }
 
-/** Whether the child's call was right, said on the field where their eyes are. */
+/** Whether the child's call was right, said on the field under the stamp. */
 @Composable
-private fun Verdict(
-    right: Boolean,
-    modifier: Modifier,
-) {
+private fun Verdict(right: Boolean) {
     Text(
         if (right) "✓ Right call!" else "Not this time.",
         fontSize = 22.sp,
         fontWeight = FontWeight.ExtraBold,
         color = Navy,
         modifier =
-            modifier
+            Modifier
                 .background(if (right) WatchedGreen else FocusGold, RoundedCornerShape(20.dp))
                 .padding(horizontal = 18.dp, vertical = 6.dp)
                 .testTag("game_verdict"),
     )
 }
 
-/** Which side of its base a hint sits on. */
-private enum class Side { ABOVE, LEFT, RIGHT, CENTRE }
-
-private data class HintSpec(
-    val answer: Answer,
-    val label: String,
-    val spot: Offset,
-    val side: Side,
-)
-
-private val HINTS =
+/** Which way each base is on the D-pad, as a small arrow pointing out from the base. */
+private val ARROWS =
     listOf(
-        HintSpec(Answer.SECOND, "▲ 2nd", Field.SECOND, Side.ABOVE),
-        HintSpec(Answer.FIRST, "▶ 1st", Field.FIRST, Side.RIGHT),
-        HintSpec(Answer.THIRD, "3rd ◀", Field.THIRD, Side.LEFT),
-        HintSpec(Answer.HOME, "▼ Home", Field.HOME, Side.RIGHT),
-        // Select is the middle of the D-pad, so its hint sits in the middle of the four, inside the infield.
-        HintSpec(Answer.HOLD, "● Hold it", Field.HOLD_HINT, Side.CENTRE),
+        "▲" to Offset(0.5f, 0.29f),
+        "▶" to Offset(0.82f, 0.61f),
+        "◀" to Offset(0.18f, 0.61f),
+        "▼" to Offset(0.58f, 0.92f),
     )
 
-/** How far a hint sits from the middle of its base. */
-private val HINT_GAP = 20.dp
-
-/** The D-pad hints, each measured and set beside its base, kept inside the field. */
+/** The arrows by the bases, dimmed until presses count; the remote guide beside the field names them. */
 @Composable
-private fun Hints(ready: Boolean) {
+private fun Arrows(ready: Boolean) {
     Layout(
-        content = { HINTS.forEach { Hint(it, ready) } },
+        content = {
+            ARROWS.forEach { (glyph, _) ->
+                Text(
+                    glyph,
+                    fontSize = 16.sp,
+                    color = FocusGold,
+                    modifier =
+                        Modifier
+                            .graphicsLayer { alpha = if (ready) 1f else WAITING }
+                            .background(Navy.copy(alpha = 0.85f), CircleShape)
+                            .border(1.dp, FocusGold, CircleShape)
+                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+            }
+        },
         modifier = Modifier.fillMaxSize(),
     ) { measurables, constraints ->
         val placeables = measurables.map { it.measure(Constraints()) }
-        val gap = HINT_GAP.roundToPx()
         layout(constraints.maxWidth, constraints.maxHeight) {
-            placeables.zip(HINTS).forEach { (hint, spec) ->
-                val x = (spec.spot.x * constraints.maxWidth).toInt()
-                val y = (spec.spot.y * constraints.maxHeight).toInt()
-                val (left, top) =
-                    when (spec.side) {
-                        Side.ABOVE -> x - hint.width / 2 to y - gap - hint.height
-                        Side.LEFT -> x - gap - hint.width to y - hint.height / 2
-                        Side.RIGHT -> x + gap to y - hint.height / 2
-                        Side.CENTRE -> x - hint.width / 2 to y - hint.height / 2
-                    }
-                hint.place(
-                    left.coerceIn(0, maxOf(0, constraints.maxWidth - hint.width)),
-                    top.coerceIn(0, maxOf(0, constraints.maxHeight - hint.height)),
+            placeables.zip(ARROWS).forEach { (arrow, spec) ->
+                val (_, spot) = spec
+                arrow.place(
+                    (spot.x * constraints.maxWidth).toInt() - arrow.width / 2,
+                    (spot.y * constraints.maxHeight).toInt() - arrow.height / 2,
                 )
             }
         }
@@ -262,252 +266,30 @@ private fun Hints(ready: Boolean) {
 }
 
 /**
- * The stamp, landing like a rubber stamp: it drops from larger, overshoots a little, and settles tilted
- * at [rest] size.
+ * The stamp, landing like a rubber stamp: it drops from larger, overshoots a little, and settles tilted.
  */
 @Composable
 private fun StampMark(
     stamp: Stamp,
     since: () -> Int,
-    modifier: Modifier,
-    rest: Float = 1f,
 ) {
     val colour = if (stamp == Stamp.SAFE || stamp == Stamp.NO_PLAY) Chalk else ProgressRed
     Text(
         stamp.label,
-        fontSize = if (stamp == Stamp.DOUBLE_PLAY) 34.sp else 48.sp,
+        fontSize = if (stamp == Stamp.DOUBLE_PLAY) 32.sp else 44.sp,
         fontWeight = FontWeight.Black,
         color = colour,
         modifier =
-            modifier
+            Modifier
                 .graphicsLayer {
                     val t = (since().toFloat() / LAND_MILLIS).coerceIn(0f, 1f)
-                    val scale = rest * (1f + 0.5f * (1f - t) * (1f - t) - 0.08f * sin(PI.toFloat() * t))
+                    val scale = STAMP_SCALE * (1f + 0.5f * (1f - t) * (1f - t) - 0.08f * sin(PI.toFloat() * t))
                     scaleX = scale
                     scaleY = scale
                     rotationZ = STAMP_TILT * t
-                }.border(4.dp, colour, RoundedCornerShape(10.dp))
+                }.background(Navy.copy(alpha = 0.75f), RoundedCornerShape(10.dp))
+                .border(4.dp, colour, RoundedCornerShape(10.dp))
                 .padding(horizontal = 16.dp, vertical = 2.dp)
                 .testTag("game_stamp"),
     )
-}
-
-/** A chalk line along [trail], with an arrowhead once it is done; the child's wrong call is gold and dashed. */
-private fun DrawScope.drawTrail(
-    trail: Trail,
-    ghost: Boolean,
-) {
-    val points = trail.points.map { it.on(size) }
-    if (points.size < 2) return
-    val colour = if (ghost) FocusGold.copy(alpha = 0.55f) else Chalk.copy(alpha = 0.9f)
-    val stroke =
-        Stroke(
-            width = 3.dp.toPx(),
-            cap = StrokeCap.Round,
-            pathEffect = if (ghost) PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 7.dp.toPx())) else null,
-        )
-    val path = Path().apply { points.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) } }
-    drawPath(path, colour, style = stroke)
-    if (!trail.done) return
-    val tip = points.last()
-    val from = points.lastOrNull { it != tip } ?: return
-    val angle = atan2(tip.y - from.y, tip.x - from.x)
-    val head = 10.dp.toPx()
-    listOf(angle + 2.6f, angle - 2.6f).forEach { a ->
-        drawLine(
-            colour,
-            tip,
-            tip + Offset(cos(a) * head, sin(a) * head),
-            strokeWidth = 3.dp.toPx(),
-            cap = StrokeCap.Round,
-        )
-    }
-}
-
-@Composable
-private fun Hint(
-    spec: HintSpec,
-    ready: Boolean,
-) {
-    Text(
-        spec.label,
-        fontSize = 19.sp,
-        fontWeight = FontWeight.Bold,
-        color = FocusGold,
-        modifier =
-            Modifier
-                .graphicsLayer { alpha = if (ready) 1f else WAITING }
-                .background(Navy.copy(alpha = 0.85f), RoundedCornerShape(14.dp))
-                .padding(horizontal = 10.dp, vertical = 3.dp)
-                .semantics { if (!ready) disabled() }
-                .testTag("game_hint_${spec.answer.name.lowercase()}"),
-    )
-}
-
-private fun Offset.on(size: Size) = Offset(x * size.width, y * size.height)
-
-private fun DrawScope.drawField() {
-    val home = Field.HOME.on(size)
-    // The outfield: a fan from home plate out to the fence.
-    val fan =
-        Path().apply {
-            moveTo(home.x, home.y)
-            lineTo(size.width * 0.02f, size.height * 0.36f)
-            quadraticTo(size.width * 0.5f, size.height * -0.22f, size.width * 0.98f, size.height * 0.36f)
-            close()
-        }
-    drawPath(fan, Grass)
-    val infield = listOf(Field.HOME, Field.FIRST, Field.SECOND, Field.THIRD).map { it.on(size) }
-    drawPath(diamondPath(infield, grow = 1.25f), InfieldDirt)
-    drawPath(diamondPath(infield, grow = 0.8f), Grass)
-    val base = 14.dp.toPx()
-    listOf(Field.FIRST, Field.SECOND, Field.THIRD).forEach { spot ->
-        val centre = spot.on(size)
-        rotate(45f, centre) {
-            drawRect(Chalk, topLeft = centre - Offset(base / 2, base / 2), size = Size(base, base))
-        }
-    }
-    drawPath(
-        Path().apply {
-            moveTo(home.x - base / 2, home.y - base / 2)
-            lineTo(home.x + base / 2, home.y - base / 2)
-            lineTo(home.x + base / 2, home.y)
-            lineTo(home.x, home.y + base / 2)
-            lineTo(home.x - base / 2, home.y)
-            close()
-        },
-        Chalk,
-    )
-}
-
-/** The four bases' diamond, scaled about its middle by [grow]. */
-private fun DrawScope.diamondPath(
-    corners: List<Offset>,
-    grow: Float,
-): Path {
-    val middle = Field.CENTRE.on(size)
-    return Path().apply {
-        val (first, rest) = corners.map { middle + (it - middle) * grow }.let { it.first() to it.drop(1) }
-        moveTo(first.x, first.y)
-        rest.forEach { lineTo(it.x, it.y) }
-        close()
-    }
-}
-
-private fun DrawScope.drawPlayer(
-    at: Offset,
-    colour: Color,
-    alpha: Float,
-) {
-    drawCircle(colour, radius = PLAYER_RADIUS.toPx(), center = at, alpha = alpha)
-    drawCircle(Chalk, radius = PLAYER_RADIUS.toPx(), center = at, style = Stroke(2.dp.toPx()), alpha = alpha)
-}
-
-/** A fielder is drawn large enough to carry their label; a runner is smaller. */
-private val FIELDER_RADIUS = 19.dp
-private val PLAYER_RADIUS = 13.dp
-private val BALL_RADIUS = 7.dp
-
-private fun DrawScope.drawBall(at: Offset) {
-    drawCircle(Color.White, radius = BALL_RADIUS.toPx(), center = at)
-    drawCircle(ProgressRed, radius = BALL_RADIUS.toPx(), center = at, style = Stroke(1.5.dp.toPx()))
-}
-
-/**
- * Where to draw the ball: on its spot, eased out to a fielder's glove side as it reaches them, so it
- * never covers the label of whoever holds it.
- */
-private fun DrawScope.inGlove(
-    ball: Offset,
-    spots: Map<Token, Offset>,
-    bright: Set<Token>,
-): Offset {
-    val radius = FIELDER_RADIUS.toPx()
-    val holder =
-        spots
-            .filterKeys { it is Token.Fielder && it in bright }
-            .values
-            .map { it.on(size) }
-            .minByOrNull { (it - ball).getDistance() } ?: return ball
-    val near = 1f - ((holder - ball).getDistance() / radius).coerceIn(0f, 1f)
-    return ball + Offset(radius * 0.85f, -radius * 0.85f) * near
-}
-
-/** A chalk cross over a player put out. */
-private fun DrawScope.drawCross(at: Offset) {
-    val arm = PLAYER_RADIUS.toPx()
-    val stroke = 4.dp.toPx()
-    drawLine(ProgressRed, at - Offset(arm, arm), at + Offset(arm, arm), strokeWidth = stroke, cap = StrokeCap.Round)
-    drawLine(ProgressRed, at + Offset(-arm, arm), at + Offset(arm, -arm), strokeWidth = stroke, cap = StrokeCap.Round)
-}
-
-/** A fielder with their position on them; the child's own fielder is gold. */
-private fun DrawScope.drawFielder(
-    at: Offset,
-    label: TextLayoutResult,
-    own: Boolean,
-    alpha: Float,
-) {
-    val radius = FIELDER_RADIUS.toPx()
-    drawCircle(if (own) FocusGold else NavyLight, radius = radius, center = at, alpha = alpha)
-    drawCircle(Chalk, radius = radius, center = at, style = Stroke(2.dp.toPx()), alpha = alpha)
-    val text = label.size
-    drawText(
-        label,
-        color = if (own) Navy else Chalk,
-        topLeft = at - Offset(text.width / 2f, text.height / 2f),
-        alpha = alpha,
-    )
-}
-
-/**
- * A gold YOU tag over the child, above a fielder's larger circle or a runner's smaller one. With
- * [ring], a gold ring circles them too, swelling by [pulse] (0 to 1).
- */
-private fun DrawScope.drawYou(
-    at: Offset,
-    you: TextLayoutResult,
-    fielder: Boolean,
-    ring: Boolean,
-    pulse: Float,
-) {
-    val text = you.size
-    val pad = Offset(6.dp.toPx(), 1.dp.toPx())
-    val radius = if (fielder) FIELDER_RADIUS.toPx() else PLAYER_RADIUS.toPx()
-    if (ring) {
-        drawCircle(
-            FocusGold,
-            radius = radius + (4 + 8 * pulse).dp.toPx(),
-            center = at,
-            style = Stroke(3.dp.toPx()),
-            alpha = 1f - 0.6f * pulse,
-        )
-    }
-    val bottom = at.y - radius - 4.dp.toPx()
-    val topLeft = Offset(at.x - text.width / 2f - pad.x, bottom - text.height - pad.y * 2)
-    drawRoundRect(
-        FocusGold,
-        topLeft = topLeft,
-        size = Size(text.width + pad.x * 2, text.height + pad.y * 2),
-        cornerRadius = CornerRadius(6.dp.toPx()),
-    )
-    drawText(you, color = Navy, topLeft = topLeft + pad)
-}
-
-/** Each position's label and the YOU tag, measured once. */
-private class Labels(
-    val positions: Map<Position, TextLayoutResult>,
-    val you: TextLayoutResult,
-)
-
-@Composable
-private fun rememberLabels(): Labels {
-    val measurer = rememberTextMeasurer()
-    return remember(measurer) {
-        val style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Labels(
-            Position.entries.associateWith { measurer.measure(it.short, style) },
-            measurer.measure("YOU", style.copy(fontWeight = FontWeight.Black)),
-        )
-    }
 }

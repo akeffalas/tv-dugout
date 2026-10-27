@@ -51,7 +51,8 @@ class GameLayoutTest {
     /** Inside the screen less the edges a TV may crop: 48dp at the sides, 27dp at the top and bottom. */
     private fun assertOnScreen(tag: String) {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
-        val bounds = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+        // A line score cell is one button, so its words are inside it.
+        val bounds = compose.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertWithMessage(tag).that(bounds.left).isAtLeast(screen.left + 48.dp)
         assertWithMessage(tag).that(bounds.right).isAtMost(screen.right - 48.dp)
         assertWithMessage(tag).that(bounds.top).isAtLeast(screen.top + 27.dp)
@@ -63,7 +64,7 @@ class GameLayoutTest {
         show(state(longestPrompt, Phase.QUESTION))
 
         (
-            listOf("game_scoreboard", "game_outs", "game_prompt") +
+            listOf("game_scoreboard", "game_outs", "game_prompt", "game_runner_key") +
                 Answer.entries.map { "game_hint_${it.name.lowercase()}" }
         ).forEach(::assertOnScreen)
     }
@@ -72,7 +73,16 @@ class GameLayoutTest {
     fun whyScreenFitsATv() {
         show(state(longestWhy.copy(prompt = longestPrompt.prompt), Phase.WHY))
 
-        listOf("game_prompt", "game_why", "game_next", "game_see_again", "game_stamp").forEach(::assertOnScreen)
+        listOf("game_prompt", "game_recap", "game_why", "game_next", "game_see_again", "game_stamp")
+            .forEach(::assertOnScreen)
+    }
+
+    @Test
+    fun aReviewedPlayFitsATv() {
+        show(state(longestWhy.copy(prompt = longestPrompt.prompt), Phase.WHY).copy(reviewing = 4))
+        compose.mainClock.advanceTimeBy(5_000)
+
+        listOf("game_recap", "game_why", "game_review_back", "game_see_again", "game_stamp").forEach(::assertOnScreen)
     }
 
     @Test

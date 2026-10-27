@@ -24,6 +24,8 @@ class PlayGameViewModel(
     // The record as this round began, so the summary can count what the round added.
     private var before = restoredBefore() ?: games.record(profileId).value
     private var leaving = saved[LEAVING] ?: false
+    private var reviewing: Int? = saved[REVIEWING]
+    private var lastReviewed: Int? = saved[LAST_REVIEWED]
     private var round = restoredRound() ?: newRound()
     private val state = MutableStateFlow(build())
     val uiState: StateFlow<PlayGameUiState> = state.asStateFlow()
@@ -43,19 +45,31 @@ class PlayGameViewModel(
         move(next)
     }
 
+    /** Opens a play of the finished round again from its summary: the child's call, the right play, and the why. */
+    fun onReview(index: Int) {
+        if (round.phase != Phase.SUMMARY || index !in round.plays.indices) return
+        review(index, lastReviewed)
+    }
+
     fun onPlayAgain() {
         if (round.phase != Phase.SUMMARY) return
         before = games.record(profileId).value
         saved[BEST_BEFORE] = before.bestRuns
         saved[MASTERED_BEFORE] = ArrayList(before.mastered)
+        review(null, null)
         move(newRound())
     }
 
     /**
      * Back from the game: true when it should close now (nothing answered yet, or the round is over).
-     * Mid-round it asks first, and Back while asking keeps playing.
+     * Mid-round it asks first, and Back while asking keeps playing. Back from a reviewed play returns to
+     * the summary.
      */
     fun onBack(): Boolean {
+        reviewing?.let {
+            review(null, it)
+            return false
+        }
         if (!leaving && (!round.started || round.phase == Phase.SUMMARY)) return true
         leaving = !leaving
         saved[LEAVING] = leaving
@@ -66,6 +80,17 @@ class PlayGameViewModel(
     fun onKeepPlaying() {
         leaving = false
         saved[LEAVING] = false
+        state.value = build()
+    }
+
+    private fun review(
+        index: Int?,
+        last: Int?,
+    ) {
+        reviewing = index
+        lastReviewed = last
+        saved[REVIEWING] = index
+        saved[LAST_REVIEWED] = last
         state.value = build()
     }
 
@@ -84,6 +109,7 @@ class PlayGameViewModel(
         saved[RUNS] = round.runs
         saved[MISSES] = ArrayList(round.misses.map { it.id })
         saved[CHOSEN] = round.chosen?.name
+        saved[CALLS] = ArrayList(round.calls.map { it.name })
         if (MASTERED_BEFORE !in saved) {
             saved[BEST_BEFORE] = before.bestRuns
             saved[MASTERED_BEFORE] = ArrayList(before.mastered)
@@ -104,13 +130,15 @@ class PlayGameViewModel(
             runs = saved[RUNS] ?: return null,
             misses = plays(MISSES) ?: return null,
             chosen = saved.get<String>(CHOSEN)?.let(Answer::valueOf),
+            calls = saved.get<ArrayList<String>>(CALLS).orEmpty().map(Answer::valueOf),
         )
     }
 
     private fun restoredBefore(): GameRecord? =
         saved.get<ArrayList<String>>(MASTERED_BEFORE)?.let { GameRecord(saved[BEST_BEFORE], it.toSet()) }
 
-    private fun build(): PlayGameUiState {
+    private fun build(reviewing: Int? = this.reviewing): PlayGameUiState {
+        reviewing?.let { return reviewed(it) }
         val play = round.current
         val stamp =
             when (round.phase) {
@@ -140,6 +168,22 @@ class PlayGameViewModel(
             lineTitles = if (over) round.plays.map { it.title } else emptyList(),
             newlyMastered = (record.mastered - before.mastered).size,
             newBest = over && beaten,
+            lastReviewed = lastReviewed,
+        )
+    }
+
+    /** The summary's play at [index] again, shown as its why with the child's first call beside the right play. */
+    private fun reviewed(index: Int): PlayGameUiState {
+        val play = round.plays[index]
+        val call = round.calls.getOrNull(index)
+        return build(reviewing = null).copy(
+            play = play,
+            phase = Phase.WHY,
+            playNumber = index + 1,
+            chosen = call,
+            stamp = play.rightStamp,
+            correct = call?.let(play::isRight) == true,
+            reviewing = index,
         )
     }
 }
@@ -151,5 +195,8 @@ private const val RUNS = "round_runs"
 private const val MISSES = "round_misses"
 private const val CHOSEN = "round_chosen"
 private const val LEAVING = "round_leaving"
+private const val CALLS = "round_calls"
+private const val REVIEWING = "round_reviewing"
+private const val LAST_REVIEWED = "round_last_reviewed"
 private const val BEST_BEFORE = "best_before"
 private const val MASTERED_BEFORE = "mastered_before"
