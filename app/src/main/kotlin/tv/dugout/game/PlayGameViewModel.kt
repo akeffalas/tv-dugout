@@ -180,6 +180,7 @@ class PlayGameViewModel(
             play = play,
             phase = Phase.WHY,
             playNumber = index + 1,
+            retrying = false,
             chosen = call,
             stamp = play.rightStamp,
             correct = call?.let(play::isRight) == true,

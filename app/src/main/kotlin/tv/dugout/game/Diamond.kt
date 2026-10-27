@@ -139,7 +139,8 @@ fun Diamond(
 
 /**
  * Where the stamp sits for a play ending at [result]: in the empty ground beside that base, outside the
- * foul lines for first, third, and home, and between second and center field for second. A play where
+ * foul lines for first, third, and home, and between second and center field for second, clear of the
+ * YOU tag over a child on the bag. A play where
  * nothing moves stamps there too.
  */
 private fun stampSpot(result: Offset?): Offset =
@@ -147,7 +148,7 @@ private fun stampSpot(result: Offset?): Offset =
         Field.FIRST -> Offset(0.84f, 0.78f)
         Field.THIRD -> Offset(0.16f, 0.78f)
         Field.HOME -> Offset(0.8f, 0.93f)
-        else -> Offset(0.5f, 0.23f)
+        else -> Offset(0.5f, 0.19f)
     }
 
 private val RESULT_INSET = 12.dp
@@ -225,10 +226,10 @@ private fun Verdict(right: Boolean) {
 /** Which way each base is on the D-pad, as a small arrow pointing out from the base. */
 private val ARROWS =
     listOf(
-        "▲" to Offset(0.5f, 0.29f),
-        "▶" to Offset(0.82f, 0.61f),
-        "◀" to Offset(0.18f, 0.61f),
-        "▼" to Offset(0.58f, 0.92f),
+        Answer.SECOND to "▲" to Offset(0.5f, 0.245f),
+        Answer.FIRST to "▶" to Offset(0.82f, 0.61f),
+        Answer.THIRD to "◀" to Offset(0.18f, 0.61f),
+        Answer.HOME to "▼" to Offset(0.58f, 0.92f),
     )
 
 /** The arrows by the bases, dimmed until presses count; the remote guide beside the field names them. */
@@ -236,7 +237,8 @@ private val ARROWS =
 private fun Arrows(ready: Boolean) {
     Layout(
         content = {
-            ARROWS.forEach { (glyph, _) ->
+            ARROWS.forEach { (arrow, _) ->
+                val (answer, glyph) = arrow
                 Text(
                     glyph,
                     fontSize = 16.sp,
@@ -246,7 +248,8 @@ private fun Arrows(ready: Boolean) {
                             .graphicsLayer { alpha = if (ready) 1f else WAITING }
                             .background(Navy.copy(alpha = 0.85f), CircleShape)
                             .border(1.dp, FocusGold, CircleShape)
-                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                            .testTag("game_arrow_${answer.name.lowercase()}"),
                 )
             }
         },
