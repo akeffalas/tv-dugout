@@ -48,6 +48,8 @@ sealed interface Role {
  * [steal] is the base a runner steals from on a play with no hit. With [takeIt] the child makes the out
  * on the right base alone; [relay] sends the ball on to first after it; [far] puts the fielder off their
  * spot, toward second; [cover] names who covers a base where the usual player does not.
+ * [leads] starts a runner off the bag, as a share of the way to the next base; [runs] sends runners
+ * whatever the answer (their own base means back to it); [breaks] sends runners on one answer only.
  */
 data class Play(
     val id: String,
@@ -68,6 +70,9 @@ data class Play(
     val relay: Boolean = false,
     val far: Boolean = false,
     val cover: Map<Answer, Position> = emptyMap(),
+    val leads: Map<Base, Float> = emptyMap(),
+    val runs: Map<Base, Answer> = emptyMap(),
+    val breaks: Map<Answer, Map<Base, Answer>> = emptyMap(),
 )
 
 /** Balls fielded here send the second baseman to cover second; elsewhere the shortstop covers it. */

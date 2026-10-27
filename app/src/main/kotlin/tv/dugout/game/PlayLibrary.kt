@@ -172,7 +172,7 @@ private val BASICS =
             FIRST,
             "The runner on second is not forced, so third needs a tag. Take the sure out.",
             wrong = mapOf(THIRD to SAFE, HOLD to SAFE),
-        ),
+        ).copy(breaks = mapOf(THIRD to mapOf(Base.SECOND to THIRD))),
         throwPlay(
             "p06",
             Tier.BASICS,
@@ -183,7 +183,7 @@ private val BASICS =
             FIRST,
             "Out at first is the third out, so the run does not count.",
             wrong = mapOf(HOME to SAFE, HOLD to SAFE),
-        ),
+        ).copy(runs = mapOf(Base.THIRD to HOME)),
         throwPlay(
             "p07",
             Tier.BASICS,
@@ -219,7 +219,7 @@ private val BASICS =
             rightStamp = DOUBLE_PLAY,
             caught = true,
             wrong = mapOf(HOLD to SAFE),
-        ).copy(takeIt = true),
+        ).copy(takeIt = true, leads = mapOf(Base.FIRST to 0.2f), runs = mapOf(Base.FIRST to FIRST)),
         throwPlay(
             "p10",
             Tier.BASICS,
@@ -232,7 +232,7 @@ private val BASICS =
             rightStamp = DOUBLE_PLAY,
             caught = true,
             wrong = mapOf(HOLD to SAFE),
-        ),
+        ).copy(leads = mapOf(Base.FIRST to 0.85f), runs = mapOf(Base.FIRST to FIRST)),
         throwPlay(
             "p11",
             Tier.BASICS,
@@ -370,7 +370,7 @@ private val SITUATIONS =
             HOME,
             "The runner left early. Throw home to stop the run.",
             wrong = mapOf(FIRST to OUT, HOLD to SAFE),
-        ),
+        ).copy(runs = mapOf(Base.THIRD to HOME)),
         throwPlay(
             "p20",
             Tier.SITUATIONS,
@@ -393,7 +393,7 @@ private val SITUATIONS =
             "The run is in. Keep the batter from reaching second.",
             rightStamp = null,
             wrong = mapOf(HOME to SAFE),
-        ),
+        ).copy(runs = mapOf(Base.SECOND to HOME)),
         throwPlay(
             "p22",
             Tier.SITUATIONS,
@@ -405,7 +405,7 @@ private val SITUATIONS =
             "Throw home to beat the runner tagging up.",
             caught = true,
             wrong = mapOf(HOLD to SAFE),
-        ),
+        ).copy(runs = mapOf(Base.THIRD to HOME)),
         throwPlay(
             "p23",
             Tier.SITUATIONS,
@@ -417,7 +417,7 @@ private val SITUATIONS =
             "Throw to the base the runner is going to.",
             caught = true,
             wrong = mapOf(HOLD to SAFE),
-        ),
+        ).copy(runs = mapOf(Base.SECOND to THIRD)),
         throwPlay(
             "p24",
             Tier.SITUATIONS,
@@ -448,13 +448,13 @@ private val SITUATIONS =
             "You're the pitcher. Base hit to right field, and the runner heads home.",
             HOME,
             "Back up home behind the catcher.",
-        ),
+        ).copy(runs = mapOf(Base.SECOND to HOME)),
         backUpPlay(
             "p27",
             Position.CENTER,
             0,
             ON_FIRST,
-            Position.SECOND_BASE,
+            Position.C,
             "You're in center field. The runner steals, and the catcher throws to second.",
             SECOND,
             "Back up second in case the throw gets away.",
@@ -472,7 +472,7 @@ private val SITUATIONS =
             rightStamp = null,
             wrong = mapOf(SECOND to SAFE),
             steal = Base.FIRST,
-        ),
+        ).copy(breaks = mapOf(SECOND to mapOf(Base.THIRD to HOME))),
         runPlay(
             "p29",
             Tier.SITUATIONS,

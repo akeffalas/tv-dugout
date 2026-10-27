@@ -1,5 +1,6 @@
 package tv.dugout.game
 
+import com.google.common.collect.Range
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import tv.dugout.library.AgeRange
@@ -71,6 +72,9 @@ class PlayLibraryTest {
             // Players can be anyone: no he, him, his, she, or her.
             assertThat(play.prompt + " " + play.why).doesNotContainMatch("(?i)\\b(he|him|his|she|her)\\b")
             Answer.entries.filter { it != Answer.HOLD }.forEach { assertThat(play.coverFor(it)).isNotNull() }
+            val moved = play.leads.keys + play.runs.keys + play.breaks.values.flatMap { it.keys }
+            assertThat(play.runners).containsAtLeastElementsIn(moved)
+            play.leads.values.forEach { assertThat(it).isIn(Range.closed(0f, 1f)) }
         }
     }
 
@@ -145,5 +149,23 @@ class PlayLibraryTest {
             assertThat(play(it).rightStamp).isEqualTo(Stamp.DOUBLE_PLAY)
         }
         assertThat(Stamp.DOUBLE_PLAY.label).isEqualTo("DOUBLE PLAY!")
+    }
+
+    @Test
+    fun runnersMoveAsThePlaysDescribe() {
+        assertThat(play("p09").leads).containsExactly(Base.FIRST, 0.2f)
+        assertThat(play("p09").runs).containsExactly(Base.FIRST, Answer.FIRST)
+        assertThat(play("p10").leads).containsExactly(Base.FIRST, 0.85f)
+        assertThat(play("p10").runs).containsExactly(Base.FIRST, Answer.FIRST)
+        assertThat(play("p06").runs).containsExactly(Base.THIRD, Answer.HOME)
+        assertThat(play("p19").runs).containsExactly(Base.THIRD, Answer.HOME)
+        assertThat(play("p21").runs).containsExactly(Base.SECOND, Answer.HOME)
+        assertThat(play("p22").runs).containsExactly(Base.THIRD, Answer.HOME)
+        assertThat(play("p23").runs).containsExactly(Base.SECOND, Answer.THIRD)
+        assertThat(play("p26").runs).containsExactly(Base.SECOND, Answer.HOME)
+        assertThat(play("p05").breaks).containsExactly(Answer.THIRD, mapOf(Base.SECOND to Answer.THIRD))
+        assertThat(play("p28").breaks).containsExactly(Answer.SECOND, mapOf(Base.THIRD to Answer.HOME))
+        // The catcher throws to second, so the ball starts with the catcher.
+        assertThat(play("p27").ballTo).isEqualTo(Position.C)
     }
 }
