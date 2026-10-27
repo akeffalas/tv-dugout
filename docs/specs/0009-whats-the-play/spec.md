@@ -232,3 +232,51 @@ flowchart LR
   native-graphics Robolectric test where text width matters.
 - Any play whose replay cannot be drawn clearly may be reworded or replaced with one of
   the same idea, noted in the plan.
+
+## Revision: who makes the out (2026-10-26)
+
+On the first TV check the owner found two problems: some answers needed review, and a
+throw could fly to a base with nobody on it, because the diamond drew only the child's own
+fielder. A real play depends on who covers the bag, and sometimes on running to the bag
+yourself or waiting for the pitcher to cover first. The owner approved the
+[answer key](https://claude.ai/code/artifact/c602db74-9c2d-4196-b534-066dfa4893cb) as
+reviewed, which this revision follows.
+
+### Decided by the owner
+
+- One press per play stays. The play decides how the out is made (a throw to the covering
+  player, or the child stepping on the bag), and the replay and the why show it.
+- Covering is taught by its own plays, in which the child is the covering player and
+  answers with the base they run to.
+- The answer key's changes: plays 3, 5, 7, 9, 10, and 18 as reworded there, and six new
+  covering plays.
+- The two open calls stand as written: the second baseman covers first on a bunt (play 8),
+  and the catcher holds the ball on first and third (play 28).
+
+### What changes
+
+1. **All nine fielders are drawn.** The child's fielder is gold; the others are chalk.
+2. **Every throw goes to a person.** For each base answer a play names who covers it.
+   The defaults: first base is the first baseman, or the pitcher when the first baseman
+   fields the ball; second base is the second baseman when the ball goes to the left side
+   (shortstop, third baseman, left fielder, pitcher, catcher), otherwise the shortstop;
+   third is the third baseman; home is the catcher. A play may override a default (play 8:
+   the second baseman covers first). In the replay the covering player runs to the bag
+   while the ball is hit, then takes the throw.
+3. **Taking it yourself.** Plays 3, 7, and 9 replay as the child running to the bag with
+   the ball.
+4. **Double plays.** Plays 3, 7, 16, 17, and 18 relay to first after the first out, and
+   plays 3, 7, 9, 10, 16, 17, and 18 land a **DOUBLE PLAY!** stamp when answered right.
+5. **Covering plays** are a new kind: the child runs from their position to the base,
+   then the ball is thrown to them there.
+
+| # | You are | Outs | On base | What happens | Answer | Why | Ages |
+|---|---|---|---|---|---|---|---|
+| 31 | P | 0 | none | Ground ball to the first baseman | 1st | On any ball hit to your left, run to first. The first baseman may need you. | 10+ |
+| 32 | 1B | 0 | none | Ground ball to you, far from the bag; the pitcher runs over | 1st | You're too far to beat the runner. Toss it to the pitcher at the bag. When you're close, wave the pitcher off and step on it yourself. | 10+ |
+| 33 | C | 0 | none | Ground ball to the shortstop | 1st | With nobody on, the catcher backs up first. A wild throw stays in play. | 10+ |
+| 34 | 2B | 0 | 1st | Ground ball to the shortstop | 2nd | When the ball goes to the shortstop, the second baseman covers second. | 7+ |
+| 35 | SS | 0 | 1st | Ground ball to the second baseman | 2nd | Ball to the right side: the shortstop covers second. | 7+ |
+| 36 | P | 1 | 3rd | A pitch gets past the catcher | Home | When the ball gets past the catcher, the pitcher covers home. | 10+ |
+
+The library grows from 30 to 36 plays: 17 basics and 19 situations.
