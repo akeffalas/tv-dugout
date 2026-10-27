@@ -281,6 +281,8 @@ class PlayGameViewModelTest {
         assertThat(state().correct).isFalse()
         assertThat(state().stamp).isEqualTo(plays[1].rightStamp)
         assertThat(state().playNumber).isEqualTo(2)
+        // The round ended on a retry, but the reviewed play is one of the main five.
+        assertThat(state().retrying).isFalse()
     }
 
     @Test

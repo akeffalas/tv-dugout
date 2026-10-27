@@ -652,7 +652,7 @@ class PlayGameScreenTest {
         compose.onNodeWithTag("game_recap").assertIsDisplayed()
         compose.mainClock.advanceTimeBy(4_000)
         compose.onNodeWithTag("game_stamp").assertIsDisplayed()
-        compose.onNodeWithTag("game_review_back").assertIsFocused().assertTextEquals("Back to the round")
+        compose.onNodeWithTag("game_review_back").assertIsFocused().assertTextEquals("Back")
         compose.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
         compose.mainClock.advanceTimeBy(100)
 

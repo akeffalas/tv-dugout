@@ -4,8 +4,11 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
@@ -13,6 +16,9 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.dugout.ui.theme.DugoutTheme
+
+/** The YOU tag's height and its gap above the child's circle. */
+private val YOU_TAG = 25.dp
 
 /** The game's words and diamond must fit a 1080p TV with the longest prompt and why. */
 @RunWith(AndroidJUnit4::class)
@@ -83,6 +89,33 @@ class GameLayoutTest {
         compose.mainClock.advanceTimeBy(5_000)
 
         listOf("game_recap", "game_why", "game_review_back", "game_see_again", "game_stamp").forEach(::assertOnScreen)
+        // Both buttons keep their words on one line.
+        assertThat(height("game_see_again")).isEqualTo(height("game_review_back"))
+    }
+
+    private fun height(tag: String) = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot().height
+
+    /** Where the YOU tag over the child on second begins, [radius] being the child's circle. */
+    private fun youTagTop(radius: Dp): Dp {
+        val diamond = compose.onNodeWithTag("game_diamond").getUnclippedBoundsInRoot()
+        return diamond.top + diamond.height * Field.SECOND.y - radius - YOU_TAG
+    }
+
+    @Test
+    fun aStampAtSecondClearsTheYouTag() {
+        val p35 = requireNotNull(PlayLibrary.play("p35"))
+        show(PlayGameUiState(p35, Phase.WHY, 3, 5, 2, false, p35.answer, p35.rightStamp, true, null))
+
+        assertThat(compose.onNodeWithTag("game_stamp").getUnclippedBoundsInRoot().bottom).isAtMost(youTagTop(19.dp))
+    }
+
+    @Test
+    fun theArrowToSecondClearsARunnersYouTag() {
+        val p13 = requireNotNull(PlayLibrary.play("p13"))
+        show(PlayGameUiState(p13, Phase.QUESTION, 5, 5, 3, false, null, null, false, null))
+
+        assertThat(compose.onNodeWithTag("game_arrow_second").getUnclippedBoundsInRoot().bottom)
+            .isAtMost(youTagTop(13.dp))
     }
 
     @Test

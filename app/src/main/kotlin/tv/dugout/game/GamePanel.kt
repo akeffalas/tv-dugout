@@ -242,7 +242,7 @@ internal fun Recap(
 
 /**
  * The why under its heading, with Next play and See it again. A play opened from the summary offers
- * Back to the round instead of Next play, and its heading is the recap when the call was wrong.
+ * Back instead of Next play, and its heading is the recap when the call was wrong.
  */
 @Composable
 internal fun Why(
@@ -264,7 +264,7 @@ internal fun Why(
         if (state.reviewing == null) {
             FreshPressButton("Next play", next, "game_next", onNext)
         } else {
-            FreshPressButton("Back to the round", next, "game_review_back", onBack)
+            FreshPressButton("Back", next, "game_review_back", onBack)
         }
         GameButton("See it again", Modifier.testTag("game_see_again"), onSeeAgain)
     }
