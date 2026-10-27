@@ -59,7 +59,7 @@ data      57-video bundled library (five body skills plus Baseball IQ) with age,
           age range, level, and offered version), each child's video list, watch
           progress, best round and mastered plays, and the hashed parent PIN saved in
           Room; a fresh install has no children and no PIN
-recipes   build, clean, fmt, lint, lint-android, test, check, hooks, acceptance,
+recipes   build, clean, fmt, lint, lint-android, test, screenshots, check, hooks, acceptance,
           tv-pair, tv-connect, install
 ```
 

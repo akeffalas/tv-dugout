@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kover)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -50,6 +51,11 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+roborazzi {
+    // Reference screenshots are tracked, so every unit test run compares against them.
+    outputDir.set(file("src/test/screenshots"))
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -75,6 +81,7 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.test.espresso.core)
     testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
     testImplementation(libs.androidx.test.ext.junit)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))

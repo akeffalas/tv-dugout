@@ -34,10 +34,18 @@ flowchart LR
 |-------|--------|------------|
 | Spotless (ktlint) format check | `just lint` | pre-commit |
 | Android Lint, warnings as errors | `just lint-android` | pre-push |
-| Unit and Robolectric tests, 90% coverage | `just test` | pre-push |
+| Unit and Robolectric tests, 90% coverage, screenshots match | `just test` | pre-push |
 | Acceptance on the Google TV emulator | `just acceptance` | none (on demand) |
 
 There is no CI yet; the hooks and `just check` are the gate.
+
+## Screenshot tests
+
+Some Robolectric tests capture a screen with Roborazzi and compare it with a reference
+image in `app/src/test/screenshots/`, so a change to what the game's diamond draws fails
+`just test`. After a change that is meant to look different, run `just screenshots` to
+re-record the references, look at the new images, and commit them with the change. A
+failed comparison writes the actual and diff images under `app/build/outputs/roborazzi/`.
 
 ## Acceptance tests
 

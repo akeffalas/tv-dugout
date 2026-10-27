@@ -25,9 +25,13 @@ lint:
 lint-android:
     ./gradlew :app:lintDebug
 
-# JVM unit tests (including Compose UI under Robolectric) with the 90% coverage floor.
+# JVM unit tests (including Compose UI under Robolectric) with the 90% coverage floor; screenshots must match.
 test:
-    ./gradlew :app:testDebugUnitTest :app:koverVerifyDebug
+    ./gradlew :app:verifyRoborazziDebug :app:koverVerifyDebug
+
+# Re-record the reference screenshots after a deliberate change to how something looks.
+screenshots:
+    ./gradlew :app:recordRoborazziDebug
 
 # The full local gate (format check, Android Lint, unit tests with coverage).
 check: lint lint-android test
