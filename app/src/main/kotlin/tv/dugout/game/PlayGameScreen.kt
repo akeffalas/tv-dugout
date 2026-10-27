@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -50,6 +51,7 @@ import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
+import kotlinx.coroutines.withContext
 import tv.dugout.ui.theme.BadgeNavy
 import tv.dugout.ui.theme.CardNavy
 import tv.dugout.ui.theme.Chalk
@@ -59,6 +61,14 @@ import tv.dugout.ui.theme.Navy
 import tv.dugout.ui.theme.ProgressRed
 import tv.dugout.ui.theme.Slate
 import tv.dugout.ui.theme.WatchedGreen
+
+/**
+ * The hit and the replay run at their own pace even when the TV's animations are turned off, since a
+ * replay that ends at once would skip the lesson.
+ */
+private object OwnPace : MotionDurationScale {
+    override val scaleFactor = 1f
+}
 
 private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 
@@ -116,7 +126,7 @@ fun PlayGameScreen(
         // Picks up where it paused, if the leave question stopped it.
         val left = until - elapsed.value.toInt()
         if (animating && left > 0) {
-            elapsed.animateTo(until.toFloat(), tween(left, easing = LinearEasing))
+            withContext(OwnPace) { elapsed.animateTo(until.toFloat(), tween(left, easing = LinearEasing)) }
         }
         if (replaying) finished()
     }
