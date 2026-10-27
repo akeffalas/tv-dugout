@@ -118,7 +118,7 @@ class DugoutAppGameTest {
         back()
 
         compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
-        compose.onNodeWithText("1 of 30 plays").assertIsDisplayed()
+        compose.onNodeWithText("1 of 36 plays").assertIsDisplayed()
         compose.onNodeWithText("No rounds yet").assertIsDisplayed()
     }
 

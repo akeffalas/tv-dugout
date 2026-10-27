@@ -215,8 +215,8 @@ class HomeViewModelTest {
 
     @Test
     fun gameCardCountsThePool() {
-        assertThat(aged(AgeRange.NINE_TO_TEN).uiState.value.game).isEqualTo(GameCardState(null, 0, 30))
-        assertThat(aged(AgeRange.SEVEN_TO_EIGHT).uiState.value.game).isEqualTo(GameCardState(null, 0, 15))
+        assertThat(aged(AgeRange.NINE_TO_TEN).uiState.value.game).isEqualTo(GameCardState(null, 0, 36))
+        assertThat(aged(AgeRange.SEVEN_TO_EIGHT).uiState.value.game).isEqualTo(GameCardState(null, 0, 17))
     }
 
     @Test
@@ -232,7 +232,7 @@ class HomeViewModelTest {
         games.markMastered("sam", "p20")
         games.finishRound("sam", 3)
 
-        assertThat(home.uiState.value.game).isEqualTo(GameCardState(3, 1, 15))
+        assertThat(home.uiState.value.game).isEqualTo(GameCardState(3, 1, 17))
     }
 
     @Test
