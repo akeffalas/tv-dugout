@@ -345,3 +345,20 @@ internal fun GameButton(
         )
     }
 }
+
+/** Whether the child's call was right, said beside the field once the stamp lands, clear of
+ * the players. */
+@Composable
+internal fun Verdict(right: Boolean) {
+    Text(
+        if (right) "✓ Right call!" else "Not this time.",
+        fontSize = 22.sp,
+        fontWeight = FontWeight.ExtraBold,
+        color = Navy,
+        modifier =
+            Modifier
+                .background(if (right) WatchedGreen else FocusGold, RoundedCornerShape(20.dp))
+                .padding(horizontal = 18.dp, vertical = 6.dp)
+                .testTag("game_verdict"),
+    )
+}

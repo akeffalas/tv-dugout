@@ -674,4 +674,23 @@ class PlayGameScreenTest {
 
         compose.onNodeWithTag("summary_celebration").assertDoesNotExist()
     }
+
+    @Test
+    fun theVerdictShowsBesideTheFieldNotOnIt() {
+        compose.mainClock.autoAdvance = false
+        show(state(phase = Phase.CHOICE_REPLAY, chosen = Answer.HOLD, stamp = Stamp.SAFE))
+        compose.mainClock.advanceTimeBy(2_000)
+
+        val diamond = compose.onNodeWithTag("game_diamond").getUnclippedBoundsInRoot()
+        assertThat(compose.onNodeWithTag("game_verdict").getUnclippedBoundsInRoot().right).isAtMost(diamond.left)
+    }
+
+    @Test
+    fun aWrongCallThatDrewNoLineHasNoLegend() {
+        // Staying put on first draws nothing for the child, so there is no gold line to explain.
+        val p12 = requireNotNull(PlayLibrary.play("p12"))
+        show(state(phase = Phase.WHY, play = p12, chosen = Answer.HOLD))
+
+        compose.onNodeWithTag("game_legend").assertDoesNotExist()
+    }
 }

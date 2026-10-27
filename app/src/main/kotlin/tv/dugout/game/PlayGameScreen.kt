@@ -177,6 +177,7 @@ fun PlayGameScreen(
                                     modifier = Modifier.testTag("game_banner"),
                                 )
                             }
+                            if (state.phase == Phase.CHOICE_REPLAY && landed) Verdict(state.correct)
                             val chosen = state.chosen
                             if (!state.correct && chosen != null && state.phase != Phase.CHOICE_REPLAY) {
                                 Recap(play, chosen)
@@ -189,7 +190,6 @@ fun PlayGameScreen(
                     Diamond(
                         scene = scene,
                         stamp = state.stamp,
-                        verdict = state.correct.takeIf { state.phase == Phase.CHOICE_REPLAY },
                         ms = { elapsed.value.toInt() },
                         ready = ready,
                         // The diamond takes the remote's answers. It sits beside the buttons rather than around
