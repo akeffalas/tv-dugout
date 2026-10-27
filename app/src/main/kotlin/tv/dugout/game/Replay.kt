@@ -80,6 +80,14 @@ data class Replay(
 ) {
     val length: Int get() = stampAt + STAMP_MILLIS
 
+    /** Where the play is decided: where the ball ends up, or where the child runs; none when nothing moves. */
+    val resultSpot: Offset?
+        get() =
+            (moves.filter { it.token == Token.Ball }.ifEmpty { moves.filter { it.token == child } })
+                .maxByOrNull { it.end }
+                ?.path
+                ?.last()
+
     /** Every token's spot at [ms]: where it starts until its first move, then along each move in turn. */
     fun spotsAt(ms: Int): Map<Token, Offset> =
         start.mapValues { (token, from) ->
@@ -135,7 +143,7 @@ private fun Play.lineup(ball: Offset): Map<Token, Offset> {
             val lead = leads[base] ?: 0f
             Token.Runner(base) to lerp(base.spot(), base.next()?.spot() ?: Field.HOME, lead)
         }
-    val batter = if (batterRuns) mapOf(Token.Batter to Field.HOME) else emptyMap()
+    val batter = if (batterRuns) mapOf(Token.Batter to Field.BATTER) else emptyMap()
     return fielders + onBase + batter + (Token.Ball to ball)
 }
 
@@ -256,7 +264,7 @@ private class Beats(
                 // Back to their own base from a lead, or on around the bases.
                 Token.Runner(base) to
                     if (to == base.answer()) listOf(from, base.spot()) else listOf(from) + pathFrom(base, to).drop(1)
-            } + listOfNotNull((Token.Batter to listOf(Field.HOME, Field.FIRST)).takeIf { play.batterRuns })
+            } + listOfNotNull((Token.Batter to listOf(Field.BATTER, Field.FIRST)).takeIf { play.batterRuns })
         runs.filter { (_, path) -> path.size > 1 && path.first() != path.last() }.forEach { (token, path) ->
             // On a relay the batter races the second throw, to first.
             // With no throw, a SAFE stamp is the runners reaching their bases, so they are the play.

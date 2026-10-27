@@ -257,4 +257,71 @@ class PlayGameViewModelTest {
         assertThat(fresh.uiState.value.play).isEqualTo(plays[0])
         assertThat(fresh.uiState.value.phase).isEqualTo(Phase.QUESTION)
     }
+
+    private fun finishWithAMiss() {
+        answerRight()
+        viewModel.onAnswer(wrongFor(plays[1]))
+        viewModel.onReplayFinished()
+        viewModel.onReplayFinished()
+        viewModel.onNext()
+        repeat(3) { answerRight() }
+        answerRight()
+    }
+
+    @Test
+    fun aPlayOnTheSummaryOpensWithTheChildsCallAndItsWhy() {
+        finishWithAMiss()
+
+        viewModel.onReview(1)
+
+        assertThat(state().phase).isEqualTo(Phase.WHY)
+        assertThat(state().reviewing).isEqualTo(1)
+        assertThat(state().play).isEqualTo(plays[1])
+        assertThat(state().chosen).isEqualTo(wrongFor(plays[1]))
+        assertThat(state().correct).isFalse()
+        assertThat(state().stamp).isEqualTo(plays[1].rightStamp)
+        assertThat(state().playNumber).isEqualTo(2)
+    }
+
+    @Test
+    fun backFromAReviewReturnsToTheSummaryOnThatPlay() {
+        finishWithAMiss()
+        viewModel.onReview(1)
+
+        assertThat(viewModel.onBack()).isFalse()
+
+        assertThat(state().phase).isEqualTo(Phase.SUMMARY)
+        assertThat(state().reviewing).isNull()
+        assertThat(state().lastReviewed).isEqualTo(1)
+        assertThat(state().lineScore).containsExactly(true, false, true, true, true).inOrder()
+    }
+
+    @Test
+    fun aReviewSurvivesTheAppBeingClosedInTheBackground() {
+        finishWithAMiss()
+        viewModel.onReview(3)
+
+        val restored = PlayGameViewModel("sam", testGraph(games = games, random = Random(99)), saved)
+
+        assertThat(restored.uiState.value).isEqualTo(state())
+    }
+
+    @Test
+    fun reviewsOnlyOpenFromTheSummary() {
+        viewModel.onReview(0)
+
+        assertThat(state().phase).isEqualTo(Phase.QUESTION)
+        assertThat(state().reviewing).isNull()
+    }
+
+    @Test
+    fun playAgainFromTheSummaryForgetsTheLastReview() {
+        finishWithAMiss()
+        viewModel.onReview(1)
+        viewModel.onBack()
+
+        viewModel.onPlayAgain()
+
+        assertThat(state().lastReviewed).isNull()
+    }
 }

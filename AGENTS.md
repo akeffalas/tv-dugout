@@ -51,7 +51,7 @@ screens   picker (start), parent PIN (first screen on a fresh install, then the 
           wizard), setup wizard (add a player), home (Videos and Games sections; skill
           tabs with progress), player (full-screen YouTube embed with fading baseball
           controls), up next, What's the Play? game (drawn diamond with labeled
-          fielders, D-pad answers, animated replays, 5-play rounds with a line-score summary,
+          fielders, D-pad answers, animated replays, 5-play rounds with a line-score summary whose plays reopen,
           and a check before Back leaves a round), parent settings (progress and reset,
           profile, videos with New marks, remove; add a player, change PIN)
 data      57-video bundled library (five body skills plus Baseball IQ) with age, level,

@@ -162,4 +162,15 @@ class RoundTest {
         assertThat(round.phase).isEqualTo(Phase.SUMMARY)
         assertThat(round.lineScore).containsExactly(true, false, true, true, true).inOrder()
     }
+
+    @Test
+    fun eachMainPlayKeepsTheFirstCall() {
+        var round = Round(five).wrong().next()
+        repeat(4) { round = round.right().next() }
+        round = round.right().next()
+
+        assertThat(round.calls)
+            .containsExactly(Answer.THIRD, Answer.FIRST, Answer.FIRST, Answer.FIRST, Answer.FIRST)
+            .inOrder()
+    }
 }

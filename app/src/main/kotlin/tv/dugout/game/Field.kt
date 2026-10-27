@@ -10,8 +10,8 @@ internal object Field {
     val THIRD = Offset(0.25f, 0.61f)
     val CENTRE = Offset(0.5f, 0.61f)
 
-    /** Inside the infield between the mound and home, where the Hold hint sits clear of every player. */
-    val HOLD_HINT = Offset(0.5f, 0.755f)
+    /** The batter's box on the third base side of the plate, clear of the catcher. */
+    val BATTER = Offset(0.44f, 0.85f)
 }
 
 internal fun Base.spot(): Offset =

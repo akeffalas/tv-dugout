@@ -4,13 +4,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -38,6 +42,7 @@ class PlayGameScreenTest {
     private var dones = 0
     private var backs = 0
     private var keepPlayings = 0
+    private val reviews = mutableListOf<Int>()
 
     private val p02 = requireNotNull(PlayLibrary.play("p02"))
 
@@ -53,6 +58,8 @@ class PlayGameScreenTest {
         lineScore: List<Boolean> = emptyList(),
         newlyMastered: Int = 0,
         newBest: Boolean = false,
+        reviewing: Int? = null,
+        lastReviewed: Int? = null,
     ) = PlayGameUiState(
         play = if (phase == Phase.SUMMARY) null else play,
         phase = phase,
@@ -68,6 +75,8 @@ class PlayGameScreenTest {
         lineScore = lineScore,
         newlyMastered = newlyMastered,
         newBest = newBest,
+        reviewing = reviewing,
+        lastReviewed = lastReviewed,
     )
 
     private fun show(state: PlayGameUiState) {
@@ -82,6 +91,7 @@ class PlayGameScreenTest {
                     onDone = { dones++ },
                     onBack = { backs++ },
                     onKeepPlaying = { keepPlayings++ },
+                    onReview = { reviews += it },
                 )
             }
         }
@@ -383,7 +393,7 @@ class PlayGameScreenTest {
             ),
         )
 
-        compose.onNodeWithTag("line_score_2_title").assertTextEquals("No force at third")
+        compose.onNodeWithTag("line_score_2_title", useUnmergedTree = true).assertTextEquals("No force at third")
     }
 
     @Test
@@ -414,9 +424,9 @@ class PlayGameScreenTest {
         )
 
         listOf("1", "0", "1", "1", "1").forEachIndexed { i, runs ->
-            compose.onNodeWithTag("line_score_${i + 1}").assertTextEquals(runs)
+            compose.onNodeWithTag("line_score_${i + 1}", useUnmergedTree = true).assertTextEquals(runs)
         }
-        compose.onNodeWithTag("line_score_total").assertTextEquals("4")
+        compose.onNodeWithTag("line_score_total", useUnmergedTree = true).assertTextEquals("4")
         compose.onNodeWithText("New best!").assertIsDisplayed()
         compose.onNodeWithText("Best 4 of 5").assertDoesNotExist()
         compose.onNodeWithText("2 new plays mastered").assertIsDisplayed()
@@ -514,5 +524,154 @@ class PlayGameScreenTest {
         compose.onNodeWithTag("game_hint_second").assertIsEnabled()
         compose.onRoot().performKeyInput { pressKey(Key.DirectionUp) }
         assertThat(answers).containsExactly(Answer.SECOND)
+    }
+
+    private fun lit(tag: String) =
+        compose.onNodeWithTag(tag).assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "out"))
+
+    private fun unlit(tag: String) =
+        compose.onNodeWithTag(tag).assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "no out"))
+
+    @Test
+    fun threeOutLightsCountTheOuts() {
+        show(state())
+
+        lit("game_out_1")
+        unlit("game_out_2")
+        unlit("game_out_3")
+    }
+
+    @Test
+    fun theThirdOutLightsTheThirdLight() {
+        show(state(phase = Phase.WHY, play = requireNotNull(PlayLibrary.play("p03")), chosen = Answer.SECOND))
+
+        lit("game_out_3")
+    }
+
+    @Test
+    fun aWrongCallNamesTheCallBesideThePlay() {
+        show(state(phase = Phase.WHY, chosen = Answer.THIRD, stamp = Stamp.OUT))
+
+        compose.onNodeWithTag("game_recap").assertTextEquals("Your call: 3rd · The play: 2nd")
+    }
+
+    @Test
+    fun theRightReplayNamesTheCallBesideThePlay() {
+        compose.mainClock.autoAdvance = false
+        show(state(phase = Phase.RIGHT_REPLAY, chosen = Answer.HOLD, stamp = Stamp.OUT))
+
+        compose.onNodeWithTag("game_recap").assertTextEquals("Your call: Hold it · The play: 2nd")
+    }
+
+    @Test
+    fun aRunnerStaysPutRatherThanHolding() {
+        val p13 = requireNotNull(PlayLibrary.play("p13"))
+        show(state(phase = Phase.WHY, play = p13, chosen = Answer.THIRD, stamp = Stamp.OUT))
+
+        compose.onNodeWithTag("game_recap").assertTextEquals("Your call: 3rd · The play: Stay put")
+    }
+
+    @Test
+    fun aRightCallNeedsNoRecap() {
+        show(state(phase = Phase.WHY, chosen = Answer.SECOND, stamp = Stamp.OUT, correct = true))
+
+        compose.onNodeWithTag("game_recap").assertDoesNotExist()
+    }
+
+    @Test
+    fun theRemoteGuideSitsBesideTheDiamond() {
+        show(state())
+
+        val diamond = compose.onNodeWithTag("game_diamond").getUnclippedBoundsInRoot()
+        Answer.entries.forEach {
+            val hint = compose.onNodeWithTag("game_hint_${it.name.lowercase()}").getUnclippedBoundsInRoot()
+            assertThat(hint.right).isAtMost(diamond.left)
+        }
+        compose.onNodeWithTag("game_hint_hold").assertTextEquals("Hold it")
+        compose.onNodeWithTag("game_runner_key").assertIsDisplayed()
+    }
+
+    @Test
+    fun aRunnersGuideSaysStayPut() {
+        show(state(play = requireNotNull(PlayLibrary.play("p13"))))
+
+        compose.onNodeWithTag("game_hint_hold").assertTextEquals("Stay put")
+    }
+
+    @Test
+    fun theStampSitsBesideTheBaseWhereThePlayEnds() {
+        val p05 = requireNotNull(PlayLibrary.play("p05"))
+        show(state(phase = Phase.WHY, play = p05, chosen = Answer.FIRST, stamp = Stamp.OUT, correct = true))
+
+        val diamond = compose.onNodeWithTag("game_diamond").getUnclippedBoundsInRoot()
+        val stamp = compose.onNodeWithTag("game_stamp").getUnclippedBoundsInRoot()
+        // First base is right of the middle of the field.
+        assertThat((stamp.left + stamp.right) / 2).isGreaterThan((diamond.left + diamond.right) / 2)
+        assertThat(
+            (stamp.top + stamp.bottom) / 2,
+        ).isGreaterThan((diamond.top + diamond.bottom) / 2 - (diamond.bottom - diamond.top) / 4)
+    }
+
+    @Test
+    fun aStampAtHomeSitsLowOnTheField() {
+        val p14 = requireNotNull(PlayLibrary.play("p14"))
+        show(state(phase = Phase.WHY, play = p14, chosen = Answer.HOME, stamp = p14.rightStamp, correct = true))
+
+        val diamond = compose.onNodeWithTag("game_diamond").getUnclippedBoundsInRoot()
+        val stamp = compose.onNodeWithTag("game_stamp").getUnclippedBoundsInRoot()
+        assertThat((stamp.top + stamp.bottom) / 2).isGreaterThan((diamond.top + diamond.bottom) / 2)
+    }
+
+    @Test
+    fun aPlayOnTheSummaryOpensForReview() {
+        show(state(phase = Phase.SUMMARY, runs = 4, lineScore = listOf(true, false, true, true, true)))
+
+        press(Key.DirectionUp)
+        repeat(5) { press(Key.DirectionLeft) }
+        compose.onNodeWithTag("line_score_cell_1").assertIsFocused()
+        press(Key.DirectionCenter)
+
+        assertThat(reviews).containsExactly(0)
+    }
+
+    @Test
+    fun theSummaryReturnsToTheReviewedPlay() {
+        show(state(phase = Phase.SUMMARY, runs = 4, lineScore = List(5) { true }, lastReviewed = 2))
+
+        compose.onNodeWithTag("line_score_cell_3").assertIsFocused()
+    }
+
+    @Test
+    fun aReviewReplaysThePlayAndGoesBackToTheRound() {
+        compose.mainClock.autoAdvance = false
+        show(state(phase = Phase.WHY, chosen = Answer.THIRD, stamp = Stamp.OUT, reviewing = 1))
+        compose.mainClock.advanceTimeBy(500)
+
+        compose.onNodeWithTag("game_stamp").assertDoesNotExist()
+        compose.onNodeWithTag("game_why").assertIsDisplayed()
+        compose.onNodeWithTag("game_recap").assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(4_000)
+        compose.onNodeWithTag("game_stamp").assertIsDisplayed()
+        compose.onNodeWithTag("game_review_back").assertIsFocused().assertTextEquals("Back to the round")
+        compose.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.mainClock.advanceTimeBy(100)
+
+        assertThat(backs).isEqualTo(1)
+        assertThat(nexts).isEqualTo(0)
+        assertThat(replaysFinished).isEqualTo(0)
+    }
+
+    @Test
+    fun aNewBestIsCelebrated() {
+        show(state(phase = Phase.SUMMARY, runs = 4, newBest = true))
+
+        compose.onNodeWithTag("summary_celebration").assertExists()
+    }
+
+    @Test
+    fun anOrdinaryRoundIsNotCelebrated() {
+        show(state(phase = Phase.SUMMARY, runs = 4))
+
+        compose.onNodeWithTag("summary_celebration").assertDoesNotExist()
     }
 }

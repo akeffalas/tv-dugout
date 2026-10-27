@@ -433,6 +433,7 @@ private fun GameDestination(
         onDone = { leave() },
         onBack = { if (gameViewModel.onBack()) leave() },
         onKeepPlaying = gameViewModel::onKeepPlaying,
+        onReview = gameViewModel::onReview,
     )
 }
 

@@ -312,4 +312,21 @@ class ReplayTest {
         assertThat((runner - Field.SECOND).getDistance()).isGreaterThan(0.03f)
         assertThat(replay.shortOfBag(Token.Batter)).isNull()
     }
+
+    @Test
+    fun theBatterStandsInTheBoxBesideThePlate() {
+        val start = play("p01").hit().at(Token.Batter, 0)
+        assertThat(start).isNotEqualTo(Field.HOME)
+        assertThat(start.x).isLessThan(Field.HOME.x)
+        assertThat(play("p01").replay(Answer.FIRST).at(Token.Batter, Int.MAX_VALUE)).isEqualTo(Field.FIRST)
+    }
+
+    @Test
+    fun theResultLandsWhereThePlayEnds() {
+        assertThat(play("p05").replay(Answer.FIRST).resultSpot).isEqualTo(Field.FIRST)
+        assertThat(play("p05").replay(Answer.THIRD).resultSpot).isEqualTo(Field.THIRD)
+        assertThat(play("p03").replay(Answer.SECOND).resultSpot).isEqualTo(Field.FIRST)
+        assertThat(play("p14").replay(Answer.HOME).resultSpot).isEqualTo(Field.HOME)
+        assertThat(play("p11").replay(Answer.HOLD).resultSpot).isNull()
+    }
 }

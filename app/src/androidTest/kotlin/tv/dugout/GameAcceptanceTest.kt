@@ -161,4 +161,32 @@ class GameAcceptanceTest {
         remote { pressDPadCenter() }
         compose.onNodeWithText(plays[1].prompt).assertIsDisplayed()
     }
+
+    @Test
+    fun aPlayReopensFromTheSummaryAndBackReturnsToIt() {
+        startApp()
+        openGame()
+        plays.forEach { play ->
+            awaitHit()
+            remote { pressFor(play.answer) }
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("game_next").fetchSemanticsNodes().isNotEmpty() }
+            remote { pressDPadCenter() }
+        }
+        compose.onNodeWithTag("summary_play_again").assertIsFocused()
+
+        remote { pressDPadUp() }
+        repeat(5) { remote { pressDPadLeft() } }
+        compose.onNodeWithTag("line_score_cell_1").assertIsFocused()
+        remote { pressDPadCenter() }
+        compose.onNodeWithText(plays[0].why).assertIsDisplayed()
+        compose.onNodeWithTag("game_review_back").assertIsFocused()
+
+        remote { pressBack() }
+        compose.onNodeWithTag("line_score_cell_1").assertIsFocused()
+        remote { pressDPadRight() }
+        remote { pressDPadCenter() }
+        compose.onNodeWithText(plays[1].why).assertIsDisplayed()
+        remote { pressDPadCenter() }
+        compose.onNodeWithTag("line_score_cell_2").assertIsFocused()
+    }
 }

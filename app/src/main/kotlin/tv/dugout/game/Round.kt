@@ -20,7 +20,7 @@ enum class Phase { QUESTION, CHOICE_REPLAY, RIGHT_REPLAY, WHY, SUMMARY }
 
 /**
  * One round. Plays at [index] past the main [plays] are [misses] asked once more: a right answer there
- * earns no run. Every transition returns a new round, and one that does not apply returns this one.
+ * earns no run. [calls] keeps the first answer to each main play. Every transition returns a new round, and one that does not apply returns this one.
  */
 data class Round(
     val plays: List<Play>,
@@ -29,6 +29,7 @@ data class Round(
     val runs: Int = 0,
     val misses: List<Play> = emptyList(),
     val chosen: Answer? = null,
+    val calls: List<Answer> = emptyList(),
 ) {
     val current: Play? get() = if (phase == Phase.SUMMARY) null else (plays + misses).getOrNull(index)
 
@@ -47,7 +48,7 @@ data class Round(
 
     fun answer(answer: Answer): Round {
         if (phase != Phase.QUESTION) return this
-        return copy(phase = Phase.CHOICE_REPLAY, chosen = answer)
+        return copy(phase = Phase.CHOICE_REPLAY, chosen = answer, calls = if (retrying) calls else calls + answer)
     }
 
     fun replayFinished(): Round =
