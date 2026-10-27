@@ -58,14 +58,12 @@ private const val STAMP_TILT = -7f
  * The field from above with [scene] drawn on it, [ms] into its replay. [ms] is read only while
  * drawing, so the replay redraws the field without recomposing the screen around it. While asking,
  * arrows by the bases show which way to press, alive once [ready]. [stamp] lands at the replay's
- * stampAt beside the base where the play ends, with the [verdict] (right or not) under it when there
- * is one, and stays there while the why shows.
+ * stampAt beside the base where the play ends, and stays there while the why shows.
  */
 @Composable
 fun Diamond(
     scene: Scene,
     stamp: Stamp?,
-    verdict: Boolean?,
     ms: () -> Int,
     ready: Boolean,
     modifier: Modifier = Modifier,
@@ -74,6 +72,8 @@ fun Diamond(
     // Keyed on the clock too: a retried play draws a scene equal to its first try's, on a new clock.
     val landed by remember(scene, ms) { derivedStateOf { !scene.asking && ms() >= replay.stampAt } }
     val labels = rememberLabels()
+    // The child's wrong call as gold lines; staying put draws none, and then there is nothing to explain.
+    val ghostLines = remember(scene) { scene.ghost?.let { g -> g.trailsAt(g.length).filter { it.mine } }.orEmpty() }
     Box(modifier = modifier.aspectRatio(1f)) {
         Canvas(modifier = Modifier.fillMaxSize().field()) {
             val now = ms()
@@ -88,9 +88,7 @@ fun Diamond(
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 5.dp.toPx())),
                 )
             }
-            scene.ghost?.let { ghost ->
-                ghost.trailsAt(ghost.length).filter { it.mine }.forEach { drawTrail(it, ghost = true) }
-            }
+            ghostLines.forEach { drawTrail(it, ghost = true) }
             replay.trailsAt(now).forEach { drawTrail(it, ghost = false) }
             scene.ring?.spot()?.let {
                 drawCircle(FocusGold, radius = 22.dp.toPx(), center = it.on(size), style = Stroke(3.dp.toPx()))
@@ -127,12 +125,9 @@ fun Diamond(
             drawBall(inGlove(ball.on(size), spots, replay.bright))
         }
         if (scene.asking) Arrows(ready)
-        if (scene.ghost != null) Legend(Modifier.align(Alignment.BottomStart))
+        if (ghostLines.isNotEmpty()) Legend(Modifier.align(Alignment.BottomStart))
         if (landed && stamp != null) {
-            Result(stampSpot(replay.resultSpot)) {
-                StampMark(stamp, since = { ms() - replay.stampAt })
-                if (verdict != null) Verdict(verdict)
-            }
+            Result(stampSpot(replay.resultSpot)) { StampMark(stamp, since = { ms() - replay.stampAt }) }
         }
     }
 }
@@ -160,12 +155,7 @@ private fun Result(
     content: @Composable () -> Unit,
 ) {
     Layout(
-        content = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) { content() }
-        },
+        content = content,
         modifier = Modifier.fillMaxSize(),
     ) { measurables, constraints ->
         val result = measurables.single().measure(Constraints())
@@ -205,22 +195,6 @@ private fun LegendRow(
         }
         Text(label, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (ghost) FocusGold else Chalk)
     }
-}
-
-/** Whether the child's call was right, said on the field under the stamp. */
-@Composable
-private fun Verdict(right: Boolean) {
-    Text(
-        if (right) "✓ Right call!" else "Not this time.",
-        fontSize = 22.sp,
-        fontWeight = FontWeight.ExtraBold,
-        color = Navy,
-        modifier =
-            Modifier
-                .background(if (right) WatchedGreen else FocusGold, RoundedCornerShape(20.dp))
-                .padding(horizontal = 18.dp, vertical = 6.dp)
-                .testTag("game_verdict"),
-    )
 }
 
 /** Which way each base is on the D-pad, as a small arrow pointing out from the base. */
