@@ -228,4 +228,19 @@ class PlayGameScreenTest {
 
         compose.onNodeWithTag("game_next").assertIsFocused()
     }
+
+    @Test
+    fun aPressTheMomentAQuestionAppearsDoesNotAnswer() {
+        compose.mainClock.autoAdvance = false
+        show(state())
+        compose.mainClock.advanceTimeByFrame()
+
+        // The second tap of a fast double tap on Next play lands here.
+        compose.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+        assertThat(answers).isEmpty()
+
+        compose.mainClock.advanceTimeBy(QUESTION_SETTLE_MILLIS.toLong() + 50)
+        compose.onRoot().performKeyInput { pressKey(Key.DirectionUp) }
+        assertThat(answers).containsExactly(Answer.SECOND)
+    }
 }

@@ -126,4 +126,26 @@ class PlayGameViewModelTest {
         assertThat(state().retrying).isTrue()
         assertThat(state().play).isEqualTo(plays[0])
     }
+
+    @Test
+    fun aRightAnswerIsMasteredBeforeTheReplayEnds() {
+        viewModel.onAnswer(plays[0].answer)
+
+        // Leaving now, mid-replay, must keep the check the child earned.
+        assertThat(games.record("sam").value.mastered).containsExactly(plays[0].id)
+    }
+
+    @Test
+    fun aRightRetryIsMasteredWhenAnswered() {
+        viewModel.onAnswer(wrongFor(plays[0]))
+        viewModel.onReplayFinished()
+        viewModel.onReplayFinished()
+        viewModel.onNext()
+        repeat(4) { answerRight() }
+        assertThat(state().retrying).isTrue()
+
+        viewModel.onAnswer(plays[0].answer)
+
+        assertThat(games.record("sam").value.mastered).contains(plays[0].id)
+    }
 }

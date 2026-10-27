@@ -19,17 +19,14 @@ class PlayGameViewModel(
     private val state = MutableStateFlow(build())
     val uiState: StateFlow<PlayGameUiState> = state.asStateFlow()
 
-    fun onAnswer(answer: Answer) = move(round.answer(answer))
-
-    fun onReplayFinished() {
-        val next = round.replayFinished()
-        if (round.phase == Phase.CHOICE_REPLAY &&
-            round.correct
-        ) {
-            round.current?.let { games.markMastered(profileId, it.id) }
-        }
+    /** A right answer earns its check at once, so leaving during the replay keeps it. */
+    fun onAnswer(answer: Answer) {
+        val next = round.answer(answer)
+        if (next !== round && next.correct) next.current?.let { games.markMastered(profileId, it.id) }
         move(next)
     }
+
+    fun onReplayFinished() = move(round.replayFinished())
 
     fun onNext() {
         val next = round.next()

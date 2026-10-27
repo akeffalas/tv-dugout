@@ -56,6 +56,9 @@ import tv.dugout.ui.theme.WatchedGreen
 /** How long the ball and runners take to move in a replay. */
 const val REPLAY_MILLIS = 3_000
 
+/** How long a new question ignores presses, so the second tap of a fast double tap on Next play does not answer it. */
+const val QUESTION_SETTLE_MILLIS = 300
+
 /** How long the stamp stays before the replay counts as finished. */
 const val STAMP_MILLIS = 600
 
@@ -93,12 +96,16 @@ fun PlayGameScreen(
     val elapsed = remember(moment) { Animatable(if (replaying) 0f else (REPLAY_MILLIS + STAMP_MILLIS).toFloat()) }
     val progress = (elapsed.value / REPLAY_MILLIS).coerceAtMost(1f)
 
+    // A new question settles before it takes an answer; timed as an animation, like the replay.
+    val settle = remember(moment) { Animatable(if (state.phase == Phase.QUESTION) 0f else 1f) }
+
     LaunchedEffect(moment) {
         when (state.phase) {
             Phase.WHY -> next.requestFocus()
             Phase.SUMMARY -> playAgain.requestFocus()
             else -> root.requestFocus()
         }
+        if (state.phase == Phase.QUESTION) settle.animateTo(1f, tween(QUESTION_SETTLE_MILLIS, easing = LinearEasing))
         if (replaying) {
             elapsed.animateTo(
                 (REPLAY_MILLIS + STAMP_MILLIS).toFloat(),
@@ -159,7 +166,8 @@ fun PlayGameScreen(
                                     // Only a fresh press while asked answers; a held key's repeats and release do nothing.
                                     val fresh =
                                         event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0
-                                    if (state.phase == Phase.QUESTION && fresh && answer != null) {
+                                    val settled = settle.value >= 1f
+                                    if (state.phase == Phase.QUESTION && settled && fresh && answer != null) {
                                         onAnswer(answer)
                                         true
                                     } else {
