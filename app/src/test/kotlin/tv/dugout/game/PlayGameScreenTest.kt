@@ -317,6 +317,76 @@ class PlayGameScreenTest {
     }
 
     @Test
+    fun theOutsCountUpWhenTheStampLands() {
+        compose.mainClock.autoAdvance = false
+        show(state(phase = Phase.CHOICE_REPLAY, chosen = Answer.SECOND, stamp = Stamp.OUT, correct = true))
+
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.onNodeWithText("1 out").assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(400)
+        compose.onNodeWithText("2 outs").assertIsDisplayed()
+    }
+
+    @Test
+    fun aThirdOutEndsTheInning() {
+        show(state(phase = Phase.WHY, play = requireNotNull(PlayLibrary.play("p03")), chosen = Answer.SECOND))
+
+        compose.onNodeWithText("3 outs! Inning over").assertIsDisplayed()
+    }
+
+    @Test
+    fun theStampStaysWhileTheWhyShows() {
+        show(state(phase = Phase.WHY, chosen = Answer.SECOND, stamp = Stamp.OUT, correct = true))
+
+        compose.onNodeWithTag("game_stamp").assertIsDisplayed()
+    }
+
+    @Test
+    fun seeItAgainReplaysThePlayAndKeepsTheWhy() {
+        show(state(phase = Phase.WHY, chosen = Answer.SECOND, stamp = Stamp.OUT, correct = true))
+        compose.mainClock.autoAdvance = false
+
+        press(Key.DirectionRight)
+        compose.onNodeWithTag("game_see_again").assertIsFocused()
+        compose.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.mainClock.advanceTimeBy(500)
+
+        compose.onNodeWithTag("game_stamp").assertDoesNotExist()
+        compose.onNodeWithTag("game_why").assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(3_000)
+        compose.onNodeWithTag("game_stamp").assertIsDisplayed()
+        assertThat(nexts).isEqualTo(0)
+        assertThat(replaysFinished).isEqualTo(0)
+    }
+
+    @Test
+    fun aWrongCallShowsWhichLineIsWhich() {
+        show(state(phase = Phase.WHY, chosen = Answer.FIRST, stamp = Stamp.OUT))
+
+        compose.onNodeWithText("Your call").assertIsDisplayed()
+        compose.onNodeWithText("The right play").assertIsDisplayed()
+    }
+
+    @Test
+    fun aRightCallHasNoLegend() {
+        show(state(phase = Phase.WHY, chosen = Answer.SECOND, correct = true))
+
+        compose.onNodeWithTag("game_legend").assertDoesNotExist()
+    }
+
+    @Test
+    fun theSummaryNamesEachInningsPlay() {
+        show(
+            state(phase = Phase.SUMMARY, runs = 4).copy(
+                lineScore = listOf(true, false, true, true, true),
+                lineTitles = listOf("Sure out at first", "No force at third", "a", "b", "c"),
+            ),
+        )
+
+        compose.onNodeWithTag("line_score_2_title").assertTextEquals("No force at third")
+    }
+
+    @Test
     fun summaryShowsRunsAndFocusesPlayAgain() {
         show(state(phase = Phase.SUMMARY, runs = 4))
 
@@ -412,12 +482,16 @@ class PlayGameScreenTest {
     }
 
     @Test
-    fun rightInWhyKeepsFocusOnNextPlay() {
+    fun focusInWhyStaysOnItsTwoButtons() {
         show(state(phase = Phase.WHY, chosen = Answer.SECOND, correct = true))
 
-        press(Key.DirectionRight)
         press(Key.DirectionUp)
-
+        press(Key.DirectionDown)
+        compose.onNodeWithTag("game_next").assertIsFocused()
+        press(Key.DirectionRight)
+        press(Key.DirectionRight)
+        compose.onNodeWithTag("game_see_again").assertIsFocused()
+        press(Key.DirectionLeft)
         compose.onNodeWithTag("game_next").assertIsFocused()
     }
 

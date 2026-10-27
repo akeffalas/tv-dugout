@@ -23,6 +23,9 @@ const val STAMP_MILLIS = 600
 /** The winner of a race arrives this share of the way into its beat; the loser at its end. */
 const val WIN_SHARE = 0.75f
 
+/** How far along their run a runner put out is shown, clear of the fielder on the bag. */
+private const val SHORT_OF_BAG = 0.8f
+
 private val ThrowEasing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
 private val RunEasing = FastOutSlowInEasing
 
@@ -62,13 +65,18 @@ data class Trail(
     val mine: Boolean,
 )
 
-/** Where every token starts, how each moves, when the stamp lands, who stays bright, and which token is the [child]. */
+/**
+ * Where every token starts, how each moves, when the stamp lands, who stays bright, and which token is
+ * the [child]. [out] is who the ball beats, and [outs] the count once the stamp lands, a catch included.
+ */
 data class Replay(
     val child: Token,
     val start: Map<Token, Offset>,
     val moves: List<Move>,
     val stampAt: Int,
     val bright: Set<Token>,
+    val outs: Int,
+    val out: Set<Token> = emptySet(),
 ) {
     val length: Int get() = stampAt + STAMP_MILLIS
 
@@ -94,6 +102,10 @@ data class Replay(
                 else -> 1
             }
         }
+
+    /** Where a runner put out is drawn: short of the bag, since the ball beat them there. */
+    fun shortOfBag(token: Token): Offset? =
+        moves.lastOrNull { it.token == token }?.takeIf { token in out }?.let { along(it.path, SHORT_OF_BAG) }
 
     fun trailsAt(ms: Int): List<Trail> =
         moves.filter { it.trail && ms > it.start }.map { move ->
@@ -132,7 +144,7 @@ fun Play.hit(): Replay {
     val start = lineup(Field.HOME)
     val roll =
         Move(Token.Ball, listOf(Field.HOME, fieldSpot()), 0, HIT_MILLIS, ThrowEasing, trail = false, mine = false)
-    return Replay(childToken(), start, listOf(roll), HIT_MILLIS, start.keys)
+    return Replay(childToken(), start, listOf(roll), HIT_MILLIS, start.keys, outs)
 }
 
 /** The replay of [answer], starting with the ball at the fielder. */
@@ -282,14 +294,24 @@ private class Beats(
 
         val movers = moves.map { it.token }.filterIsInstance<Token.Fielder>()
         val bright = setOf(Token.Ball, child, Token.Fielder(play.ballTo)) + movers + racers + sent
+        val out = if (ballFirst) racers.ifEmpty { standingForced() } else emptySet()
         return Replay(
             child,
             start,
             moves.map { it.copy(trail = it.trail && it.token in bright) },
             end,
             bright,
+            outs = minOf(3, play.outs + (if (play.caught) 1 else 0) + out.size),
+            out = out,
         )
     }
+
+    /** A forced runner who stays put is out when the ball beats them to the next base. */
+    private fun standingForced(): Set<Token> =
+        play.runners
+            .filter { it !in destinations && play.forced(it) && (it.next()?.answer() ?: Answer.HOME) == throwTo }
+            .map { Token.Runner(it) }
+            .toSet()
 
     private val childHolds = own != null && own == play.ballTo
 

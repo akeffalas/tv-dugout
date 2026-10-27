@@ -4,8 +4,9 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,15 +46,16 @@ class GameLayoutTest {
     private fun state(
         play: Play,
         phase: Phase,
-    ) = PlayGameUiState(play, phase, 5, 5, 4, false, play.answer, null, correct = false, bestRuns = 4)
+    ) = PlayGameUiState(play, phase, 5, 5, 4, false, play.answer, Stamp.DOUBLE_PLAY, correct = false, bestRuns = 4)
 
+    /** Inside the screen less the edges a TV may crop: 48dp at the sides, 27dp at the top and bottom. */
     private fun assertOnScreen(tag: String) {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         val bounds = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
-        assertThat(bounds.left).isAtLeast(screen.left)
-        assertThat(bounds.right).isAtMost(screen.right)
-        assertThat(bounds.top).isAtLeast(screen.top)
-        assertThat(bounds.bottom).isAtMost(screen.bottom)
+        assertWithMessage(tag).that(bounds.left).isAtLeast(screen.left + 48.dp)
+        assertWithMessage(tag).that(bounds.right).isAtMost(screen.right - 48.dp)
+        assertWithMessage(tag).that(bounds.top).isAtLeast(screen.top + 27.dp)
+        assertWithMessage(tag).that(bounds.bottom).isAtMost(screen.bottom - 27.dp)
     }
 
     @Test
@@ -70,7 +72,7 @@ class GameLayoutTest {
     fun whyScreenFitsATv() {
         show(state(longestWhy.copy(prompt = longestPrompt.prompt), Phase.WHY))
 
-        listOf("game_prompt", "game_why", "game_next").forEach(::assertOnScreen)
+        listOf("game_prompt", "game_why", "game_next", "game_see_again", "game_stamp").forEach(::assertOnScreen)
     }
 
     @Test
@@ -79,12 +81,20 @@ class GameLayoutTest {
             state(longestPrompt, Phase.SUMMARY).copy(
                 play = null,
                 lineScore = List(5) { true },
+                lineTitles =
+                    PlayLibrary.plays
+                        .map { it.title }
+                        .sortedByDescending { it.length }
+                        .take(5),
                 newlyMastered = 5,
                 newBest = true,
             ),
         )
 
-        listOf("line_score_total", "summary_mastered", "summary_play_again", "summary_done").forEach(::assertOnScreen)
+        (
+            listOf("line_score_total", "summary_mastered", "summary_play_again", "summary_done") +
+                (1..5).map { "line_score_${it}_title" }
+        ).forEach(::assertOnScreen)
     }
 
     @Test

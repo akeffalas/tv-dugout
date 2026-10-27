@@ -3,11 +3,15 @@ package tv.dugout.game
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -52,8 +56,17 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
-/** How faint the players outside the play are during a replay. */
-private const val FADED = 0.3f
+/** How faint the players outside the play are during a replay: in the back, still readable on a TV. */
+private const val FADED = 0.5f
+
+/** How faint a player is once put out, under their cross. */
+private const val PUT_OUT = 0.45f
+
+/** How large the stamp sits in the corner while the why shows. */
+private const val SETTLED_SCALE = 0.7f
+
+/** How long one pulse of the child's marker takes while the ball is hit. */
+private const val PULSE_MILLIS = 500
 
 /** How faint the hints are while the ball is still on its way. */
 private const val WAITING = 0.35f
@@ -66,7 +79,8 @@ private const val STAMP_TILT = -7f
  * The field from above with [scene] drawn on it, [ms] into its replay. [ms] is read only while
  * drawing, so the replay redraws the field without recomposing the screen around it. Hints come
  * alive once the hit reaches the fielder; [stamp] lands at the replay's stampAt, with the [verdict]
- * (right or not) under it when there is one.
+ * (right or not) under it when there is one. Once [settled], the stamp waits smaller in the corner
+ * so the result stays in view beside the why.
  */
 @Composable
 fun Diamond(
@@ -75,6 +89,7 @@ fun Diamond(
     verdict: Boolean?,
     ms: () -> Int,
     modifier: Modifier = Modifier,
+    settled: Boolean = false,
 ) {
     val replay = scene.replay
     // Keyed on the clock too: a retried play draws a scene equal to its first try's, on a new clock.
@@ -103,9 +118,16 @@ fun Diamond(
             scene.ring?.spot()?.let {
                 drawCircle(FocusGold, radius = 22.dp.toPx(), center = it.on(size), style = Stroke(3.dp.toPx()))
             }
+            val stamped = !scene.asking && now >= replay.stampAt
             replay.drawOrder().forEach { token ->
-                val spot = spots.getValue(token)
-                val alpha = if (scene.asking || token in replay.bright) 1f else FADED
+                val isOut = stamped && token in replay.out
+                val spot = (if (isOut) replay.shortOfBag(token) else null) ?: spots.getValue(token)
+                val alpha =
+                    when {
+                        isOut -> PUT_OUT
+                        scene.asking || token in replay.bright -> 1f
+                        else -> FADED
+                    }
                 val own = token == replay.child
                 when (token) {
                     is Token.Fielder -> {
@@ -118,19 +140,53 @@ fun Diamond(
 
                     Token.Ball -> {}
                 }
+                if (isOut) drawCross(spot.on(size))
             }
-            spots[replay.child]?.let { drawYou(it.on(size), labels.you, replay.child is Token.Fielder) }
-            drawCircle(Color.White, radius = 7.dp.toPx(), center = ball.on(size))
-            drawCircle(ProgressRed, radius = 7.dp.toPx(), center = ball.on(size), style = Stroke(1.5.dp.toPx()))
+            spots[replay.child]?.let { at ->
+                // While the ball is hit, the child's marker pulses so their eyes go to where it lands.
+                val pulse = if (scene.asking) sin(PI.toFloat() * now / PULSE_MILLIS).let { it * it } else 0f
+                drawYou(at.on(size), labels.you, replay.child is Token.Fielder, ring = scene.asking, pulse)
+            }
+            drawBall(inGlove(ball.on(size), spots, replay.bright))
         }
         // Hints show through the hit, dimmed until presses count, so an early press is plainly early.
         if (scene.asking) Hints(ready)
+        if (scene.ghost != null) Legend(Modifier.align(Alignment.BottomStart))
         if (landed && stamp != null) {
-            StampMark(stamp, since = { ms() - replay.stampAt }, Modifier.align(Alignment.Center))
+            if (settled) {
+                StampMark(stamp, since = { LAND_MILLIS }, Modifier.align(Alignment.TopStart), SETTLED_SCALE)
+            } else {
+                StampMark(stamp, since = { ms() - replay.stampAt }, Modifier.align(Alignment.Center))
+            }
         }
         if (landed && verdict != null) {
             Verdict(verdict, Modifier.align(Alignment.Center).offset(y = 64.dp))
         }
+    }
+}
+
+/** Which chalk line is which once the child's wrong call and the right play are both drawn. */
+@Composable
+private fun Legend(modifier: Modifier) {
+    Column(
+        modifier = modifier.padding(start = 4.dp, bottom = 4.dp).testTag("game_legend"),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        LegendRow(ghost = true, "Your call")
+        LegendRow(ghost = false, "The right play")
+    }
+}
+
+@Composable
+private fun LegendRow(
+    ghost: Boolean,
+    label: String,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Canvas(modifier = Modifier.size(width = 34.dp, height = 10.dp)) {
+            drawTrail(Trail(listOf(Offset(0f, 0.5f), Offset(1f, 0.5f)), done = false, mine = ghost), ghost)
+        }
+        Text(label, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (ghost) FocusGold else Chalk)
     }
 }
 
@@ -154,7 +210,7 @@ private fun Verdict(
 }
 
 /** Which side of its base a hint sits on. */
-private enum class Side { ABOVE, LEFT, RIGHT }
+private enum class Side { ABOVE, LEFT, RIGHT, CENTRE }
 
 private data class HintSpec(
     val answer: Answer,
@@ -169,7 +225,8 @@ private val HINTS =
         HintSpec(Answer.FIRST, "▶ 1st", Field.FIRST, Side.RIGHT),
         HintSpec(Answer.THIRD, "3rd ◀", Field.THIRD, Side.LEFT),
         HintSpec(Answer.HOME, "▼ Home", Field.HOME, Side.RIGHT),
-        HintSpec(Answer.HOLD, "● Hold it", Field.HOME, Side.LEFT),
+        // Select is the middle of the D-pad, so its hint sits in the middle of the four, inside the infield.
+        HintSpec(Answer.HOLD, "● Hold it", Field.HOLD_HINT, Side.CENTRE),
     )
 
 /** How far a hint sits from the middle of its base. */
@@ -193,6 +250,7 @@ private fun Hints(ready: Boolean) {
                         Side.ABOVE -> x - hint.width / 2 to y - gap - hint.height
                         Side.LEFT -> x - gap - hint.width to y - hint.height / 2
                         Side.RIGHT -> x + gap to y - hint.height / 2
+                        Side.CENTRE -> x - hint.width / 2 to y - hint.height / 2
                     }
                 hint.place(
                     left.coerceIn(0, maxOf(0, constraints.maxWidth - hint.width)),
@@ -203,12 +261,16 @@ private fun Hints(ready: Boolean) {
     }
 }
 
-/** The stamp, landing like a rubber stamp: it drops from larger, overshoots a little, and settles tilted. */
+/**
+ * The stamp, landing like a rubber stamp: it drops from larger, overshoots a little, and settles tilted
+ * at [rest] size.
+ */
 @Composable
 private fun StampMark(
     stamp: Stamp,
     since: () -> Int,
     modifier: Modifier,
+    rest: Float = 1f,
 ) {
     val colour = if (stamp == Stamp.SAFE || stamp == Stamp.NO_PLAY) Chalk else ProgressRed
     Text(
@@ -220,7 +282,7 @@ private fun StampMark(
             modifier
                 .graphicsLayer {
                     val t = (since().toFloat() / LAND_MILLIS).coerceIn(0f, 1f)
-                    val scale = 1f + 0.5f * (1f - t) * (1f - t) - 0.08f * sin(PI.toFloat() * t)
+                    val scale = rest * (1f + 0.5f * (1f - t) * (1f - t) - 0.08f * sin(PI.toFloat() * t))
                     scaleX = scale
                     scaleY = scale
                     rotationZ = STAMP_TILT * t
@@ -342,8 +404,42 @@ private fun DrawScope.drawPlayer(
 }
 
 /** A fielder is drawn large enough to carry their label; a runner is smaller. */
-private val FIELDER_RADIUS = 14.dp
-private val PLAYER_RADIUS = 11.dp
+private val FIELDER_RADIUS = 19.dp
+private val PLAYER_RADIUS = 13.dp
+private val BALL_RADIUS = 7.dp
+
+private fun DrawScope.drawBall(at: Offset) {
+    drawCircle(Color.White, radius = BALL_RADIUS.toPx(), center = at)
+    drawCircle(ProgressRed, radius = BALL_RADIUS.toPx(), center = at, style = Stroke(1.5.dp.toPx()))
+}
+
+/**
+ * Where to draw the ball: on its spot, eased out to a fielder's glove side as it reaches them, so it
+ * never covers the label of whoever holds it.
+ */
+private fun DrawScope.inGlove(
+    ball: Offset,
+    spots: Map<Token, Offset>,
+    bright: Set<Token>,
+): Offset {
+    val radius = FIELDER_RADIUS.toPx()
+    val holder =
+        spots
+            .filterKeys { it is Token.Fielder && it in bright }
+            .values
+            .map { it.on(size) }
+            .minByOrNull { (it - ball).getDistance() } ?: return ball
+    val near = 1f - ((holder - ball).getDistance() / radius).coerceIn(0f, 1f)
+    return ball + Offset(radius * 0.85f, -radius * 0.85f) * near
+}
+
+/** A chalk cross over a player put out. */
+private fun DrawScope.drawCross(at: Offset) {
+    val arm = PLAYER_RADIUS.toPx()
+    val stroke = 4.dp.toPx()
+    drawLine(ProgressRed, at - Offset(arm, arm), at + Offset(arm, arm), strokeWidth = stroke, cap = StrokeCap.Round)
+    drawLine(ProgressRed, at + Offset(-arm, arm), at + Offset(arm, -arm), strokeWidth = stroke, cap = StrokeCap.Round)
+}
 
 /** A fielder with their position on them; the child's own fielder is gold. */
 private fun DrawScope.drawFielder(
@@ -364,15 +460,29 @@ private fun DrawScope.drawFielder(
     )
 }
 
-/** A gold YOU tag over the child, above a fielder's larger circle or a runner's smaller one. */
+/**
+ * A gold YOU tag over the child, above a fielder's larger circle or a runner's smaller one. With
+ * [ring], a gold ring circles them too, swelling by [pulse] (0 to 1).
+ */
 private fun DrawScope.drawYou(
     at: Offset,
     you: TextLayoutResult,
     fielder: Boolean,
+    ring: Boolean,
+    pulse: Float,
 ) {
     val text = you.size
     val pad = Offset(6.dp.toPx(), 1.dp.toPx())
     val radius = if (fielder) FIELDER_RADIUS.toPx() else PLAYER_RADIUS.toPx()
+    if (ring) {
+        drawCircle(
+            FocusGold,
+            radius = radius + (4 + 8 * pulse).dp.toPx(),
+            center = at,
+            style = Stroke(3.dp.toPx()),
+            alpha = 1f - 0.6f * pulse,
+        )
+    }
     val bottom = at.y - radius - 4.dp.toPx()
     val topLeft = Offset(at.x - text.width / 2f - pad.x, bottom - text.height - pad.y * 2)
     drawRoundRect(
@@ -394,7 +504,7 @@ private class Labels(
 private fun rememberLabels(): Labels {
     val measurer = rememberTextMeasurer()
     return remember(measurer) {
-        val style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        val style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Labels(
             Position.entries.associateWith { measurer.measure(it.short, style) },
             measurer.measure("YOU", style.copy(fontWeight = FontWeight.Black)),

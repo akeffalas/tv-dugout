@@ -115,7 +115,10 @@ class PlayGameViewModel(
         val stamp =
             when (round.phase) {
                 Phase.CHOICE_REPLAY -> play?.let { p -> round.chosen?.let(p::stampFor) }
-                Phase.RIGHT_REPLAY -> play?.rightStamp
+
+                // The why shows the right play's end, so its stamp stays.
+                Phase.RIGHT_REPLAY, Phase.WHY -> play?.rightStamp
+
                 else -> null
             }
         val record = games.record(profileId).value
@@ -134,6 +137,7 @@ class PlayGameViewModel(
             bestRuns = record.bestRuns,
             leaving = leaving,
             lineScore = if (over) round.lineScore else emptyList(),
+            lineTitles = if (over) round.plays.map { it.title } else emptyList(),
             newlyMastered = (record.mastered - before.mastered).size,
             newBest = over && beaten,
         )

@@ -44,7 +44,7 @@ class DiamondScreenshotTest {
                 runs = 1,
                 retrying = false,
                 chosen = answer.takeIf { phase != Phase.QUESTION },
-                stamp = null,
+                stamp = play.rightStamp.takeIf { phase == Phase.WHY },
                 correct = play.isRight(answer),
                 bestRuns = null,
             )
@@ -54,6 +54,38 @@ class DiamondScreenshotTest {
         // Past the hit; the why shows the replay's last frame without animating.
         compose.mainClock.advanceTimeBy(HIT_MILLIS.toLong())
         compose.onRoot().captureRoboImage("src/test/screenshots/$name.png", HALF_SIZE)
+    }
+
+    @Test
+    fun theSummaryNamesEachPlay() {
+        val state =
+            PlayGameUiState(
+                play = null,
+                phase = Phase.SUMMARY,
+                playNumber = 5,
+                total = 5,
+                runs = 4,
+                retrying = false,
+                chosen = null,
+                stamp = null,
+                correct = false,
+                bestRuns = 3,
+                lineScore = listOf(true, false, true, true, true),
+                lineTitles =
+                    listOf(
+                        "p01",
+                        "p05",
+                        "p14",
+                        "p03",
+                        "p25",
+                    ).map { requireNotNull(PlayLibrary.play(it)).title },
+                newlyMastered = 2,
+                newBest = true,
+            )
+        compose.setContent {
+            DugoutTheme { PlayGameScreen(state, {}, {}, {}, {}, {}, {}, {}) }
+        }
+        compose.onRoot().captureRoboImage("src/test/screenshots/summary.png", HALF_SIZE)
     }
 
     @Test

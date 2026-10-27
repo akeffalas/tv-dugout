@@ -2,6 +2,7 @@ package tv.dugout.game
 
 import com.google.common.collect.Range
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 import tv.dugout.library.AgeRange
 
@@ -167,5 +168,14 @@ class PlayLibraryTest {
         assertThat(play("p28").breaks).containsExactly(Answer.SECOND, mapOf(Base.THIRD to Answer.HOME))
         // The catcher throws to second, so the ball starts with the catcher.
         assertThat(play("p27").ballTo).isEqualTo(Position.C)
+    }
+
+    @Test
+    fun everyPlayHasAShortTitleForTheSummary() {
+        PlayLibrary.plays.forEach { play ->
+            assertWithMessage(play.id).that(play.title).isNotEmpty()
+            assertWithMessage(play.id).that(play.title.length).isAtMost(MAX_TITLE)
+        }
+        assertThat(play("p01").title).isEqualTo("Sure out at first")
     }
 }

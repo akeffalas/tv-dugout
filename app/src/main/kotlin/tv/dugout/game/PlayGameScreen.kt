@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
@@ -110,8 +112,22 @@ fun PlayGameScreen(
     val until = if (state.phase == Phase.QUESTION) HIT_MILLIS else scene?.replay?.length ?: 0
     val animating = replaying || state.phase == Phase.QUESTION
     val elapsed = remember(moment) { Animatable(if (animating) 0f else until.toFloat()) }
+    // See it again plays the right play once more while the why stays up.
+    var rewatch by remember(moment) { mutableIntStateOf(0) }
+    val landed by remember(scene, elapsed) {
+        derivedStateOf { scene != null && !scene.asking && elapsed.value >= scene.replay.stampAt }
+    }
+    val settled by remember(state.phase, elapsed, until) {
+        derivedStateOf { state.phase == Phase.WHY && elapsed.value >= until }
+    }
 
     BackHandler(onBack = onBack)
+
+    LaunchedEffect(rewatch) {
+        if (rewatch == 0) return@LaunchedEffect
+        elapsed.snapTo(0f)
+        withContext(OwnPace) { elapsed.animateTo(until.toFloat(), tween(until, easing = LinearEasing)) }
+    }
 
     LaunchedEffect(moment, state.leaving) {
         if (state.leaving) {
@@ -138,12 +154,13 @@ fun PlayGameScreen(
                 Summary(state, playAgain, onPlayAgain, onDone)
             } else {
                 Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 26.dp),
-                    horizontalArrangement = Arrangement.spacedBy(28.dp),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = SAFE_SIDES, vertical = SAFE_ENDS),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    Column(modifier = Modifier.width(380.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(modifier = Modifier.width(350.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Scoreboard(state)
-                        Outs(play.outs)
+                        // The outs count up as the stamp lands, so a third out ends the inning on screen.
+                        Outs(if (landed) scene.replay.outs else play.outs)
                         Text(
                             play.prompt,
                             fontSize = 24.sp,
@@ -160,13 +177,14 @@ fun PlayGameScreen(
                                 modifier = Modifier.testTag("game_banner"),
                             )
                         }
-                        if (state.phase == Phase.WHY) Why(state, play, next, onNext)
+                        if (state.phase == Phase.WHY) Why(state, play, next, onNext, onSeeAgain = { rewatch++ })
                     }
                     Diamond(
                         scene = scene,
                         stamp = state.stamp,
                         verdict = state.correct.takeIf { state.phase == Phase.CHOICE_REPLAY },
                         ms = { elapsed.value.toInt() },
+                        settled = settled,
                         // The diamond takes the remote's answers. It sits beside the buttons rather than around
                         // them, so Back from a button leaves the game instead of moving focus out to it.
                         modifier =
@@ -199,6 +217,10 @@ fun PlayGameScreen(
         }
     }
 }
+
+/** Space kept clear at the screen's sides and ends, inside what a TV may crop. */
+private val SAFE_SIDES = 48.dp
+private val SAFE_ENDS = 27.dp
 
 /** Asks before a Back mid-round drops the round, with Keep playing first so a stray press costs nothing. */
 @Composable
@@ -287,7 +309,16 @@ private fun Outs(outs: Int) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(if (outs == 1) "1 out" else "$outs outs", fontSize = 20.sp, color = Slate)
+        Text(
+            when (outs) {
+                1 -> "1 out"
+                3 -> "3 outs! Inning over"
+                else -> "$outs outs"
+            },
+            fontSize = 20.sp,
+            color = if (outs == 3) Chalk else Slate,
+            fontWeight = if (outs == 3) FontWeight.Bold else FontWeight.Normal,
+        )
         repeat(2) { i ->
             val modifier = Modifier.size(18.dp)
             Box(
@@ -308,6 +339,7 @@ private fun Why(
     play: Play,
     next: FocusRequester,
     onNext: () -> Unit,
+    onSeeAgain: () -> Unit,
 ) {
     Text(
         if (state.correct) "Right call!" else "Here's why",
@@ -316,7 +348,18 @@ private fun Why(
         color = if (state.correct) WatchedGreen else FocusGold,
     )
     Text(play.why, fontSize = 21.sp, modifier = Modifier.testTag("game_why"))
-    // A Select held since the answer must not skip the why: Next play acts only on a press that starts here.
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        NextPlay(next, onNext)
+        GameButton("See it again", Modifier.testTag("game_see_again"), onSeeAgain)
+    }
+}
+
+/** Next play. A Select held since the answer must not skip the why, so it acts only on a press that starts here. */
+@Composable
+private fun NextPlay(
+    next: FocusRequester,
+    onNext: () -> Unit,
+) {
     var pressed by remember { mutableStateOf(false) }
     GameButton(
         "Next play",
@@ -364,7 +407,7 @@ private fun Summary(
             fontWeight = FontWeight.ExtraBold,
             color = FocusGold,
         )
-        if (state.lineScore.isNotEmpty()) LineScore(state.lineScore, state.runs)
+        if (state.lineScore.isNotEmpty()) LineScore(state.lineScore, state.lineTitles, state.runs)
         if (state.newBest) {
             Text("New best!", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = WatchedGreen)
         } else {
@@ -399,6 +442,7 @@ private fun Summary(
 @Composable
 private fun LineScore(
     lineScore: List<Boolean>,
+    titles: List<String>,
     runs: Int,
 ) {
     Row(
@@ -407,10 +451,10 @@ private fun LineScore(
                 .background(CardNavy, RoundedCornerShape(10.dp))
                 .border(1.dp, BadgeNavy, RoundedCornerShape(10.dp))
                 .padding(horizontal = 18.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         lineScore.forEachIndexed { i, run ->
-            LineScoreCell("${i + 1}", if (run) "1" else "0", run, "line_score_${i + 1}")
+            LineScoreCell("${i + 1}", if (run) "1" else "0", run, "line_score_${i + 1}", titles.getOrNull(i))
         }
         Box(
             modifier =
@@ -430,8 +474,13 @@ private fun LineScoreCell(
     value: String,
     scored: Boolean,
     tag: String,
+    title: String? = null,
 ) {
-    Column(modifier = Modifier.width(44.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    // An inning with its play's name is wide enough for the name on two lines.
+    Column(
+        modifier = Modifier.width(if (title == null) 44.dp else 124.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(header, fontSize = 18.sp, color = Slate)
         Text(
             value,
@@ -440,6 +489,17 @@ private fun LineScoreCell(
             color = if (scored) FocusGold else Slate,
             modifier = Modifier.testTag(tag),
         )
+        if (title != null) {
+            Text(
+                title,
+                fontSize = 16.sp,
+                color = if (scored) Chalk else Slate,
+                textAlign = TextAlign.Center,
+                minLines = 2,
+                maxLines = 2,
+                modifier = Modifier.testTag("${tag}_title"),
+            )
+        }
     }
 }
 

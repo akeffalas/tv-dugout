@@ -142,4 +142,23 @@ class GameAcceptanceTest {
         remote { pressDPadCenter() }
         compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
     }
+
+    @Test
+    fun seeItAgainReplaysThePlayThenNextPlayMovesOn() {
+        startApp()
+        openGame()
+        awaitHit()
+        remote { pressFor(plays[0].answer) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("game_next").fetchSemanticsNodes().isNotEmpty() }
+
+        remote { pressDPadRight() }
+        compose.onNodeWithTag("game_see_again").assertIsFocused()
+        remote { pressDPadCenter() }
+        compose.onNodeWithTag("game_why").assertIsDisplayed()
+
+        remote { pressDPadLeft() }
+        compose.onNodeWithTag("game_next").assertIsFocused()
+        remote { pressDPadCenter() }
+        compose.onNodeWithText(plays[1].prompt).assertIsDisplayed()
+    }
 }

@@ -264,4 +264,52 @@ class ReplayTest {
         // The runner going back to first draws their own line; the carry draws one, not one each for child and ball.
         assertThat(replay.trailsAt(replay.length).map { it.points }).containsNoDuplicates()
     }
+
+    @Test
+    fun theOutsAreWhoTheBallBeats() {
+        assertThat(play("p02").replay(Answer.SECOND).out).containsExactly(Token.Runner(Base.FIRST))
+        assertThat(play("p03").replay(Answer.SECOND).out).containsExactly(Token.Runner(Base.FIRST), Token.Batter)
+        assertThat(play("p13").replay(Answer.THIRD).out).containsExactly(Token.Runner(Base.SECOND))
+        // Standing still does not save a forced runner.
+        assertThat(play("p12").replay(Answer.HOLD).out).containsExactly(Token.Runner(Base.FIRST))
+        assertThat(play("p05").replay(Answer.THIRD).out).isEmpty()
+        assertThat(play("p01").hit().out).isEmpty()
+    }
+
+    @Test
+    fun theOutsCountTheCatchAndEveryoneOut() {
+        assertThat(play("p02").hit().outs).isEqualTo(1)
+        assertThat(play("p02").replay(Answer.SECOND).outs).isEqualTo(2)
+        assertThat(play("p03").replay(Answer.SECOND).outs).isEqualTo(3)
+        assertThat(play("p14").replay(Answer.HOME).outs).isEqualTo(2)
+        // The catch and the throw home end the inning.
+        assertThat(play("p22").replay(Answer.HOME).outs).isEqualTo(3)
+        assertThat(play("p22").replay(Answer.FIRST).outs).isEqualTo(2)
+    }
+
+    @Test
+    fun everyStampMatchesWhoIsOut() {
+        PlayLibrary.plays.forEach { play ->
+            Answer.entries.forEach { answer ->
+                val replay = play.replay(answer)
+                val made = replay.out.size + if (play.caught) 1 else 0
+                val message = "${play.id} $answer"
+                when (play.stampFor(answer)) {
+                    Stamp.OUT -> assertWithMessage(message).that(replay.out).hasSize(1)
+                    Stamp.DOUBLE_PLAY -> assertWithMessage(message).that(made).isEqualTo(2)
+                    else -> assertWithMessage(message).that(replay.out).isEmpty()
+                }
+                assertWithMessage(message).that(replay.start.keys).containsAtLeastElementsIn(replay.out)
+                assertWithMessage(message).that(replay.outs).isEqualTo(minOf(3, play.outs + made))
+            }
+        }
+    }
+
+    @Test
+    fun aRunnerPutOutStopsShortOfTheBag() {
+        val replay = play("p02").replay(Answer.SECOND)
+        val runner = replay.shortOfBag(Token.Runner(Base.FIRST))!!
+        assertThat((runner - Field.SECOND).getDistance()).isGreaterThan(0.03f)
+        assertThat(replay.shortOfBag(Token.Batter)).isNull()
+    }
 }

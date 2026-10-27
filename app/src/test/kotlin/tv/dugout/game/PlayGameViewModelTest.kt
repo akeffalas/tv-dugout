@@ -110,6 +110,17 @@ class PlayGameViewModelTest {
     }
 
     @Test
+    fun theRightPlaysStampStaysWhileTheWhyShows() {
+        viewModel.onAnswer(wrongFor(plays[0]))
+        viewModel.onReplayFinished()
+        viewModel.onReplayFinished()
+
+        assertThat(state().phase).isEqualTo(Phase.WHY)
+        assertThat(state().stamp).isNotNull()
+        assertThat(state().stamp).isEqualTo(plays[0].rightStamp)
+    }
+
+    @Test
     fun heldSelectFromAnswerDoesNotSkipWhy() {
         viewModel.onAnswer(Answer.HOLD)
         viewModel.onNext()

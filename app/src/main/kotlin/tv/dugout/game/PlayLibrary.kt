@@ -10,6 +10,53 @@ import tv.dugout.game.Stamp.OUT
 import tv.dugout.game.Stamp.SAFE
 import tv.dugout.library.AgeRange
 
+/** The longest a play's title may be, so two lines fit under its inning on the summary. */
+const val MAX_TITLE = 26
+
+/** Each play's lesson in a few words, named under its inning on the summary. */
+private val TITLES =
+    mapOf(
+        "p01" to "Sure out at first",
+        "p02" to "Get the lead runner",
+        "p03" to "Step on second, turn two",
+        "p04" to "Force out at home",
+        "p05" to "No force at third",
+        "p06" to "Third out at first",
+        "p07" to "Step on third, turn two",
+        "p08" to "Sure out on a bunt",
+        "p09" to "Doubled off first",
+        "p10" to "Throw behind the runner",
+        "p11" to "Run it back in",
+        "p12" to "Forced, so run",
+        "p13" to "Ball in front: stay",
+        "p14" to "Tag up and score",
+        "p15" to "Two outs: run on contact",
+        "p34" to "Second baseman covers",
+        "p35" to "Shortstop covers second",
+        "p16" to "Start the double play",
+        "p17" to "Turn two to end it",
+        "p18" to "Two outs stop the run",
+        "p19" to "Cut the run off at home",
+        "p20" to "Keep the batter at first",
+        "p21" to "Hold the batter at first",
+        "p22" to "Throw out the tag-up",
+        "p23" to "Throw ahead of the runner",
+        "p24" to "Look the runner back",
+        "p25" to "Back up first",
+        "p26" to "Back up home",
+        "p27" to "Back up second",
+        "p28" to "First and third: hold it",
+        "p29" to "Tag up to third",
+        "p30" to "Forced, so run hard",
+        "p31" to "Pitcher covers first",
+        "p32" to "Toss to the pitcher",
+        "p33" to "Catcher backs up first",
+        "p36" to "Pitcher covers home",
+    )
+
+/** The play's lesson in a few words; empty for a play that is not bundled. */
+val Play.title: String get() = TITLES[id].orEmpty()
+
 /** The bundled plays (spec 0009), basics first, each tier from simplest to hardest. */
 object PlayLibrary {
     val plays: List<Play> = BASICS + SITUATIONS
