@@ -1,15 +1,20 @@
 package tv.dugout.game
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.dugout.AppGraph
 
-/** Runs rounds of What's the Play? for one child, saving mastered plays and best rounds as they happen. */
+/**
+ * Runs rounds of What's the Play? for one child, saving mastered plays and best rounds as they happen.
+ * The round in play is kept in [saved], so it survives Android closing the app in the background.
+ */
 class PlayGameViewModel(
     private val profileId: String,
     graph: AppGraph,
+    private val saved: SavedStateHandle,
 ) : ViewModel() {
     private val games = graph.games
     private val random = graph.random
@@ -17,9 +22,9 @@ class PlayGameViewModel(
         PlayLibrary.poolFor(requireNotNull(graph.profiles.profile(profileId)) { "Unknown profile $profileId" }.ageRange)
 
     // The record as this round began, so the summary can count what the round added.
-    private var before = games.record(profileId).value
-    private var leaving = false
-    private var round = newRound()
+    private var before = restoredBefore() ?: games.record(profileId).value
+    private var leaving = saved[LEAVING] ?: false
+    private var round = restoredRound() ?: newRound()
     private val state = MutableStateFlow(build())
     val uiState: StateFlow<PlayGameUiState> = state.asStateFlow()
 
@@ -41,6 +46,8 @@ class PlayGameViewModel(
     fun onPlayAgain() {
         if (round.phase != Phase.SUMMARY) return
         before = games.record(profileId).value
+        saved[BEST_BEFORE] = before.bestRuns
+        saved[MASTERED_BEFORE] = ArrayList(before.mastered)
         move(newRound())
     }
 
@@ -51,12 +58,14 @@ class PlayGameViewModel(
     fun onBack(): Boolean {
         if (!leaving && (!round.started || round.phase == Phase.SUMMARY)) return true
         leaving = !leaving
+        saved[LEAVING] = leaving
         state.value = build()
         return false
     }
 
     fun onKeepPlaying() {
         leaving = false
+        saved[LEAVING] = false
         state.value = build()
     }
 
@@ -64,8 +73,42 @@ class PlayGameViewModel(
 
     private fun move(next: Round) {
         round = next
+        save()
         state.value = build()
     }
+
+    private fun save() {
+        saved[PLAYS] = ArrayList(round.plays.map { it.id })
+        saved[INDEX] = round.index
+        saved[PHASE] = round.phase.name
+        saved[RUNS] = round.runs
+        saved[MISSES] = ArrayList(round.misses.map { it.id })
+        saved[CHOSEN] = round.chosen?.name
+        if (MASTERED_BEFORE !in saved) {
+            saved[BEST_BEFORE] = before.bestRuns
+            saved[MASTERED_BEFORE] = ArrayList(before.mastered)
+        }
+    }
+
+    /** The saved round, or none when there is none or it names a play the library no longer has. */
+    private fun restoredRound(): Round? {
+        fun plays(key: String): List<Play>? =
+            saved.get<ArrayList<String>>(key)?.map {
+                PlayLibrary.play(it)
+                    ?: return null
+            }
+        return Round(
+            plays = plays(PLAYS) ?: return null,
+            index = saved[INDEX] ?: return null,
+            phase = saved.get<String>(PHASE)?.let(Phase::valueOf) ?: return null,
+            runs = saved[RUNS] ?: return null,
+            misses = plays(MISSES) ?: return null,
+            chosen = saved.get<String>(CHOSEN)?.let(Answer::valueOf),
+        )
+    }
+
+    private fun restoredBefore(): GameRecord? =
+        saved.get<ArrayList<String>>(MASTERED_BEFORE)?.let { GameRecord(saved[BEST_BEFORE], it.toSet()) }
 
     private fun build(): PlayGameUiState {
         val play = round.current
@@ -96,3 +139,13 @@ class PlayGameViewModel(
         )
     }
 }
+
+private const val PLAYS = "round_plays"
+private const val INDEX = "round_index"
+private const val PHASE = "round_phase"
+private const val RUNS = "round_runs"
+private const val MISSES = "round_misses"
+private const val CHOSEN = "round_chosen"
+private const val LEAVING = "round_leaving"
+private const val BEST_BEFORE = "best_before"
+private const val MASTERED_BEFORE = "mastered_before"

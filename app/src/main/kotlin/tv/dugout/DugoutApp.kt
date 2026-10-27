@@ -10,6 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
@@ -420,7 +421,7 @@ private fun GameDestination(
         LaunchedEffect(Unit) { navController.popBackStack(PICKER_ROUTE, inclusive = false) }
         return
     }
-    val gameViewModel = viewModel { PlayGameViewModel(profile.id, graph) }
+    val gameViewModel = viewModel { PlayGameViewModel(profile.id, graph, createSavedStateHandle()) }
     val state by gameViewModel.uiState.collectAsStateWithLifecycle()
     val leave = { if (navController.currentBackStackEntry == entry) navController.popBackStack() }
     PlayGameScreen(

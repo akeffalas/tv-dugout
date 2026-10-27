@@ -1,5 +1,6 @@
 package tv.dugout.game
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +29,8 @@ class PlayGameViewModelTest {
     }
 
     private val games = CountingGames()
-    private val viewModel = PlayGameViewModel("sam", testGraph(games = games, random = Random(1)))
+    private val saved = SavedStateHandle()
+    private val viewModel = PlayGameViewModel("sam", testGraph(games = games, random = Random(1)), saved)
     private val plays = pickRound(PlayLibrary.poolFor(AgeRange.NINE_TO_TEN), emptySet(), Random(1))
 
     private fun state() = viewModel.uiState.value
@@ -214,5 +216,34 @@ class PlayGameViewModelTest {
         assertThat(state().phase).isEqualTo(Phase.SUMMARY)
         assertThat(state().newBest).isFalse()
         assertThat(state().newlyMastered).isEqualTo(4)
+    }
+
+    @Test
+    fun theRoundSurvivesTheAppBeingClosedInTheBackground() {
+        viewModel.onAnswer(wrongFor(plays[0]))
+        viewModel.onReplayFinished()
+        viewModel.onReplayFinished()
+        viewModel.onNext()
+        viewModel.onAnswer(plays[1].answer)
+        viewModel.onBack()
+        val before = state()
+
+        // A new process rebuilds the screen from its saved state, with a different random draw.
+        val restored = PlayGameViewModel("sam", testGraph(games = games, random = Random(99)), saved)
+
+        assertThat(restored.uiState.value).isEqualTo(before)
+        restored.onReplayFinished()
+        restored.onNext()
+        assertThat(restored.uiState.value.play).isEqualTo(plays[2])
+    }
+
+    @Test
+    fun aSavedRoundWithPlaysNoLongerBundledStartsAfresh() {
+        val stale = SavedStateHandle(mapOf("round_plays" to arrayListOf("gone"), "round_index" to 0))
+
+        val fresh = PlayGameViewModel("sam", testGraph(games = games, random = Random(1)), stale)
+
+        assertThat(fresh.uiState.value.play).isEqualTo(plays[0])
+        assertThat(fresh.uiState.value.phase).isEqualTo(Phase.QUESTION)
     }
 }

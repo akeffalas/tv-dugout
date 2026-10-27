@@ -94,7 +94,8 @@ fun PlayGameScreen(
     val finished by rememberUpdatedState(onReplayFinished)
     val replaying = state.phase == Phase.CHOICE_REPLAY || state.phase == Phase.RIGHT_REPLAY
     val moment = listOf(state.play?.id, state.phase, state.playNumber, state.retrying)
-    val scene = remember(state) { state.scene() }
+    // The scene depends only on these, so a Leave question or a scoreboard change does not rebuild it.
+    val scene = remember(state.play, state.phase, state.chosen, state.correct) { state.scene() }
     // Milliseconds into what the diamond shows: the hit while asking, the replay and its stamp after.
     val until = if (state.phase == Phase.QUESTION) HIT_MILLIS else scene?.replay?.length ?: 0
     val animating = replaying || state.phase == Phase.QUESTION
