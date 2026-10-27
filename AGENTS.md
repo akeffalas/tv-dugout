@@ -50,8 +50,9 @@ Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
 screens   picker (start), parent PIN (first screen on a fresh install, then the setup
           wizard), setup wizard (add a player), home (Videos and Games sections; skill
           tabs with progress), player (full-screen YouTube embed with fading baseball
-          controls), up next, What's the Play? game (drawn diamond, D-pad answers,
-          animated replays, 5-play rounds), parent settings (progress and reset,
+          controls), up next, What's the Play? game (drawn diamond with labeled
+          fielders, D-pad answers, animated replays, 5-play rounds with a line-score summary,
+          and a check before Back leaves a round), parent settings (progress and reset,
           profile, videos with New marks, remove; add a player, change PIN)
 data      57-video bundled library (five body skills plus Baseball IQ) with age, level,
           and library-version tags; 36 bundled plays with age tiers and who covers each base; profiles (with

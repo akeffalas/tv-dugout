@@ -408,7 +408,7 @@ private fun HomeDestination(
     )
 }
 
-/** What's the Play? for one child; Done and Back both return to Home's Games shelf. */
+/** What's the Play? for one child; Done, and Back once the round allows it, return to Home's Games shelf. */
 @Composable
 private fun GameDestination(
     graph: AppGraph,
@@ -422,13 +422,16 @@ private fun GameDestination(
     }
     val gameViewModel = viewModel { PlayGameViewModel(profile.id, graph) }
     val state by gameViewModel.uiState.collectAsStateWithLifecycle()
+    val leave = { if (navController.currentBackStackEntry == entry) navController.popBackStack() }
     PlayGameScreen(
         state = state,
         onAnswer = gameViewModel::onAnswer,
         onReplayFinished = gameViewModel::onReplayFinished,
         onNext = gameViewModel::onNext,
         onPlayAgain = gameViewModel::onPlayAgain,
-        onDone = { if (navController.currentBackStackEntry == entry) navController.popBackStack() },
+        onDone = { leave() },
+        onBack = { if (gameViewModel.onBack()) leave() },
+        onKeepPlaying = gameViewModel::onKeepPlaying,
     )
 }
 

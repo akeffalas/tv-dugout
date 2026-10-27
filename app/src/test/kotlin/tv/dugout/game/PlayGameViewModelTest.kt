@@ -148,4 +148,71 @@ class PlayGameViewModelTest {
 
         assertThat(games.record("sam").value.mastered).contains(plays[0].id)
     }
+
+    @Test
+    fun backBeforeTheFirstAnswerLeavesAtOnce() {
+        assertThat(viewModel.onBack()).isTrue()
+        assertThat(state().leaving).isFalse()
+    }
+
+    @Test
+    fun backMidRoundAsksFirst() {
+        viewModel.onAnswer(plays[0].answer)
+
+        assertThat(viewModel.onBack()).isFalse()
+        assertThat(state().leaving).isTrue()
+        viewModel.onKeepPlaying()
+        assertThat(state().leaving).isFalse()
+    }
+
+    @Test
+    fun backWhileAskedKeepsPlaying() {
+        answerRight()
+        viewModel.onBack()
+
+        assertThat(viewModel.onBack()).isFalse()
+        assertThat(state().leaving).isFalse()
+    }
+
+    @Test
+    fun backFromTheSummaryLeavesAtOnce() {
+        repeat(5) { answerRight() }
+
+        assertThat(viewModel.onBack()).isTrue()
+    }
+
+    @Test
+    fun summaryCountsNewChecksAndANewBest() {
+        viewModel.onAnswer(wrongFor(plays[0]))
+        viewModel.onReplayFinished()
+        viewModel.onReplayFinished()
+        viewModel.onNext()
+        repeat(4) { answerRight() }
+        answerRight()
+
+        assertThat(state().phase).isEqualTo(Phase.SUMMARY)
+        assertThat(state().lineScore).containsExactly(false, true, true, true, true).inOrder()
+        assertThat(state().newlyMastered).isEqualTo(5)
+        assertThat(state().newBest).isTrue()
+    }
+
+    @Test
+    fun aRoundBelowTheBestIsNoNewBestAndOldChecksDoNotCount() {
+        repeat(5) { answerRight() }
+        viewModel.onPlayAgain()
+        val first = state().play!!
+        viewModel.onAnswer(wrongFor(first))
+        viewModel.onReplayFinished()
+        viewModel.onReplayFinished()
+        viewModel.onNext()
+        repeat(4) { answerRight() }
+        viewModel.onAnswer(wrongFor(first))
+        viewModel.onReplayFinished()
+        viewModel.onReplayFinished()
+        viewModel.onNext()
+
+        assertThat(state().phase).isEqualTo(Phase.SUMMARY)
+        assertThat(state().newBest).isFalse()
+        assertThat(state().newlyMastered).isEqualTo(4)
+    }
 }

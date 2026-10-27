@@ -15,6 +15,10 @@ class PlayGameViewModel(
     private val random = graph.random
     private val pool =
         PlayLibrary.poolFor(requireNotNull(graph.profiles.profile(profileId)) { "Unknown profile $profileId" }.ageRange)
+
+    // The record as this round began, so the summary can count what the round added.
+    private var before = games.record(profileId).value
+    private var leaving = false
     private var round = newRound()
     private val state = MutableStateFlow(build())
     val uiState: StateFlow<PlayGameUiState> = state.asStateFlow()
@@ -36,7 +40,24 @@ class PlayGameViewModel(
 
     fun onPlayAgain() {
         if (round.phase != Phase.SUMMARY) return
+        before = games.record(profileId).value
         move(newRound())
+    }
+
+    /**
+     * Back from the game: true when it should close now (nothing answered yet, or the round is over).
+     * Mid-round it asks first, and Back while asking keeps playing.
+     */
+    fun onBack(): Boolean {
+        if (!leaving && (!round.started || round.phase == Phase.SUMMARY)) return true
+        leaving = !leaving
+        state.value = build()
+        return false
+    }
+
+    fun onKeepPlaying() {
+        leaving = false
+        state.value = build()
     }
 
     private fun newRound() = Round(pickRound(pool, games.record(profileId).value.mastered, random))
@@ -54,6 +75,9 @@ class PlayGameViewModel(
                 Phase.RIGHT_REPLAY -> play?.rightStamp
                 else -> null
             }
+        val record = games.record(profileId).value
+        val over = round.phase == Phase.SUMMARY
+        val beaten = before.bestRuns?.let { round.runs > it } ?: (round.runs > 0)
         return PlayGameUiState(
             play = play,
             phase = round.phase,
@@ -64,7 +88,11 @@ class PlayGameViewModel(
             chosen = round.chosen,
             stamp = stamp,
             correct = round.correct,
-            bestRuns = games.record(profileId).value.bestRuns,
+            bestRuns = record.bestRuns,
+            leaving = leaving,
+            lineScore = if (over) round.lineScore else emptyList(),
+            newlyMastered = (record.mastered - before.mastered).size,
+            newBest = over && beaten,
         )
     }
 }

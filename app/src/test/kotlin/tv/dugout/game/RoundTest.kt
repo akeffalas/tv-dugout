@@ -146,4 +146,20 @@ class RoundTest {
         assertThat(round.runs).isEqualTo(5)
         assertThat(round.current).isNull()
     }
+
+    @Test
+    fun lineScoreMarksEachMainPlayThatEarnedItsRun() {
+        var round =
+            Round(five)
+                .right()
+                .next()
+                .wrong()
+                .next()
+        repeat(3) { round = round.right().next() }
+        // The missed play's retry, answered right, earns a check but no run.
+        round = round.right().next()
+
+        assertThat(round.phase).isEqualTo(Phase.SUMMARY)
+        assertThat(round.lineScore).containsExactly(true, false, true, true, true).inOrder()
+    }
 }

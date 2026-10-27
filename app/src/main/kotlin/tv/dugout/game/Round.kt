@@ -39,14 +39,16 @@ data class Round(
 
     val correct: Boolean get() = chosen != null && current?.isRight(chosen) == true
 
-    fun answer(answer: Answer): Round =
-        if (phase !=
-            Phase.QUESTION
-        ) {
-            this
-        } else {
-            copy(phase = Phase.CHOICE_REPLAY, chosen = answer)
-        }
+    /** Whether each main play earned its run, in order; meaningful once the round is over. */
+    val lineScore: List<Boolean> get() = plays.map { it !in misses }
+
+    /** Whether the child has answered anything yet, so leaving would lose something. */
+    val started: Boolean get() = index > 0 || phase != Phase.QUESTION
+
+    fun answer(answer: Answer): Round {
+        if (phase != Phase.QUESTION) return this
+        return copy(phase = Phase.CHOICE_REPLAY, chosen = answer)
+    }
 
     fun replayFinished(): Round =
         when (phase) {
@@ -55,16 +57,8 @@ data class Round(
             }
 
             Phase.CHOICE_REPLAY -> {
-                copy(
-                    phase = Phase.RIGHT_REPLAY,
-                    misses =
-                        if (retrying) {
-                            misses
-                        } else {
-                            misses +
-                                listOfNotNull(current)
-                        },
-                )
+                val missed = if (retrying) emptyList() else listOfNotNull(current)
+                copy(phase = Phase.RIGHT_REPLAY, misses = misses + missed)
             }
 
             Phase.RIGHT_REPLAY -> {

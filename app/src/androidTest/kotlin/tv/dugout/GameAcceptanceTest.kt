@@ -3,6 +3,8 @@ package tv.dugout
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -74,9 +76,14 @@ class GameAcceptanceTest {
             Answer.HOLD -> pressDPadCenter()
         }
 
-    @Test
-    fun remoteReachesGamesAndPlaysARound() {
-        startApp()
+    /** Presses wait for the ball to reach the fielder, when the dimmed hints come alive. */
+    private fun awaitHit() {
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(hasTestTag("game_hint_second") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun openGame() {
         remote { pressDPadCenter() }
         remote { pressDPadUp() }
         remote { pressDPadUp() }
@@ -85,13 +92,16 @@ class GameAcceptanceTest {
         remote { pressDPadDown() }
         compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
         remote { pressDPadCenter() }
+    }
+
+    @Test
+    fun remoteReachesGamesAndPlaysARound() {
+        startApp()
+        openGame()
 
         plays.forEach { play ->
             compose.onNodeWithText(play.prompt).assertIsDisplayed()
-            // Presses wait for the ball to reach the fielder, which the hints mark.
-            compose.waitUntil(
-                5_000,
-            ) { compose.onAllNodesWithTag("game_hint_second").fetchSemanticsNodes().isNotEmpty() }
+            awaitHit()
             remote { pressFor(play.answer) }
             // The replay runs in real time before the why and Next play appear.
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("game_next").fetchSemanticsNodes().isNotEmpty() }
@@ -110,5 +120,26 @@ class GameAcceptanceTest {
         compose.onNodeWithTag("section_games").assertIsFocused()
         remote { pressBack() }
         compose.onNodeWithTag("profile_tile_sam").assertIsDisplayed()
+    }
+
+    @Test
+    fun backMidRoundAsksBeforeLeaving() {
+        startApp()
+        openGame()
+        awaitHit()
+        remote { pressFor(plays[0].answer) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("game_next").fetchSemanticsNodes().isNotEmpty() }
+
+        remote { pressBack() }
+        compose.onNodeWithText("Leave the round?").assertIsDisplayed()
+        compose.onNodeWithTag("leave_keep_playing").assertIsFocused()
+        remote { pressDPadCenter() }
+        compose.onNodeWithTag("game_next").assertIsFocused()
+
+        remote { pressBack() }
+        remote { pressDPadRight() }
+        compose.onNodeWithTag("leave_leave").assertIsFocused()
+        remote { pressDPadCenter() }
+        compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
     }
 }

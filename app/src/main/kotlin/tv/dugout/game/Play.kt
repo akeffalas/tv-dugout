@@ -4,10 +4,29 @@ package tv.dugout.game
 enum class Answer { FIRST, SECOND, THIRD, HOME, HOLD }
 
 /** A base a runner can stand on. */
-enum class Base { FIRST, SECOND, THIRD }
+enum class Base(
+    val title: String,
+) {
+    FIRST("first"),
+    SECOND("second"),
+    THIRD("third"),
+}
 
-/** Where a fielder plays on the diamond. */
-enum class Position { P, C, FIRST_BASE, SECOND_BASE, SHORTSTOP, THIRD_BASE, LEFT, CENTER, RIGHT }
+/** Where a fielder plays on the diamond, with the [short] label drawn on them and the [title] said aloud. */
+enum class Position(
+    val short: String,
+    val title: String,
+) {
+    P("P", "pitcher"),
+    C("C", "catcher"),
+    FIRST_BASE("1B", "first baseman"),
+    SECOND_BASE("2B", "second baseman"),
+    SHORTSTOP("SS", "shortstop"),
+    THIRD_BASE("3B", "third baseman"),
+    LEFT("LF", "left fielder"),
+    CENTER("CF", "center fielder"),
+    RIGHT("RF", "right fielder"),
+}
 
 /** What lands on the diamond at the end of a replay. */
 enum class Stamp(
@@ -117,3 +136,32 @@ fun Play.stampFor(answer: Answer): Stamp? =
     if (isRight(answer)) rightStamp else wrong[normalize(answer)] ?: Stamp.NO_PLAY
 
 val Play.question: String get() = if (kind == PlayKind.THROW) "Where do you throw?" else "Where do you go?"
+
+/** The play in words, for TalkBack: who the child is, the outs, and who else is on base. */
+val Play.situation: String
+    get() {
+        val own = (role as? Role.Runner)?.base
+        val you =
+            when (val role = role) {
+                is Role.Fielder -> "You are the ${role.position.title}."
+                is Role.Runner -> "You are the runner on ${role.base.title}."
+            }
+        val count =
+            if (outs == 0) {
+                "No outs."
+            } else if (outs == 1) {
+                "1 out."
+            } else {
+                "$outs outs."
+            }
+        val others = Base.entries.filter { it in runners && it != own }.map { it.title }
+        val bases =
+            when {
+                own == null && others.isEmpty() -> "Bases empty."
+                others.size == 3 -> "Bases loaded."
+                others.isEmpty() -> null
+                others.size == 1 -> "Runner on ${others[0]}."
+                else -> "Runners on ${others.joinToString(" and ")}."
+            }
+        return listOfNotNull(you, count, bases).joinToString(" ")
+    }

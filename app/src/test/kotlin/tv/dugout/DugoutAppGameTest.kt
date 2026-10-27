@@ -111,15 +111,42 @@ class DugoutAppGameTest {
     }
 
     @Test
-    fun backMidRoundReturnsToShelfAndKeepsChecks() {
+    fun backMidRoundAsksThenLeaveReturnsToShelfAndKeepsChecks() {
         openGame()
         answerRight(0)
 
         back()
+        compose.onNodeWithTag("leave_keep_playing").assertIsFocused()
+        press(Key.DirectionRight)
+        press(Key.DirectionCenter)
 
         compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
         compose.onNodeWithText("1 of 36 plays").assertIsDisplayed()
         compose.onNodeWithText("No rounds yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun keepPlayingReturnsToTheRound() {
+        openGame()
+        answerRight(0)
+
+        back()
+        press(Key.DirectionCenter)
+
+        compose.onNodeWithText("Leave the round?").assertDoesNotExist()
+        compose.onNodeWithTag("game_next").assertIsFocused()
+    }
+
+    @Test
+    fun backWhileAskedKeepsPlaying() {
+        openGame()
+        answerRight(0)
+
+        back()
+        back()
+
+        compose.onNodeWithText("Leave the round?").assertDoesNotExist()
+        compose.onNodeWithTag("game_next").assertIsFocused()
     }
 
     @Test

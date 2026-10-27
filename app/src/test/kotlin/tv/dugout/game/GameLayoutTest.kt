@@ -34,6 +34,8 @@ class GameLayoutTest {
                     onNext = {},
                     onPlayAgain = {},
                     onDone = {},
+                    onBack = {},
+                    onKeepPlaying = {},
                 )
             }
         }
@@ -69,6 +71,27 @@ class GameLayoutTest {
         show(state(longestWhy.copy(prompt = longestPrompt.prompt), Phase.WHY))
 
         listOf("game_prompt", "game_why", "game_next").forEach(::assertOnScreen)
+    }
+
+    @Test
+    fun summaryFitsATv() {
+        show(
+            state(longestPrompt, Phase.SUMMARY).copy(
+                play = null,
+                lineScore = List(5) { true },
+                newlyMastered = 5,
+                newBest = true,
+            ),
+        )
+
+        listOf("line_score_total", "summary_mastered", "summary_play_again", "summary_done").forEach(::assertOnScreen)
+    }
+
+    @Test
+    fun leaveQuestionFitsATv() {
+        show(state(longestWhy, Phase.WHY).copy(leaving = true))
+
+        listOf("leave_keep_playing", "leave_leave").forEach(::assertOnScreen)
     }
 
     @Test
