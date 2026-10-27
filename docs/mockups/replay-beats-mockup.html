@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dugout TV replay-beats-mockup</title>
+<style>body{background:#0b1220;color:#F3F1EA;font-family:system-ui;margin:2rem}.subtitle{color:#9FB0C8}</style>
+</head>
+<body>
+<h2>Making the replay easy to follow</h2>
+<p class="subtitle">Play 2: you're the shortstop, 1 out, runner on first, ground ball to you. Press a base under each field to replay it.</p>
+
+<style>
+  .fields { display: flex; gap: 28px; flex-wrap: wrap; }
+  .field { flex: 1 1 420px; max-width: 480px; }
+  .field canvas { width: 100%; aspect-ratio: 1; background: #0F1A2B; border-radius: 10px; display: block; }
+  .field .bar { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+  .field button { font: inherit; padding: 6px 12px; border-radius: 16px; border: 1px solid #9FB0C8; background: #1D3557; color: #F3F1EA; cursor: pointer; }
+  .field button:hover { border-color: #FFD23F; }
+  .field .msg { min-height: 2.6em; color: #FFD23F; font-weight: 600; }
+  .field ul { margin: 6px 0 0 18px; padding: 0; }
+</style>
+
+<div class="fields">
+  <div class="field">
+    <h3>A. Today</h3>
+    <canvas id="a" width="880" height="880"></canvas>
+    <div class="bar">
+      <button onclick="run('a','question')">New question</button>
+      <button onclick="run('a','right')">Press ▲ 2nd (right)</button>
+      <button onclick="run('a','wrong')">Press ▶ 1st (wrong)</button>
+    </div>
+    <div class="msg" id="a-msg"></div>
+    <ul>
+      <li>The ball jumps back to home plate when you press</li>
+      <li>Everyone moves at once, at the same steady speed</li>
+      <li>Ball and runner arrive together; the stamp decides</li>
+      <li>Nothing stays on the field afterwards</li>
+    </ul>
+  </div>
+  <div class="field">
+    <h3>B. One thing at a time</h3>
+    <canvas id="b" width="880" height="880"></canvas>
+    <div class="bar">
+      <button onclick="run('b','question')">New question</button>
+      <button onclick="run('b','right')">Press ▲ 2nd (right)</button>
+      <button onclick="run('b','wrong')">Press ▶ 1st (wrong)</button>
+    </div>
+    <div class="msg" id="b-msg"></div>
+    <ul>
+      <li>The hit plays when the question appears; the replay starts from you</li>
+      <li>Your base lights up the moment you press</li>
+      <li>Beat 1: the covering player runs to the bag</li>
+      <li>Beat 2: the race. Ball and runner leave chalk lines; the winner arrives first</li>
+      <li>Players not in the play fade back</li>
+      <li>The lines stay for the why. A wrong call stays dashed beside the right one</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(() => {
+  const C = { navy:'#0F1A2B', navyL:'#1D3557', chalk:'#F3F1EA', slate:'#9FB0C8', gold:'#FFD23F', red:'#E63946', grass:'#2E7D4F', dirt:'#B5793F' };
+  const P = (x, y) => ({ x, y });
+  const F = { HOME:P(.5,.86), FIRST:P(.75,.61), SECOND:P(.5,.36), THIRD:P(.25,.61), CENTRE:P(.5,.61) };
+  const POS = { P:P(.5,.63), C:P(.5,.93), '1B':P(.73,.53), '2B':P(.62,.41), SS:P(.38,.41), '3B':P(.27,.53), LF:P(.2,.2), CF:P(.5,.1), RF:P(.8,.2) };
+  const lin = t => t, out = t => 1 - Math.pow(1 - t, 3), inOut = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+  const lerp = (a, b, t) => P(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+  const clamp = t => Math.max(0, Math.min(1, t));
+
+  // A track moves one token along a path between two times.
+  const tr = (id, from, to, t0, t1, ease = lin, o = {}) => ({ id, from, to, t0, t1, ease, ...o });
+  const at = (k, t) => { const s = clamp((t - k.t0) / (k.t1 - k.t0)); return { p: lerp(k.from, k.to, k.ease(s)), s }; };
+
+  const tokens = () => ({
+    fielders: Object.keys(POS).map(k => ({ id: k, p: POS[k], own: k === 'SS' })),
+    runner: { id: 'R1', p: F.FIRST }, batter: { id: 'B', p: F.HOME }, ball: F.HOME,
+  });
+
+  // Scenes: a list of phases, each with tracks, a stamp, a ring, dimming, and a message.
+  const scenes = {
+    a: {
+      question: [{ dur: 1, ball: POS.SS, hints: true }],
+      right: [{ dur: 3600, ballStart: F.HOME, tracks: [
+        tr('ball', F.HOME, POS.SS, 0, 1200), tr('ball', POS.SS, F.SECOND, 1200, 2700),
+        tr('2B', POS['2B'], F.SECOND, 0, 1200), tr('R1', F.FIRST, F.SECOND, 0, 2700), tr('B', F.HOME, F.FIRST, 0, 2700)],
+        stamp: { text: 'OUT!', at: 2700 }, end: 'Right call! The runner on first is forced. Get the lead runner.' }],
+      wrong: [
+        { dur: 3600, tracks: [
+          tr('ball', F.HOME, POS.SS, 0, 1200), tr('ball', POS.SS, F.FIRST, 1200, 2700),
+          tr('1B', POS['1B'], F.FIRST, 0, 1200), tr('R1', F.FIRST, F.SECOND, 0, 2700), tr('B', F.HOME, F.FIRST, 0, 2700)],
+          stamp: { text: 'OUT!', at: 2700 }, flash: { at: 2700, text: "Not this time. Here's the play." } },
+        { dur: 3600, tracks: [
+          tr('ball', F.HOME, POS.SS, 0, 1200), tr('ball', POS.SS, F.SECOND, 1200, 2700),
+          tr('2B', POS['2B'], F.SECOND, 0, 1200), tr('R1', F.FIRST, F.SECOND, 0, 2700), tr('B', F.HOME, F.FIRST, 0, 2700)],
+          stamp: { text: 'OUT!', at: 2700 }, end: "Here's why: the runner on first is forced. Get the lead runner." }],
+    },
+    b: {
+      question: [{ dur: 1000, tracks: [tr('ball', F.HOME, POS.SS, 0, 1000, out)], hints: true }],
+      right: [{ dur: 2900, ring: F.SECOND, dim: true, tracks: rightB(),
+        stamp: { text: 'OUT!', at: 2300 }, end: 'Right call! The runner on first is forced. Get the lead runner.' }],
+      wrong: [
+        { dur: 2900, ring: F.FIRST, dim: true, tracks: [
+          tr('1B', POS['1B'], F.FIRST, 0, 700, inOut, { trail: 1, mine: 1 }),
+          tr('ball', POS.SS, F.FIRST, 700, 1800, out, { trail: 1, mine: 1 }),
+          tr('R1', F.FIRST, F.SECOND, 700, 2000, inOut, { trail: 1, mine: 1, lit: 1 }),
+          tr('B', F.HOME, F.FIRST, 700, 2300, inOut, { lit: 1 })],
+          stamp: { text: 'OUT!', at: 2300 }, note: 'Out at first, but the lead runner is safe at second.' },
+        { dur: 2900, ring: F.SECOND, dim: true, keepMine: true, banner: "Here's the right play", tracks: rightB(),
+          stamp: { text: 'OUT!', at: 2300 }, end: "Here's why: the runner on first is forced. Get the lead runner." }],
+    },
+  };
+  function rightB() {
+    return [
+      tr('2B', POS['2B'], F.SECOND, 0, 700, inOut, { trail: 1 }),
+      tr('ball', POS.SS, F.SECOND, 700, 1700, out, { trail: 1 }),
+      tr('R1', F.FIRST, F.SECOND, 700, 2250, inOut, { trail: 1 }),
+      tr('B', F.HOME, F.FIRST, 700, 2300, inOut),
+    ];
+  }
+
+  const live = {};
+  window.run = (which, name) => {
+    live[which] = { which, phases: scenes[which][name], i: 0, start: performance.now(), kept: [], name };
+    document.getElementById(which + '-msg').textContent = '';
+  };
+
+  function frame(now) {
+    for (const w of ['a', 'b']) draw(w, live[w], now);
+    requestAnimationFrame(frame);
+  }
+
+  function draw(w, run, now) {
+    const cv = document.getElementById(w), g = cv.getContext('2d'), S = cv.width;
+    const px = p => [p.x * S, p.y * S];
+    field(g, S);
+    const tk = tokens();
+    if (!run) { tk.ball = POS.SS; paint(g, S, tk, {}, [], true, null); return; }
+    let ph = run.phases[run.i], t = now - run.start;
+    while (t > ph.dur && run.i < run.phases.length - 1) {
+      if (ph.keepMine === undefined && run.phases[run.i + 1].keepMine) run.kept = ph.tracks.filter(k => k.mine && k.trail);
+      run.start += ph.dur; run.i++; ph = run.phases[run.i]; t = now - run.start;
+      if (w === 'b' && ph.banner) msg(w, ph.banner);
+    }
+    if (ph.ball) tk.ball = ph.ball;
+    const trails = [...run.kept.map(k => ({ k, upto: 1, faded: true }))];
+    for (const k of ph.tracks || []) {
+      const { p, s } = at(k, t);
+      if (t < k.t0) continue;
+      if (k.id === 'ball') tk.ball = p;
+      else if (k.id === 'R1') tk.runner.p = p;
+      else if (k.id === 'B') tk.batter.p = p;
+      else tk.fielders.find(f => f.id === k.id).p = p;
+      if (k.trail) trails.push({ k, upto: s });
+    }
+    // Ball path before its first track in a phase: hold at the start of that track.
+    const firstBall = (ph.tracks || []).find(k => k.id === 'ball');
+    if (firstBall && t < firstBall.t0) tk.ball = firstBall.from;
+    const lit = new Set((ph.tracks || []).filter(k => k.trail || k.lit).map(k => k.id));
+    if (ph.dim) lit.add('ball');
+    paint(g, S, tk, { dim: ph.dim, lit }, trails, !!ph.hints && t >= ph.dur - 1, ph.ring);
+    if (ph.stamp && t >= ph.stamp.at) stamp(g, S, ph.stamp.text, w === 'b' ? t - ph.stamp.at : 1e9);
+    const done = run.i === run.phases.length - 1 && t >= ph.dur;
+    if (ph.flash) msg(w, t >= ph.flash.at ? ph.flash.text : '');
+    if (ph.note && t >= ph.stamp.at) msg(w, ph.note);
+    if (done && ph.end) msg(w, ph.end);
+    if (w === 'a' && run.i === 1 && run.name === 'wrong' && !done) msg(w, '');
+  }
+
+  function msg(w, text) { const el = document.getElementById(w + '-msg'); if (el.textContent !== text) el.textContent = text; }
+
+  function field(g, S) {
+    g.clearRect(0, 0, S, S);
+    g.fillStyle = C.navy; g.fillRect(0, 0, S, S);
+    const H = F.HOME;
+    g.fillStyle = C.grass; g.beginPath(); g.moveTo(H.x*S, H.y*S); g.lineTo(.02*S, .36*S);
+    g.quadraticCurveTo(.5*S, -.22*S, .98*S, .36*S); g.closePath(); g.fill();
+    const corners = [F.HOME, F.FIRST, F.SECOND, F.THIRD];
+    const dia = (grow, col) => { g.fillStyle = col; g.beginPath(); corners.forEach((c, i) => {
+      const p = lerp(F.CENTRE, c, grow); i ? g.lineTo(p.x*S, p.y*S) : g.moveTo(p.x*S, p.y*S); }); g.closePath(); g.fill(); };
+    dia(1.25, C.dirt); dia(.8, C.grass);
+    const b = .032 * S;
+    for (const c of [F.FIRST, F.SECOND, F.THIRD]) { g.save(); g.translate(c.x*S, c.y*S); g.rotate(Math.PI/4); g.fillStyle = C.chalk; g.fillRect(-b/2, -b/2, b, b); g.restore(); }
+    g.fillStyle = C.chalk; g.beginPath(); const hx = H.x*S, hy = H.y*S;
+    g.moveTo(hx-b/2, hy-b/2); g.lineTo(hx+b/2, hy-b/2); g.lineTo(hx+b/2, hy); g.lineTo(hx, hy+b/2); g.lineTo(hx-b/2, hy); g.closePath(); g.fill();
+  }
+
+  function paint(g, S, tk, o, trails, hints, ring) {
+    const alpha = id => (o.dim && !o.lit.has(id) && id !== 'SS') ? .3 : 1;
+    for (const tr of trails) chalkLine(g, S, tr.k, tr.upto, tr.faded);
+    if (ring) { g.strokeStyle = C.gold; g.lineWidth = .009*S; g.beginPath(); g.arc(ring.x*S, ring.y*S, .05*S, 0, 7); g.stroke(); }
+    for (const f of tk.fielders) token(g, S, f.p, f.own ? C.gold : C.navyL, alpha(f.id), f.own ? .023 : .021);
+    token(g, S, tk.runner.p, C.red, alpha('R1'), .023);
+    token(g, S, tk.batter.p, C.red, alpha('B'), .023);
+    g.globalAlpha = 1;
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(tk.ball.x*S, tk.ball.y*S, .016*S, 0, 7); g.fill();
+    g.strokeStyle = C.red; g.lineWidth = .0035*S; g.stroke();
+    if (hints) {
+      g.fillStyle = C.gold; g.font = `bold ${.034*S}px system-ui`;
+      g.fillText('▲ 2nd', (F.SECOND.x-.06)*S, (F.SECOND.y-.06)*S);
+      g.fillText('▶ 1st', (F.FIRST.x+.05)*S, (F.FIRST.y-.01)*S);
+      g.fillText('3rd ◀', (F.THIRD.x-.17)*S, (F.THIRD.y-.01)*S);
+      g.fillText('▼ Home', (F.HOME.x+.05)*S, (F.HOME.y-.01)*S);
+      g.fillText('● Hold it', (F.HOME.x-.27)*S, (F.HOME.y-.01)*S);
+    }
+  }
+
+  function token(g, S, p, col, a, r) {
+    g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.arc(p.x*S, p.y*S, r*S, 0, 7); g.fill();
+    g.strokeStyle = C.chalk; g.lineWidth = .0045*S; g.stroke(); g.globalAlpha = 1;
+  }
+
+  function chalkLine(g, S, k, upto, faded) {
+    if (upto <= 0) return;
+    const a = k.from, b = lerp(k.from, k.to, k.ease(upto));
+    g.save(); g.globalAlpha = faded ? .55 : .9;
+    g.strokeStyle = k.mine ? C.gold : C.chalk; g.lineWidth = .007*S; g.lineCap = 'round';
+    g.setLineDash(k.mine ? [.018*S, .016*S] : []);
+    g.beginPath(); g.moveTo(a.x*S, a.y*S); g.lineTo(b.x*S, b.y*S); g.stroke();
+    if (upto >= 1) {
+      const ang = Math.atan2(b.y - a.y, b.x - a.x), h = .03*S; g.setLineDash([]);
+      g.beginPath(); g.moveTo(b.x*S - h*Math.cos(ang - .5), b.y*S - h*Math.sin(ang - .5));
+      g.lineTo(b.x*S, b.y*S); g.lineTo(b.x*S - h*Math.cos(ang + .5), b.y*S - h*Math.sin(ang + .5)); g.stroke();
+    }
+    g.restore();
+  }
+
+  function stamp(g, S, text, since) {
+    const s = clamp(since / 250), scale = 1.5 - .5 * out(s) + (s < 1 ? .08 * Math.sin(s * Math.PI) : 0);
+    g.save(); g.translate(.5*S, .56*S); g.rotate(-.12 * Math.min(1, since / 250)); g.scale(scale, scale);
+    g.globalAlpha = Math.min(1, .3 + s);
+    g.font = `900 ${.12*S}px system-ui`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const wd = g.measureText(text).width + .06*S;
+    g.strokeStyle = C.red; g.lineWidth = .012*S; g.strokeRect(-wd/2, -.08*S, wd, .16*S);
+    g.fillStyle = C.red; g.fillText(text, 0, .005*S); g.restore();
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
