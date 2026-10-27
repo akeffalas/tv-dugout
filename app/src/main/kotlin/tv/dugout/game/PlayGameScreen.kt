@@ -59,9 +59,6 @@ const val REPLAY_MILLIS = 3_000
 /** How long a new question ignores presses, so the second tap of a fast double tap on Next play does not answer it. */
 const val QUESTION_SETTLE_MILLIS = 300
 
-/** How long the stamp stays before the replay counts as finished. */
-const val STAMP_MILLIS = 600
-
 private const val STAMP_FROM = 0.9f
 
 private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)

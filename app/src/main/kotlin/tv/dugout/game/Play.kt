@@ -98,7 +98,7 @@ fun Play.coverFor(answer: Answer): Position? {
 /** Whether the batter runs to first: on a ball hit on the ground or for a base hit, not on a catch or a steal. */
 val Play.batterRuns: Boolean get() = steal == null && !caught
 
-private fun Base.answer() =
+internal fun Base.answer() =
     when (this) {
         Base.FIRST -> Answer.FIRST
         Base.SECOND -> Answer.SECOND
