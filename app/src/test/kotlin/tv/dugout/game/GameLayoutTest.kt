@@ -70,4 +70,11 @@ class GameLayoutTest {
 
         listOf("game_prompt", "game_why", "game_next").forEach(::assertOnScreen)
     }
+
+    @Test
+    fun rightReplayScreenFitsATv() {
+        show(state(longestPrompt, Phase.RIGHT_REPLAY))
+
+        listOf("game_prompt", "game_banner").forEach(::assertOnScreen)
+    }
 }

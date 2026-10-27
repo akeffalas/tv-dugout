@@ -62,8 +62,9 @@ data class Trail(
     val mine: Boolean,
 )
 
-/** Where every token starts, how each moves, when the stamp lands, and who stays bright. */
+/** Where every token starts, how each moves, when the stamp lands, who stays bright, and which token is the [child]. */
 data class Replay(
+    val child: Token,
     val start: Map<Token, Offset>,
     val moves: List<Move>,
     val stampAt: Int,
@@ -92,6 +93,13 @@ data class Replay(
 internal fun Play.forced(base: Base): Boolean =
     batterRuns && Base.entries.takeWhile { it != base }.all { it in runners }
 
+/** The token the child plays: their fielder or their runner. */
+private fun Play.childToken(): Token =
+    when (val role = role) {
+        is Role.Fielder -> Token.Fielder(role.position)
+        is Role.Runner -> Token.Runner(role.base)
+    }
+
 /** Everyone in their places before the play, with the ball at [ball]. */
 private fun Play.lineup(ball: Offset): Map<Token, Offset> {
     val own = (role as? Role.Fielder)?.position
@@ -110,7 +118,7 @@ fun Play.hit(): Replay {
     val start = lineup(Field.HOME)
     val roll =
         Move(Token.Ball, listOf(Field.HOME, fieldSpot()), 0, HIT_MILLIS, ThrowEasing, trail = false, mine = false)
-    return Replay(start, listOf(roll), HIT_MILLIS, start.keys)
+    return Replay(childToken(), start, listOf(roll), HIT_MILLIS, start.keys)
 }
 
 /** The replay of [answer], starting with the ball at the fielder. */
@@ -126,7 +134,7 @@ private class Beats(
     private val stamp = play.stampFor(answer)
     private val own = (play.role as? Role.Fielder)?.position
     private val ownRunner = (play.role as? Role.Runner)?.base
-    private val child: Token = own?.let { Token.Fielder(it) } ?: Token.Runner(requireNotNull(ownRunner))
+    private val child = play.childToken()
     private val carries = right && play.takeIt
     private val relays = right && play.relay
     private val start = play.lineup(play.fieldSpot())
@@ -250,6 +258,7 @@ private class Beats(
         val movers = moves.map { it.token }.filterIsInstance<Token.Fielder>()
         val bright = setOf(Token.Ball, child, Token.Fielder(play.ballTo)) + movers + racers + sent
         return Replay(
+            child,
             start,
             moves.map { it.copy(trail = it.token in bright) },
             end,

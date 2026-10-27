@@ -126,23 +126,40 @@ class PlayGameScreenTest {
         compose.mainClock.autoAdvance = false
         show(state(phase = Phase.CHOICE_REPLAY, chosen = Answer.SECOND, stamp = Stamp.OUT, correct = true))
 
-        compose.mainClock.advanceTimeBy(1_000)
+        // The second baseman covers, then the throw beats the runner: the stamp lands at 2,300 ms.
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.onNodeWithTag("game_stamp").assertDoesNotExist()
         assertThat(replaysFinished).isEqualTo(0)
-        compose.mainClock.advanceTimeBy(3_000)
 
-        assertThat(replaysFinished).isEqualTo(1)
+        compose.mainClock.advanceTimeBy(400)
         compose.onNodeWithTag("game_stamp").assertIsDisplayed()
         compose.onNodeWithText("OUT!").assertIsDisplayed()
+        assertThat(replaysFinished).isEqualTo(0)
+
+        compose.mainClock.advanceTimeBy(600)
+        assertThat(replaysFinished).isEqualTo(1)
     }
 
     @Test
     fun wrongChoiceShowsStampAndNotThisTime() {
         compose.mainClock.autoAdvance = false
         show(state(phase = Phase.CHOICE_REPLAY, chosen = Answer.HOLD, stamp = Stamp.SAFE))
-        compose.mainClock.advanceTimeBy(3_500)
+        compose.mainClock.advanceTimeBy(2_000)
 
         compose.onNodeWithText("SAFE").assertIsDisplayed()
-        compose.onNodeWithText("Not this time. Here's the play.").assertIsDisplayed()
+        compose.onNodeWithText("Not this time.").assertIsDisplayed()
+    }
+
+    @Test
+    fun theRightReplayShowsItsBanner() {
+        compose.mainClock.autoAdvance = false
+        show(state(phase = Phase.RIGHT_REPLAY, chosen = Answer.HOLD, stamp = Stamp.OUT))
+
+        compose.mainClock.advanceTimeBy(100)
+        compose.onNodeWithTag("game_banner").assertIsDisplayed()
+        compose.onNodeWithText("Here's the right play").assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(1_900)
+        compose.onNodeWithTag("game_banner").assertIsDisplayed()
     }
 
     @Test
@@ -230,16 +247,21 @@ class PlayGameScreenTest {
     }
 
     @Test
-    fun aPressTheMomentAQuestionAppearsDoesNotAnswer() {
+    fun aPressDuringTheHitDoesNotAnswer() {
         compose.mainClock.autoAdvance = false
         show(state())
         compose.mainClock.advanceTimeByFrame()
 
-        // The second tap of a fast double tap on Next play lands here.
+        // The second tap of a fast double tap on Next play lands here, and so does an early guess.
+        // Each injected press also moves the clock on a little.
         compose.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.mainClock.advanceTimeBy(HIT_MILLIS - 300L)
+        compose.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        compose.onNodeWithTag("game_hint_second").assertDoesNotExist()
         assertThat(answers).isEmpty()
 
-        compose.mainClock.advanceTimeBy(QUESTION_SETTLE_MILLIS.toLong() + 50)
+        compose.mainClock.advanceTimeBy(400)
+        compose.onNodeWithTag("game_hint_second").assertIsDisplayed()
         compose.onRoot().performKeyInput { pressKey(Key.DirectionUp) }
         assertThat(answers).containsExactly(Answer.SECOND)
     }

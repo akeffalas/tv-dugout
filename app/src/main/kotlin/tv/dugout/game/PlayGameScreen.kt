@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,14 +54,6 @@ import tv.dugout.ui.theme.ProgressRed
 import tv.dugout.ui.theme.Slate
 import tv.dugout.ui.theme.WatchedGreen
 
-/** How long the ball and runners take to move in a replay. */
-const val REPLAY_MILLIS = 3_000
-
-/** How long a new question ignores presses, so the second tap of a fast double tap on Next play does not answer it. */
-const val QUESTION_SETTLE_MILLIS = 300
-
-private const val STAMP_FROM = 0.9f
-
 private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 
 private fun Key.answer(): Answer? =
@@ -89,12 +82,12 @@ fun PlayGameScreen(
     val finished by rememberUpdatedState(onReplayFinished)
     val replaying = state.phase == Phase.CHOICE_REPLAY || state.phase == Phase.RIGHT_REPLAY
     val moment = listOf(state.play?.id, state.phase, state.playNumber, state.retrying)
-    // Milliseconds into the replay: the ball and runners move, then the stamp holds for a moment.
-    val elapsed = remember(moment) { Animatable(if (replaying) 0f else (REPLAY_MILLIS + STAMP_MILLIS).toFloat()) }
-    val progress = (elapsed.value / REPLAY_MILLIS).coerceAtMost(1f)
-
-    // A new question settles before it takes an answer; timed as an animation, like the replay.
-    val settle = remember(moment) { Animatable(if (state.phase == Phase.QUESTION) 0f else 1f) }
+    val scene = remember(state) { state.scene() }
+    // Milliseconds into what the diamond shows: the hit while asking, the replay and its stamp after.
+    val until = if (state.phase == Phase.QUESTION) HIT_MILLIS else scene?.replay?.length ?: 0
+    val animating = replaying || state.phase == Phase.QUESTION
+    val elapsed = remember(moment) { Animatable(if (animating) 0f else until.toFloat()) }
+    val landed by remember(moment) { derivedStateOf { scene != null && elapsed.value >= scene.replay.stampAt } }
 
     LaunchedEffect(moment) {
         when (state.phase) {
@@ -102,29 +95,18 @@ fun PlayGameScreen(
             Phase.SUMMARY -> playAgain.requestFocus()
             else -> root.requestFocus()
         }
-        if (state.phase == Phase.QUESTION) settle.animateTo(1f, tween(QUESTION_SETTLE_MILLIS, easing = LinearEasing))
-        if (replaying) {
-            elapsed.animateTo(
-                (REPLAY_MILLIS + STAMP_MILLIS).toFloat(),
-                tween(REPLAY_MILLIS + STAMP_MILLIS, easing = LinearEasing),
-            )
-            finished()
+        if (animating) {
+            elapsed.animateTo(until.toFloat(), tween(until, easing = LinearEasing))
         }
+        if (replaying) finished()
     }
 
     DugoutBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             val play = state.play
-            if (state.phase == Phase.SUMMARY || play == null) {
+            if (state.phase == Phase.SUMMARY || play == null || scene == null) {
                 Summary(state, playAgain, onPlayAgain, onDone)
             } else {
-                val shown =
-                    when (state.phase) {
-                        Phase.QUESTION -> null
-                        Phase.CHOICE_REPLAY -> state.chosen
-                        else -> play.answer
-                    }
-                val stampShown = replaying && progress >= STAMP_FROM
                 Row(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 26.dp),
                     horizontalArrangement = Arrangement.spacedBy(28.dp),
@@ -139,17 +121,24 @@ fun PlayGameScreen(
                             modifier = Modifier.testTag("game_prompt"),
                         )
                         Text(play.question, fontSize = 17.sp, color = Slate)
-                        if (state.phase == Phase.CHOICE_REPLAY && !state.correct && stampShown) {
-                            Text("Not this time. Here's the play.", fontSize = 17.sp, color = FocusGold)
+                        if (state.phase == Phase.CHOICE_REPLAY && !state.correct && landed) {
+                            Text("Not this time.", fontSize = 17.sp, color = FocusGold)
+                        }
+                        if (state.phase == Phase.RIGHT_REPLAY) {
+                            Text(
+                                "Here's the right play",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = FocusGold,
+                                modifier = Modifier.testTag("game_banner"),
+                            )
                         }
                         if (state.phase == Phase.WHY) Why(state, play, next, onNext)
                     }
                     Diamond(
-                        play = play,
-                        shown = shown,
-                        progress = progress,
-                        stamp = state.stamp.takeIf { stampShown },
-                        asking = state.phase == Phase.QUESTION,
+                        scene = scene,
+                        stamp = state.stamp,
+                        ms = { elapsed.value.toInt() },
                         // The diamond takes the remote's answers. It sits beside the buttons rather than around
                         // them, so Back from a button leaves the game instead of moving focus out to it.
                         modifier =
@@ -163,8 +152,9 @@ fun PlayGameScreen(
                                     // Only a fresh press while asked answers; a held key's repeats and release do nothing.
                                     val fresh =
                                         event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0
-                                    val settled = settle.value >= 1f
-                                    if (state.phase == Phase.QUESTION && settled && fresh && answer != null) {
+                                    // Presses wait for the ball to reach the fielder, which also absorbs a fast double tap.
+                                    val hit = elapsed.value >= HIT_MILLIS
+                                    if (state.phase == Phase.QUESTION && hit && fresh && answer != null) {
                                         onAnswer(answer)
                                         true
                                     } else {
