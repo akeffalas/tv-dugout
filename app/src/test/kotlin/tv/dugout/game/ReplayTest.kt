@@ -80,10 +80,10 @@ class ReplayTest {
                         }
                     }
 
-                    Stamp.SAFE -> {
+                    Stamp.SAFE, Stamp.NO_PLAY -> {
                         throws.forEach { ball ->
                             val racers = runners.filter { it.path.last() == ball.path.last() }
-                            assertWithMessage(label).that(racers).isNotEmpty()
+                            if (stamp == Stamp.SAFE) assertWithMessage(label).that(racers).isNotEmpty()
                             racers.forEach { assertWithMessage(label).that(it.end).isLessThan(ball.end) }
                         }
                     }
@@ -190,5 +190,35 @@ class ReplayTest {
         assertThat(child.done).isFalse()
         assertThat(child.points.first()).isEqualTo(Field.SECOND)
         assertThat(child.points).contains(Field.THIRD)
+    }
+
+    @Test
+    fun coveringAndBackingUpStartFromTheChildsOwnSpot() {
+        PlayLibrary.plays.filter { it.kind == PlayKind.COVER || it.kind == PlayKind.BACK_UP }.forEach { play ->
+            val own = (play.role as Role.Fielder).position
+            assertWithMessage(play.id).that(play.hit().at(Token.Fielder(own), 0)).isEqualTo(own.spot())
+            assertWithMessage(play.id).that(play.replay(play.answer).at(Token.Fielder(own), 0)).isEqualTo(own.spot())
+        }
+    }
+
+    @Test
+    fun aSafeHoldKeepsTheRunnersBright() {
+        val replay = play("p01").replay(Answer.HOLD)
+        assertThat(replay.bright).contains(Token.Batter)
+        assertThat(replay.trailsAt(replay.length)).hasSize(1)
+    }
+
+    @Test
+    fun theChildDrawsOnTopAndFieldersOverRunners() {
+        val p12 = play("p12").replay(Answer.HOLD).drawOrder()
+        assertThat(p12.last()).isEqualTo(Token.Runner(Base.FIRST))
+        val p02 = play("p02").replay(Answer.SECOND).drawOrder()
+        assertThat(
+            p02.indexOf(Token.Fielder(Position.SECOND_BASE)),
+        ).isGreaterThan(p02.indexOf(Token.Runner(Base.FIRST)))
+        assertThat(p02.last()).isEqualTo(Token.Fielder(Position.SHORTSTOP))
+        assertThat(p02).doesNotContain(Token.Ball)
+        // Faded players sit underneath the play.
+        assertThat(p02.first()).isNotIn(play("p02").replay(Answer.SECOND).bright)
     }
 }

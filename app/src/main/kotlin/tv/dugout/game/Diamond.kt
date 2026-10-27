@@ -87,7 +87,8 @@ fun Diamond(
             scene.ring?.spot()?.let {
                 drawCircle(FocusGold, radius = 22.dp.toPx(), center = it.on(size), style = Stroke(3.dp.toPx()))
             }
-            spots.forEach { (token, spot) ->
+            replay.drawOrder().forEach { token ->
+                val spot = spots.getValue(token)
                 val alpha = if (scene.asking || token in replay.bright) 1f else FADED
                 val own = token == replay.child
                 when (token) {

@@ -81,6 +81,20 @@ data class Replay(
                 ?.let { along(it.path, it.share(ms)) } ?: from
         }
 
+    /**
+     * The players in the order to draw them: faded ones underneath, then runners, then fielders, so
+     * whoever takes a throw on the bag shows over a runner arriving there, and the child on top.
+     */
+    fun drawOrder(): List<Token> =
+        start.keys.filter { it != Token.Ball }.sortedBy { token ->
+            when {
+                token == child -> 3
+                token !in bright -> 0
+                token is Token.Fielder -> 2
+                else -> 1
+            }
+        }
+
     fun trailsAt(ms: Int): List<Trail> =
         moves.filter { it.trail && ms > it.start }.map { move ->
             val share = move.share(ms)
@@ -102,8 +116,8 @@ private fun Play.childToken(): Token =
 
 /** Everyone in their places before the play, with the ball at [ball]. */
 private fun Play.lineup(ball: Offset): Map<Token, Offset> {
-    val own = (role as? Role.Fielder)?.position
-    val fielders = Position.entries.associate { Token.Fielder(it) to if (it == own) fieldSpot() else it.spot() }
+    // Whoever fields the ball stands where it is fielded; everyone else, the child included, on their own spot.
+    val fielders = Position.entries.associate { Token.Fielder(it) to if (it == ballTo) fieldSpot() else it.spot() }
     val onBase =
         runners.associate { base ->
             val lead = leads[base] ?: 0f
@@ -228,12 +242,18 @@ private class Beats(
             } + listOfNotNull((Token.Batter to listOf(Field.HOME, Field.FIRST)).takeIf { play.batterRuns })
         runs.filter { (_, path) -> path.size > 1 && path.first() != path.last() }.forEach { (token, path) ->
             // On a relay the batter races the second throw, to first.
-            val racing = target != null && (path.last() == target || (relays && token == Token.Batter))
+            // With no throw, a SAFE stamp is the runners reaching their bases, so they are the play.
+            val racing =
+                if (target == null) {
+                    stamp == Stamp.SAFE
+                } else {
+                    path.last() == target || (relays && token == Token.Batter)
+                }
             if (racing) racers += token
             val arrive =
                 when {
                     token == Token.Batter && relays -> end
-                    racing && stamp == Stamp.SAFE -> win
+                    racing && (stamp == Stamp.SAFE || stamp == Stamp.NO_PLAY) -> win
                     else -> raceEnd
                 }
             moves += run(token, path, raceStart, arrive)
