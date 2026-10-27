@@ -257,6 +257,28 @@ class PlayGameScreenTest {
     }
 
     @Test
+    fun aRetriedPlayWaitsForItsOwnHit() {
+        var current by mutableStateOf(state())
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            DugoutTheme {
+                PlayGameScreen(current, { answers += it }, {}, {}, {}, {}, {}, {})
+            }
+        }
+        compose.mainClock.advanceTimeBy(HIT_MILLIS + 200L)
+        compose.onNodeWithTag("game_hint_second").assertIsEnabled()
+
+        // The retry draws the same scene as the first try, but its hit starts over.
+        current = state(retrying = true)
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(200)
+
+        compose.onNodeWithTag("game_hint_second").assertIsNotEnabled()
+        compose.mainClock.advanceTimeBy(HIT_MILLIS.toLong())
+        compose.onNodeWithTag("game_hint_second").assertIsEnabled()
+    }
+
+    @Test
     fun focusStaysInTheLeaveQuestion() {
         show(state(phase = Phase.WHY, chosen = Answer.SECOND, correct = true, leaving = true))
 

@@ -149,7 +149,6 @@ private class Beats(
     private val own = (play.role as? Role.Fielder)?.position
     private val ownRunner = (play.role as? Role.Runner)?.base
     private val child = play.childToken()
-    private val carries = right && play.takeIt
     private val relays = right && play.relay
     private val start = play.lineup(play.fieldSpot())
 
@@ -160,6 +159,12 @@ private class Beats(
             PlayKind.COVER, PlayKind.BACK_UP -> play.answer
             PlayKind.RUN -> runnerThrow()
         }
+
+    /**
+     * Whether whoever fielded the ball runs it to the bag rather than throwing: they cover that base
+     * themselves, as on taking it yourself or a third baseman choosing third.
+     */
+    private val carries = throwTo?.let(play::coverFor) == play.ballTo
 
     /** On a runner play the fielder throws at the child's base only when the stamp says who won. */
     private fun runnerThrow(): Answer? {
@@ -211,7 +216,7 @@ private class Beats(
                     target?.let { t ->
                         play
                             .coverFor(t)
-                            ?.takeIf { !carries && it != play.ballTo }
+                            ?.takeIf { it != play.ballTo }
                             ?.let { Token.Fielder(it) to requireNotNull(t.spot()) }
                     }
                 val relay = (Token.Fielder(Position.FIRST_BASE) to Field.FIRST).takeIf { relays }
@@ -263,10 +268,10 @@ private class Beats(
             val ballArrives = if (ballFirst) win else raceEnd
             val ballPath = listOf(play.fieldSpot(), target)
             if (carries) {
-                // The child runs the ball to the bag in hand.
-                val carry = run(child, ballPath, raceStart, ballArrives)
-                moves += carry
-                moves += carry.copy(token = Token.Ball, mine = childHolds)
+                // The fielder runs the ball to the bag in hand; the ball's chalk line draws it once.
+                val carry = run(Token.Fielder(play.ballTo), ballPath, raceStart, ballArrives)
+                moves += carry.copy(trail = false)
+                moves += carry.copy(token = Token.Ball, trail = true, mine = childHolds)
             } else {
                 moves += throwBall(ballPath, raceStart, ballArrives)
             }
@@ -280,7 +285,7 @@ private class Beats(
         return Replay(
             child,
             start,
-            moves.map { it.copy(trail = it.token in bright) },
+            moves.map { it.copy(trail = it.trail && it.token in bright) },
             end,
             bright,
         )
@@ -293,7 +298,7 @@ private class Beats(
         path: List<Offset>,
         from: Int,
         to: Int,
-    ) = Move(token, path, from, to, RunEasing, trail = false, mine = token == child)
+    ) = Move(token, path, from, to, RunEasing, trail = true, mine = token == child)
 
     private fun throwBall(
         path: List<Offset>,

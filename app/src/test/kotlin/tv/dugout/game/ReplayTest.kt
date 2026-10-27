@@ -221,4 +221,47 @@ class ReplayTest {
         // Faded players sit underneath the play.
         assertThat(p02.first()).isNotIn(play("p02").replay(Answer.SECOND).bright)
     }
+
+    @Test
+    fun everyThrowReachesAFielderOnTheBag() {
+        PlayLibrary.plays.forEach { play ->
+            Answer.entries.forEach { answer ->
+                // A wrong cover or back-up leaves the bag empty on purpose: the empty spot is the lesson.
+                val emptyOnPurpose = !play.isRight(answer) && play.kind in setOf(PlayKind.COVER, PlayKind.BACK_UP)
+                val replay = play.replay(answer)
+                replay.moves.filter { it.token == Token.Ball && it.path.last() in bases }.forEach { ball ->
+                    val there =
+                        replay.spotsAt(ball.end).filter { (token, spot) ->
+                            token is Token.Fielder && (spot - ball.path.last()).getDistance() < 0.001f
+                        }
+                    if (!emptyOnPurpose) {
+                        assertWithMessage("${play.id} $answer ball to ${ball.path.last()}").that(there).isNotEmpty()
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun aFielderWhoCoversTheBaseTheyChoseRunsTheBallThere() {
+        // Third base is the third baseman's own bag, and home the catcher's: they step on it, not throw to it.
+        listOf(
+            Triple("p18", Answer.THIRD, Position.THIRD_BASE),
+            Triple("p28", Answer.HOME, Position.C),
+        ).forEach { (id, answer, position) ->
+            val replay = play(id).replay(answer)
+            val fielder = Token.Fielder(position)
+            listOf(0, 1_000, replay.stampAt).forEach {
+                assertWithMessage("$id at $it").that(replay.at(Token.Ball, it)).isEqualTo(replay.at(fielder, it))
+            }
+            assertThat(replay.at(fielder, replay.stampAt)).isEqualTo(requireNotNull(answer.spot()))
+        }
+    }
+
+    @Test
+    fun aCarriedBallLeavesOneChalkLine() {
+        val replay = play("p09").replay(Answer.FIRST)
+        // The runner going back to first draws their own line; the carry draws one, not one each for child and ball.
+        assertThat(replay.trailsAt(replay.length).map { it.points }).containsNoDuplicates()
+    }
 }

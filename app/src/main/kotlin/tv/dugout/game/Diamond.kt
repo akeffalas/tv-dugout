@@ -77,8 +77,9 @@ fun Diamond(
     modifier: Modifier = Modifier,
 ) {
     val replay = scene.replay
-    val ready by remember(scene) { derivedStateOf { scene.asking && ms() >= HIT_MILLIS } }
-    val landed by remember(scene) { derivedStateOf { !scene.asking && ms() >= replay.stampAt } }
+    // Keyed on the clock too: a retried play draws a scene equal to its first try's, on a new clock.
+    val ready by remember(scene, ms) { derivedStateOf { scene.asking && ms() >= HIT_MILLIS } }
+    val landed by remember(scene, ms) { derivedStateOf { !scene.asking && ms() >= replay.stampAt } }
     val labels = rememberLabels()
     Box(modifier = modifier.aspectRatio(1f)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
