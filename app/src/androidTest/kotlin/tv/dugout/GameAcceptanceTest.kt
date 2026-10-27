@@ -88,6 +88,10 @@ class GameAcceptanceTest {
 
         plays.forEach { play ->
             compose.onNodeWithText(play.prompt).assertIsDisplayed()
+            // Presses wait for the ball to reach the fielder, which the hints mark.
+            compose.waitUntil(
+                5_000,
+            ) { compose.onAllNodesWithTag("game_hint_second").fetchSemanticsNodes().isNotEmpty() }
             remote { pressFor(play.answer) }
             // The replay runs in real time before the why and Next play appear.
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("game_next").fetchSemanticsNodes().isNotEmpty() }
