@@ -94,6 +94,9 @@ class PlayerViewModel(
 
     // YouTube reports a rate only when it changes, so asking for the rate already in force gets no reply.
     private var atHalfSpeed = false
+
+    // A rebuilt player starts at normal speed; the child's Slow-mo is asked for again once it plays.
+    private var reapplySlowMo = false
     private var settleJob: Job? = null
 
     // Without a network the embedded player never loads and never reports anything.
@@ -111,6 +114,11 @@ class PlayerViewModel(
                     it.copy(state = state, hasPlayed = it.hasPlayed || state == PlaybackState.PLAYING)
                 }
                 scheduleHide()
+                if (state == PlaybackState.PLAYING && reapplySlowMo) {
+                    reapplySlowMo = false
+                    slowMoPending = true
+                    requestHalfSpeed()
+                }
                 if (state == PlaybackState.ENDED) {
                     history.markWatched(profileId, video.id, uiState.value.durationSeconds, clock())
                     endedState.value = true
@@ -137,9 +145,12 @@ class PlayerViewModel(
             }
 
             override fun onRateConfirmed(slowMo: Boolean) {
+                atHalfSpeed = slowMo
+                // Normal speed reported while half speed is awaited is the earlier switch back landing late,
+                // not an answer: keep waiting, so a refusal still shows as unavailable.
+                if (!slowMo && slowMoTimeout?.isActive == true) return
                 slowMoTimeout?.cancel()
                 slowMoPending = false
-                atHalfSpeed = slowMo
                 // A replay's half speed is not the child's Slow-mo choice.
                 if (replayReturnPoint == null) state.update { it.copy(slowMo = slowMo, slowMoUnavailable = false) }
             }
@@ -152,6 +163,11 @@ class PlayerViewModel(
 
     fun attach(player: VideoPlayer) {
         this.player = player
+        atHalfSpeed = false
+        slowMoPending = false
+        slowMoTimeout?.cancel()
+        clearReplay()
+        reapplySlowMo = uiState.value.slowMo
         player.setListener(listener)
         val start = history.progress(profileId).value[video.id]?.resumeFrom() ?: 0f
         player.load(video.sourceId, start)
@@ -172,7 +188,7 @@ class PlayerViewModel(
             requestHalfSpeed()
         } else {
             slowMoPending = false
-            player?.requestSlowMo(false)
+            requestNormalSpeed()
             state.update { it.copy(slowMo = false, slowMoUnavailable = false) }
         }
     }
@@ -266,8 +282,8 @@ class PlayerViewModel(
                 delay(SLOW_MO_CONFIRM_MILLIS)
                 slowMoPending = false
                 clearReplay()
-                player?.requestSlowMo(false)
-                state.update { it.copy(slowMoUnavailable = true, controlsVisible = true) }
+                requestNormalSpeed()
+                state.update { it.copy(slowMo = false, slowMoUnavailable = true, controlsVisible = true) }
                 scheduleHide()
             }
     }
@@ -282,7 +298,13 @@ class PlayerViewModel(
         if (replayReturnPoint == null) return
         clearReplay()
         slowMoTimeout?.cancel()
-        player?.requestSlowMo(uiState.value.slowMo)
+        if (uiState.value.slowMo) player?.requestSlowMo(true) else requestNormalSpeed()
+    }
+
+    // Normal speed is never refused, so it counts from the request: a quick Slow-mo after it must ask again.
+    private fun requestNormalSpeed() {
+        atHalfSpeed = false
+        player?.requestSlowMo(false)
     }
 
     fun onUserActivity() = scheduleHide()

@@ -1,6 +1,9 @@
 package tv.dugout.profile
 
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -36,6 +39,22 @@ class InMemoryProfileRepositoryTest {
     fun unknownIdReturnsNull() {
         assertThat(repository().profile("nobody")).isNull()
     }
+
+    @Test
+    fun aSaveThatFinishesAfterTheCallerLeavesStillShowsTheChild() =
+        runTest {
+            val gate = CompletableDeferred<Unit>()
+            val repository = repository(ProfileSaver { _, _, _ -> gate.await() })
+            val caller = launch { repository.add(maya, listOf("a")) }
+            advanceUntilIdle()
+
+            caller.cancel()
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertThat(repository.profile("maya")).isEqualTo(maya)
+            assertThat(lists.videoIds("maya")).containsExactly("a")
+        }
 
     @Test
     fun addAppendsTheChildAndTheirList() =

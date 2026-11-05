@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -76,7 +77,8 @@ class SixSkillsLayoutTest {
 
     @Test
     fun wizardVideosStepReachesDoneBelowSixSkills() {
-        val viewModel = SetupViewModel(InMemoryProfileRepository(emptyList()), BundledVideoLibrary())
+        val viewModel =
+            SetupViewModel(InMemoryProfileRepository(emptyList()), BundledVideoLibrary(), SavedStateHandle())
         viewModel.onNameChanged("Maya")
         viewModel.onNameSubmitted()
         viewModel.onAgeSelected(AgeRange.NINE_TO_TEN)

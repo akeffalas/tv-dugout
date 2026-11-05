@@ -1,11 +1,14 @@
 package tv.dugout.setup
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.dugout.library.AgeRange
@@ -20,10 +23,26 @@ import tv.dugout.profile.ProfileRepository
 import tv.dugout.profile.nextAvatarColor
 import java.util.UUID
 
-/** Walks a parent through adding one child. Nothing is saved until [onDone]. */
+private const val KEY_STEP = "setup_step"
+private const val KEY_NAME = "setup_name"
+private const val KEY_AGE = "setup_age"
+private const val KEY_LEVEL = "setup_level"
+private const val KEY_SKILLS = "setup_skills"
+private const val KEY_SKILLS_SUBMITTED = "setup_skills_submitted"
+private const val KEY_VIDEO_SKILL = "setup_video_skill"
+private const val KEY_SKILLS_FOR = "setup_skills_for"
+private const val KEY_CHECKED_SKILLS = "setup_checked_skills"
+private const val KEY_CHECKS = "setup_checks_"
+private const val KEY_SAVED_ID = "setup_saved_id"
+
+/**
+ * Walks a parent through adding one child. Nothing is saved until [onDone]. The answers so far live in
+ * [saved], so the wizard comes back where it was after process death.
+ */
 class SetupViewModel(
     private val profiles: ProfileRepository,
     private val library: VideoLibrary,
+    private val saved: SavedStateHandle,
     private val newId: () -> String = { UUID.randomUUID().toString() },
 ) : ViewModel() {
     // Checked video IDs per chosen skill. A skill missing here starts from its recommendations.
@@ -33,6 +52,12 @@ class SetupViewModel(
     private var skillsFor: Pair<AgeRange, Level>? = null
     private val state = MutableStateFlow(fresh())
     val uiState: StateFlow<SetupUiState> = state.asStateFlow()
+
+    init {
+        restore()
+        // Every change to the answers also changes the state, so saving on each state is enough.
+        state.onEach { save(it) }.launchIn(viewModelScope)
+    }
 
     fun onNameChanged(text: String) {
         state.update { it.copy(name = text, nameError = null) }
@@ -149,6 +174,52 @@ class SetupViewModel(
             )
         }
         return true
+    }
+
+    private fun save(current: SetupUiState) {
+        saved[KEY_STEP] = current.step.name
+        saved[KEY_NAME] = current.name
+        saved[KEY_AGE] = current.age?.name
+        saved[KEY_LEVEL] = current.level?.name
+        saved[KEY_SKILLS] = ArrayList(current.skills.map { it.name })
+        saved[KEY_SKILLS_SUBMITTED] = current.skillsSubmitted
+        saved[KEY_VIDEO_SKILL] = current.videoSkill.name
+        saved[KEY_SKILLS_FOR] = skillsFor?.let { (age, level) -> arrayListOf(age.name, level.name) }
+        saved[KEY_CHECKED_SKILLS] = ArrayList(checks.keys.map { it.name })
+        checks.forEach { (skill, ids) -> saved[KEY_CHECKS + skill.name] = ArrayList(ids) }
+        saved[KEY_SAVED_ID] = current.saved?.id
+    }
+
+    private fun restore() {
+        val step = saved.get<String>(KEY_STEP)?.let(SetupStep::valueOf) ?: return
+        if (step == SetupStep.READY) {
+            val child = profiles.profiles.value.firstOrNull { it.id == saved.get<String>(KEY_SAVED_ID) } ?: return
+            state.value = fresh().copy(step = SetupStep.READY, name = child.name, saved = child)
+            return
+        }
+        skillsFor =
+            saved.get<ArrayList<String>>(KEY_SKILLS_FOR)?.let { (age, level) ->
+                AgeRange.valueOf(age) to Level.valueOf(level)
+            }
+        checks =
+            saved.get<ArrayList<String>>(KEY_CHECKED_SKILLS).orEmpty().map(Skill::valueOf).associateWith { skill ->
+                saved.get<ArrayList<String>>(KEY_CHECKS + skill.name).orEmpty().toSet()
+            }
+        val restored =
+            fresh().copy(
+                step = step,
+                name = saved.get<String>(KEY_NAME).orEmpty(),
+                age = saved.get<String>(KEY_AGE)?.let(AgeRange::valueOf),
+                level = saved.get<String>(KEY_LEVEL)?.let(Level::valueOf),
+                skills =
+                    saved
+                        .get<ArrayList<String>>(KEY_SKILLS)
+                        ?.mapTo(HashSet(), Skill::valueOf)
+                        ?: Skill.entries.toSet(),
+                skillsSubmitted = saved.get<Boolean>(KEY_SKILLS_SUBMITTED) ?: false,
+                videoSkill = saved.get<String>(KEY_VIDEO_SKILL)?.let(Skill::valueOf) ?: Skill.entries.first(),
+            )
+        if (step == SetupStep.VIDEOS) publishVideos(restored) else state.value = restored
     }
 
     private fun fresh() = SetupUiState(canAddAnother = profiles.profiles.value.size < MAX_PLAYERS)

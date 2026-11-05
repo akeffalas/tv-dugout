@@ -111,7 +111,15 @@ fun DugoutApp(
     NavHost(navController = navController, startDestination = start) {
         composable(PICKER_ROUTE) { entry ->
             val pickerViewModel =
-                viewModel { ProfilePickerViewModel(graph.profiles, graph.profileVideos, graph.history, graph.lock) }
+                viewModel {
+                    ProfilePickerViewModel(
+                        graph.profiles,
+                        graph.profileVideos,
+                        graph.history,
+                        graph.lock,
+                        createSavedStateHandle(),
+                    )
+                }
             val state by pickerViewModel.uiState.collectAsStateWithLifecycle()
             val added by entry.savedStateHandle
                 .getStateFlow<String?>(RESULT_ADDED_PROFILE, null)
@@ -297,7 +305,7 @@ private fun SetupDestination(
     entry: NavBackStackEntry,
     fromParent: Boolean,
 ) {
-    val setupViewModel = viewModel { SetupViewModel(graph.profiles, graph.library) }
+    val setupViewModel = viewModel { SetupViewModel(graph.profiles, graph.library, createSavedStateHandle()) }
     val state by setupViewModel.uiState.collectAsStateWithLifecycle()
 
     // Only while the wizard is the current screen, so a fast double press cannot navigate twice.
@@ -401,6 +409,7 @@ private fun HomeDestination(
             }
         },
         onSectionSelected = homeViewModel::onSectionSelected,
+        onFocusRestored = homeViewModel::onFocusRestored,
         onGameSelected = {
             if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                 navController.navigate(gameRoute(profile.id))

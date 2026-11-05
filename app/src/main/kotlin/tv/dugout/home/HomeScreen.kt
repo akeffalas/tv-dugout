@@ -58,6 +58,7 @@ fun HomeScreen(
     onVideoSelected: (HomeTab, RowKey, String) -> Unit,
     onSectionSelected: (HomeSection) -> Unit = {},
     onGameSelected: () -> Unit = {},
+    onFocusRestored: () -> Unit = {},
 ) {
     val tabs = listOf<HomeTab>(HomeTab.Home) + state.skills.map { HomeTab.SkillTab(it.skill) } + HomeTab.MyList
     val tabRequesters = remember(tabs) { tabs.associateWith { FocusRequester() } }
@@ -89,6 +90,8 @@ fun HomeScreen(
 
             target != null -> {
                 target.requestFocus()
+                // Used once: a later change to the rows must not pull focus back to this card.
+                onFocusRestored()
             }
 
             !arrived -> {

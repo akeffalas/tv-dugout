@@ -1,5 +1,8 @@
 package tv.dugout.home
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -153,6 +156,40 @@ class HomeScreenTest {
         compose.onNodeWithText("Title h1").assertIsDisplayed()
         compose.onNodeWithText("CHANNEL H1").assertIsDisplayed()
         compose.onAllNodesWithText("1:40")[0].assertIsDisplayed()
+    }
+
+    @Test
+    fun aProgressUpdateAfterReturningDoesNotPullFocusBack() {
+        var current by mutableStateOf(state(focus = FocusTarget(HomeTab.Home, RowKey.SkillRow(Skill.FIELDING), "f1")))
+        compose.setContent {
+            DugoutTheme {
+                HomeScreen(
+                    state = current,
+                    onTabSelected = {},
+                    onVideoSelected = { _, _, _ -> },
+                    onFocusRestored = { current = current.copy(focus = null) },
+                )
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithTag("card_row_fielding_f2").performKeyInput { pressKey(Key.DirectionRight) }
+        compose.waitForIdle()
+        compose.onNodeWithTag("card_row_fielding_f2").assertIsFocused()
+
+        // The progress writer catches up: the rows change while the child looks at another card.
+        current =
+            current.copy(
+                rows =
+                    listOf(
+                        hittingRow,
+                        fieldingRow.copy(
+                            cards = listOf(card("f1", Skill.FIELDING, watched = true), card("f2", Skill.FIELDING)),
+                        ),
+                    ),
+            )
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("card_row_fielding_f2").assertIsFocused()
     }
 
     @Test

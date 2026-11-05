@@ -171,14 +171,22 @@ class DugoutDaoTest {
         }
 
     @Test
-    fun updateProfileChangesItsFields() =
+    fun updateProfileDetailsChangesItsFieldsAndKeepsItsPlace() =
         runTest {
-            dao.insertProfiles(listOf(profile("a", 0)))
+            dao.insertProfiles(listOf(profile("a", 3)))
 
-            dao.updateProfile(profile("a", 0).copy(name = "Al", level = "TEE_BALL", offeredLibraryVersion = 2))
+            dao.updateProfileDetails("a", "Al", 0xFF2A9D8F, "THIRTEEN_PLUS", "TEE_BALL", 2)
 
             assertThat(dao.profiles().single())
-                .isEqualTo(profile("a", 0).copy(name = "Al", level = "TEE_BALL", offeredLibraryVersion = 2))
+                .isEqualTo(
+                    profile("a", 3).copy(
+                        name = "Al",
+                        avatarColor = 0xFF2A9D8F,
+                        ageRange = "THIRTEEN_PLUS",
+                        level = "TEE_BALL",
+                        offeredLibraryVersion = 2,
+                    ),
+                )
         }
 
     @Test

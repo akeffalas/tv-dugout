@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -48,7 +49,7 @@ class VideosStepTest {
         level: Level = Level.KID_PITCH,
         setup: SetupViewModel.() -> Unit = {},
     ): SetupUiState {
-        val viewModel = SetupViewModel(InMemoryProfileRepository(emptyList()), library)
+        val viewModel = SetupViewModel(InMemoryProfileRepository(emptyList()), library, SavedStateHandle())
         viewModel.onNameChanged("Maya")
         viewModel.onNameSubmitted()
         viewModel.onAgeSelected(age)
@@ -172,7 +173,7 @@ class VideosStepTest {
 
     @Test
     fun everyRefusedDoneMovesFocusToTheEmptySkill() {
-        val viewModel = SetupViewModel(InMemoryProfileRepository(emptyList()), library)
+        val viewModel = SetupViewModel(InMemoryProfileRepository(emptyList()), library, SavedStateHandle())
         viewModel.onNameChanged("Maya")
         viewModel.onNameSubmitted()
         viewModel.onAgeSelected(AgeRange.FOUR_TO_SIX)

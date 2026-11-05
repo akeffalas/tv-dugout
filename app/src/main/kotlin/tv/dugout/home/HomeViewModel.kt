@@ -47,6 +47,11 @@ class HomeViewModel(
         focus.value = null
     }
 
+    /** Home has put focus on the target from [onReturned], so it is not applied again. */
+    fun onFocusRestored() {
+        focus.value = null
+    }
+
     fun onVideoSelected(
         tab: HomeTab,
         row: RowKey,

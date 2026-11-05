@@ -92,6 +92,9 @@ class DiamondScreenshotTest {
     fun theHitReachesTheFielder() = capture("question_p02", "p02", Phase.QUESTION)
 
     @Test
+    fun aRunnersTagSitsBelowThemClearOfTheFielder() = capture("question_p12_runner", "p12", Phase.QUESTION)
+
+    @Test
     fun aDoublePlayTakesTheBagThenRelays() = capture("why_p03_double_play", "p03", Phase.WHY)
 
     @Test

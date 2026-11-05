@@ -111,6 +111,17 @@ class SavedStoreTest {
         }
 
     @Test
+    fun updatingAChildRemovedMeanwhileIsHarmless() =
+        runBlocking<Unit> {
+            val profiles = store().apply { start() }.ready().profiles
+
+            profiles.remove("sam")
+            profiles.update(SAMPLE_PROFILES[0].copy(name = "Samuel"))
+
+            assertThat(profiles.profiles.value.map { it.id }).containsExactly("jack")
+        }
+
+    @Test
     fun lockLoadsFromDatabase() =
         runBlocking<Unit> {
             val name = "lock-test.db"

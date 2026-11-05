@@ -141,6 +141,45 @@ class PlayerViewModelTest {
         }
 
     @Test
+    fun aRebuiltPlayerIsAskedForSlowMoAgain() {
+        val vm = attached()
+        vm.onSlowMoToggle()
+        player.confirmRate(true)
+
+        // The screen is rebuilt (the activity is recreated): a fresh YouTube player starts at normal speed.
+        val rebuilt = FakeVideoPlayer()
+        vm.attach(rebuilt)
+        assertThat(rebuilt.slowMoRequests).isEmpty()
+        assertThat(vm.uiState.value.slowMo).isTrue()
+
+        // Asked once the new video plays, since a rate set while it loads can be dropped.
+        rebuilt.emitState(PlaybackState.PLAYING)
+        rebuilt.emitState(PlaybackState.PLAYING)
+        assertThat(rebuilt.slowMoRequests).containsExactly(true)
+        rebuilt.confirmRate(true)
+        assertThat(vm.uiState.value.slowMo).isTrue()
+    }
+
+    @Test
+    fun aLateNormalSpeedReportDoesNotCancelTheWaitForSlowMo() =
+        runTest(main.dispatcher) {
+            val vm = attached()
+            vm.onSlowMoToggle()
+            player.confirmRate(true)
+            vm.onSlowMoToggle()
+
+            // Slow-mo again before YouTube reports the switch back; then it reports normal speed and
+            // never 0.5x (refused).
+            vm.onSlowMoToggle()
+            player.confirmRate(false)
+            advanceTimeBy(SLOW_MO_CONFIRM_MILLIS + 1)
+            runCurrent()
+
+            assertThat(vm.uiState.value.slowMoUnavailable).isTrue()
+            assertThat(vm.uiState.value.slowMo).isFalse()
+        }
+
+    @Test
     fun togglingSlowMoOffReturnsToNormalSpeed() {
         val vm = attached()
         vm.onSlowMoToggle()

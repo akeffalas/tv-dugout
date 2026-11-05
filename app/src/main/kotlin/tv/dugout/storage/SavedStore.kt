@@ -111,8 +111,16 @@ class SavedStore(
 
                 override suspend fun update(profile: Profile) =
                     write {
-                        val position = dao.profiles().first { it.id == profile.id }.position
-                        dao.updateProfile(profile.toEntity(position))
+                        // One statement, so a child removed meanwhile is simply not found.
+                        val row = profile.toEntity(position = 0)
+                        dao.updateProfileDetails(
+                            row.id,
+                            row.name,
+                            row.avatarColor,
+                            row.ageRange,
+                            row.level,
+                            row.offeredLibraryVersion,
+                        )
                     }
 
                 override suspend fun saveVideos(

@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import androidx.room.Update
 import androidx.room.Upsert
 
 @Dao
@@ -41,8 +40,19 @@ interface DugoutDao {
     @Query("DELETE FROM profile WHERE id = :id")
     suspend fun deleteProfile(id: String)
 
-    @Update
-    suspend fun updateProfile(row: ProfileEntity)
+    /** Changes a child's details in place, keeping their position; a child already removed is left alone. */
+    @Query(
+        "UPDATE profile SET name = :name, avatar_color = :avatarColor, age_range = :ageRange, level = :level, " +
+            "offered_library_version = :offeredLibraryVersion WHERE id = :id",
+    )
+    suspend fun updateProfileDetails(
+        id: String,
+        name: String,
+        avatarColor: Long,
+        ageRange: String,
+        level: String,
+        offeredLibraryVersion: Int,
+    )
 
     @Query("DELETE FROM profile_video WHERE profile_id = :profileId")
     suspend fun deleteProfileVideos(profileId: String)

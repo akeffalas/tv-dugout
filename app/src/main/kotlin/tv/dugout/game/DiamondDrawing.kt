@@ -218,7 +218,8 @@ internal fun DrawScope.drawFielder(
 }
 
 /**
- * A gold YOU tag over the child, above a fielder's larger circle or a runner's smaller one. With
+ * A gold YOU tag on the child, above a fielder's larger circle and below a runner's smaller one (above it
+ * near home). With
  * [ring], a gold ring circles them too, swelling by [pulse] (0 to 1).
  */
 internal fun DrawScope.drawYou(
@@ -240,16 +241,23 @@ internal fun DrawScope.drawYou(
             alpha = 1f - 0.6f * pulse,
         )
     }
-    val bottom = at.y - radius - 4.dp.toPx()
-    val topLeft = Offset(at.x - text.width / 2f - pad.x, bottom - text.height - pad.y * 2)
+    val height = text.height + pad.y * 2
+    // A runner's tag hangs below them, since a fielder stands just above first, second, and third. Near
+    // home the catcher is below instead, so the tag goes back on top.
+    val below = !fielder && at.y < size.height * NEAR_HOME
+    val top = if (below) at.y + radius + 4.dp.toPx() else at.y - radius - 4.dp.toPx() - height
+    val topLeft = Offset(at.x - text.width / 2f - pad.x, top)
     drawRoundRect(
         FocusGold,
         topLeft = topLeft,
-        size = Size(text.width + pad.x * 2, text.height + pad.y * 2),
+        size = Size(text.width + pad.x * 2, height),
         cornerRadius = CornerRadius(6.dp.toPx()),
     )
     drawText(you, color = Navy, topLeft = topLeft + pad)
 }
+
+/** Below this share of the field's height a runner is coming home. */
+private const val NEAR_HOME = 0.75f
 
 /** Each position's label and the YOU tag, measured once. */
 internal class Labels(

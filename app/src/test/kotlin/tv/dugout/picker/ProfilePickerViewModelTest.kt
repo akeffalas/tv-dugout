@@ -1,5 +1,6 @@
 package tv.dugout.picker
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -31,7 +32,21 @@ class ProfilePickerViewModelTest {
         profiles: ProfileRepository = repository,
         profileVideos: ProfileVideos = lists,
         lock: ParentLock = noPinLock(),
-    ) = ProfilePickerViewModel(profiles, profileVideos, history, lock)
+        saved: SavedStateHandle = SavedStateHandle(),
+    ) = ProfilePickerViewModel(profiles, profileVideos, history, lock, saved)
+
+    @Test
+    fun selectionSurvivesProcessDeath() {
+        val saved = SavedStateHandle()
+        viewModel(saved = saved).onProfileSelected("jack")
+        assertThat(viewModel(saved = saved).uiState.value.lastSelection).isEqualTo(PickerSelection.Kid("jack"))
+
+        viewModel(saved = saved).onAddSelected()
+        assertThat(viewModel(saved = saved).uiState.value.lastSelection).isEqualTo(PickerSelection.AddPlayer)
+
+        viewModel(saved = saved).onParentSelected()
+        assertThat(viewModel(saved = saved).uiState.value.lastSelection).isEqualTo(PickerSelection.Parent)
+    }
 
     @Test
     fun initialStateHasProfilesAndNoSelection() {

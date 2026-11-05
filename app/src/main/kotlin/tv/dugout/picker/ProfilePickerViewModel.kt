@@ -1,5 +1,6 @@
 package tv.dugout.picker
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,6 +34,26 @@ sealed interface PickerSelection {
     data object Parent : PickerSelection
 }
 
+private const val SELECTION_KEY = "picker_selection"
+private const val KID_PREFIX = "kid:"
+
+// Saved as a string so the choice outlives process death.
+private fun PickerSelection.saved(): String =
+    when (this) {
+        is PickerSelection.Kid -> KID_PREFIX + profileId
+        PickerSelection.AddPlayer -> "add"
+        PickerSelection.Parent -> "parent"
+    }
+
+private fun selectionFrom(saved: String?): PickerSelection? =
+    when {
+        saved == null -> null
+        saved == "add" -> PickerSelection.AddPlayer
+        saved == "parent" -> PickerSelection.Parent
+        saved.startsWith(KID_PREFIX) -> PickerSelection.Kid(saved.removePrefix(KID_PREFIX))
+        else -> null
+    }
+
 data class ProfilePickerUiState(
     val profiles: List<Profile>,
     val watchedCounts: Map<String, Int> = emptyMap(),
@@ -46,11 +67,17 @@ class ProfilePickerViewModel(
     private val profileVideos: ProfileVideos,
     private val history: WatchHistory,
     private val lock: ParentLock,
+    private val saved: SavedStateHandle,
 ) : ViewModel() {
     private val state =
         MutableStateFlow(
             repository.profiles.value.let { profiles ->
-                ProfilePickerUiState(profiles, watchedCounts(profiles), null, canAdd(profiles.size, lock.status.value))
+                ProfilePickerUiState(
+                    profiles,
+                    watchedCounts(profiles),
+                    selectionFrom(saved[SELECTION_KEY]),
+                    canAdd(profiles.size, lock.status.value),
+                )
             },
         )
     val uiState: StateFlow<ProfilePickerUiState> = state.asStateFlow()
@@ -90,19 +117,18 @@ class ProfilePickerViewModel(
         status: LockStatus,
     ) = children < MAX_PLAYERS && status == LockStatus.NO_PIN
 
-    fun onProfileSelected(profileId: String) {
-        state.update { it.copy(lastSelection = PickerSelection.Kid(profileId)) }
-    }
+    fun onProfileSelected(profileId: String) = select(PickerSelection.Kid(profileId))
 
-    fun onAddSelected() {
-        state.update { it.copy(lastSelection = PickerSelection.AddPlayer) }
-    }
+    fun onAddSelected() = select(PickerSelection.AddPlayer)
 
     /** A child was just added, so focus lands on them when the picker shows again. */
     fun onProfileAdded(profileId: String) = onProfileSelected(profileId)
 
-    fun onParentSelected() {
-        state.update { it.copy(lastSelection = PickerSelection.Parent) }
+    fun onParentSelected() = select(PickerSelection.Parent)
+
+    private fun select(selection: PickerSelection) {
+        saved[SELECTION_KEY] = selection.saved()
+        state.update { it.copy(lastSelection = selection) }
     }
 
     private fun watchedCounts(profiles: List<Profile>) =

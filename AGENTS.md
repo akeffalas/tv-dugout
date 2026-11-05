@@ -41,8 +41,8 @@ docs/  Justfile  .pre-commit-config.yaml
 ```
 
 Stack: Kotlin, Gradle Kotlin DSL with the wrapper (JDK 17), Jetpack Compose with
-`androidx.tv:tv-material`, Navigation Compose, Room through KSP (ADR-0007), `minSdk` 28, `compileSdk`/`targetSdk` 37
-(ADR-0001).
+`androidx.tv:tv-material`, Navigation Compose, Room through KSP (ADR-0007), `minSdk` 28,
+`compileSdk`/`targetSdk` 37 (ADR-0001).
 
 ### What exists
 
@@ -51,16 +51,17 @@ screens   picker (start), parent PIN (first screen on a fresh install, then the 
           wizard), setup wizard (add a player), home (Videos and Games sections; skill
           tabs with progress), player (full-screen YouTube embed with fading baseball
           controls), up next, What's the Play? game (drawn diamond with labeled
-          fielders, D-pad answers, animated replays, 5-play rounds with a line-score summary whose plays reopen,
-          and a check before Back leaves a round), parent settings (progress and reset,
-          profile, videos with New marks, remove; add a player, change PIN)
+          fielders, D-pad answers, animated replays, 5-play rounds with a line-score
+          summary whose plays reopen, and a check before Back leaves a round), parent
+          settings (progress and reset, profile, videos with New marks, remove; add a
+          player, change PIN)
 data      57-video bundled library (five body skills plus Baseball IQ) with age, level,
-          and library-version tags; 36 bundled plays with age tiers and who covers each base; profiles (with
-          age range, level, and offered version), each child's video list, watch
-          progress, best round and mastered plays, and the hashed parent PIN saved in
-          Room; a fresh install has no children and no PIN
-recipes   build, clean, fmt, lint, lint-android, test, screenshots, check, hooks, acceptance,
-          tv-pair, tv-connect, install
+          and library-version tags; 36 bundled plays with age tiers and who covers each
+          base; profiles (with age range, level, and offered version), each child's
+          video list, watch progress, best round and mastered plays, and the hashed
+          parent PIN saved in Room; a fresh install has no children and no PIN
+recipes   build, clean, fmt, lint, lint-android, test, screenshots, check, hooks,
+          acceptance, tv-pair, tv-connect, install
 ```
 
 Not built yet: videos for other ages and levels (tee ball, coach pitch, 13+), My List,
@@ -104,7 +105,8 @@ The canonical slice to copy is `picker/`: `ProfilePickerViewModel.kt` with its t
 - **Robolectric runs at API 34**, not 37: it needs Java 21 for API 35 and later, and the
   toolchain is JDK 17. API 34 also matches the emulator image.
 - **In Compose tests, wait for idle before pressing Back.** A Back press before
-  navigation settles reaches the activity and finishes it.
+  navigation settles reaches the activity and leaves the app (finished below API 31,
+  moved to the back from API 31).
 - **tv-material `Text` outside a `Surface` defaults to black.** Screens wrap content in
   `DugoutBackground`, which provides the chalk content color.
 - **The YouTube player needs a WebView, which Robolectric cannot run.** Tests inject a fake

@@ -140,7 +140,7 @@ fun Diamond(
  */
 private fun stampSpot(result: Offset?): Offset =
     when (result) {
-        Field.FIRST -> Offset(0.84f, 0.78f)
+        Field.FIRST -> Offset(0.86f, 0.92f)
         Field.THIRD -> Offset(0.16f, 0.78f)
         Field.HOME -> Offset(0.8f, 0.93f)
         else -> Offset(0.5f, 0.19f)

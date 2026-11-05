@@ -185,6 +185,18 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun aRestoredFocusTargetIsForgottenButTheTabStays() {
+        val vm = viewModel()
+        vm.onVideoSelected(HomeTab.SkillTab(Skill.FIELDING), RowKey.SkillGrid(Skill.FIELDING), "f2")
+        vm.onReturned("f2", openSkill = null)
+
+        vm.onFocusRestored()
+
+        assertThat(vm.uiState.value.focus).isNull()
+        assertThat(vm.uiState.value.selectedTab).isEqualTo(HomeTab.SkillTab(Skill.FIELDING))
+    }
+
+    @Test
     fun selectingATabClearsFocusTarget() {
         val vm = viewModel()
         vm.onVideoSelected(HomeTab.Home, RowKey.SkillRow(Skill.HITTING), "h1")

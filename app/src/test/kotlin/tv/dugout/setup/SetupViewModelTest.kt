@@ -1,5 +1,6 @@
 package tv.dugout.setup
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -29,7 +30,54 @@ class SetupViewModelTest {
     private val repository =
         InMemoryProfileRepository(SAMPLE_PROFILES, lists) { p, position, ids -> saver.save(p, position, ids) }
 
-    private fun viewModel() = SetupViewModel(repository, library, newId = { "new-id" })
+    private var handle = SavedStateHandle()
+
+    private fun viewModel() = SetupViewModel(repository, library, handle, newId = { "new-id" })
+
+    @Test
+    fun answersAndChecksSurviveProcessDeath() {
+        val before = viewModel().toVideos(age = AgeRange.ELEVEN_TO_TWELVE)
+        before.onSkillToggled(Skill.PITCHING)
+        before.onVideoSkillFocused(Skill.CATCHING)
+        val dropped =
+            before.state.videos
+                .first { it.checked }
+                .video.id
+        before.onVideoToggled(dropped)
+
+        val after = viewModel()
+
+        assertThat(after.state.step).isEqualTo(SetupStep.VIDEOS)
+        assertThat(after.state.name).isEqualTo("Maya")
+        assertThat(after.state.age).isEqualTo(AgeRange.ELEVEN_TO_TWELVE)
+        assertThat(after.state.level).isEqualTo(Level.KID_PITCH)
+        assertThat(after.state.skills).isEqualTo(before.state.skills)
+        assertThat(after.state.skillsSubmitted).isTrue()
+        assertThat(after.state.videoSkill).isEqualTo(Skill.CATCHING)
+        assertThat(after.state.videos).isEqualTo(before.state.videos)
+        assertThat(after.state.chosenCounts).isEqualTo(before.state.chosenCounts)
+        after.onBack()
+        after.onLevelSelected(Level.KID_PITCH)
+        assertThat(after.state.skills).isEqualTo(before.state.skills)
+    }
+
+    @Test
+    fun readySurvivesProcessDeathWithoutSavingAgain() {
+        viewModel().toVideos().onDone()
+
+        val after = viewModel()
+
+        assertThat(after.state.step).isEqualTo(SetupStep.READY)
+        assertThat(after.state.saved?.id).isEqualTo("new-id")
+        assertThat(saved).hasSize(1)
+    }
+
+    @Test
+    fun aHalfTypedNameSurvivesProcessDeath() {
+        viewModel().onNameChanged("Ma")
+
+        assertThat(viewModel().state.name).isEqualTo("Ma")
+    }
 
     private val SetupViewModel.state get() = uiState.value
 
