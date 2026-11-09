@@ -57,7 +57,7 @@ fun HomeScreen(
     onTabSelected: (HomeTab) -> Unit,
     onVideoSelected: (HomeTab, RowKey, String) -> Unit,
     onSectionSelected: (HomeSection) -> Unit = {},
-    onGameSelected: () -> Unit = {},
+    onGameSelected: (GameId) -> Unit = {},
     onFocusRestored: () -> Unit = {},
 ) {
     val tabs = listOf<HomeTab>(HomeTab.Home) + state.skills.map { HomeTab.SkillTab(it.skill) } + HomeTab.MyList
@@ -70,7 +70,7 @@ fun HomeScreen(
                 }.associateWith { FocusRequester() }
         }
     val sectionRequesters = remember { HomeSection.entries.associateWith { FocusRequester() } }
-    val gameCard = remember { FocusRequester() }
+    val gameCards = remember { GameId.entries.associateWith { FocusRequester() } }
     var shelfFocused by remember { mutableStateOf(false) }
     var arrived by rememberSaveable { mutableStateOf(false) }
 
@@ -85,7 +85,7 @@ fun HomeScreen(
             // Coming back from a game: the card it was started from. A video focus target left from
             // earlier belongs to the Videos section, which is not showing.
             state.section == HomeSection.GAMES && state.game != null -> {
-                gameCard.requestFocus()
+                gameCards.getValue(state.shelfGame()).requestFocus()
             }
 
             target != null -> {
@@ -116,7 +116,9 @@ fun HomeScreen(
             if (state.section == HomeSection.GAMES && state.game != null) {
                 GamesShelf(
                     state.game,
-                    gameCard,
+                    state.colorCall,
+                    state.shelfGame(),
+                    gameCards,
                     onGameSelected,
                     modifier = Modifier.onFocusChanged { shelfFocused = it.hasFocus },
                 )
@@ -233,3 +235,6 @@ private fun VideoRow(
 private fun Message(text: String) {
     Text(text, fontSize = 18.sp, color = Slate, modifier = Modifier.padding(top = 24.dp))
 }
+
+/** The game card to focus on the shelf: the one opened last, if it is on the shelf. */
+private fun HomeUiState.shelfGame(): GameId = if (colorCall == null) GameId.WHATS_THE_PLAY else lastGame

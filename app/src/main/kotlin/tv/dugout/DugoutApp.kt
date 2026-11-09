@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import tv.dugout.game.PlayGameScreen
 import tv.dugout.game.PlayGameViewModel
+import tv.dugout.home.GameId
 import tv.dugout.home.HomeScreen
 import tv.dugout.home.HomeViewModel
 import tv.dugout.library.Skill
@@ -410,9 +411,10 @@ private fun HomeDestination(
         },
         onSectionSelected = homeViewModel::onSectionSelected,
         onFocusRestored = homeViewModel::onFocusRestored,
-        onGameSelected = {
+        onGameSelected = { game ->
             if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                navController.navigate(gameRoute(profile.id))
+                homeViewModel.onGameSelected(game)
+                if (game == GameId.WHATS_THE_PLAY) navController.navigate(gameRoute(profile.id))
             }
         },
     )

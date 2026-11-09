@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import tv.dugout.AppGraph
+import tv.dugout.colorcall.ColorCallRecord
+import tv.dugout.colorcall.startingLevel
 import tv.dugout.game.GameRecord
 import tv.dugout.game.PlayLibrary
 import tv.dugout.history.WatchProgress
@@ -29,14 +31,25 @@ class HomeViewModel(
     private val section = MutableStateFlow(HomeSection.VIDEOS)
     private val pool = PlayLibrary.poolFor(profile.ageRange).mapTo(HashSet()) { it.id }
     private val games = graph.games.record(profileId)
+    private val colorCall = graph.colorCall.record(profileId)
+    private val lastGame = MutableStateFlow(GameId.WHATS_THE_PLAY)
 
     val uiState: StateFlow<HomeUiState> =
-        combine(selectedTab, focus, progress, section, games, ::build)
+        combine(combine(selectedTab, focus, progress, section, games, ::build), colorCall, lastGame, ::withGames)
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
-                build(selectedTab.value, focus.value, progress.value, section.value, games.value),
+                withGames(
+                    build(selectedTab.value, focus.value, progress.value, section.value, games.value),
+                    colorCall.value,
+                    lastGame.value,
+                ),
             )
+
+    /** The child opened [game], so coming back to Games focuses its card. */
+    fun onGameSelected(game: GameId) {
+        lastGame.value = game
+    }
 
     fun onSectionSelected(selected: HomeSection) {
         section.value = selected
@@ -108,6 +121,20 @@ class HomeViewModel(
                     pool.size,
                 )
             },
+    )
+
+    // Color Call is offered to the same children as What's the Play?: everyone but 4 to 6.
+    private fun withGames(
+        state: HomeUiState,
+        record: ColorCallRecord,
+        last: GameId,
+    ) = state.copy(
+        colorCall =
+            state.game?.let {
+                val level = record.lastLevel ?: startingLevel(profile.ageRange)
+                ColorCallCardState(level, record.best[level])
+            },
+        lastGame = last,
     )
 
     private fun skillsPresent() = Skill.entries.filter { skill -> videos.any { it.skill == skill } }

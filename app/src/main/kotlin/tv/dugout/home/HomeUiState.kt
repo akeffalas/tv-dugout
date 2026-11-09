@@ -1,5 +1,7 @@
 package tv.dugout.home
 
+import tv.dugout.colorcall.CallLevel
+import tv.dugout.colorcall.PITCHES_PER_ROUND
 import tv.dugout.library.Skill
 import tv.dugout.library.Video
 
@@ -69,9 +71,21 @@ data class GameCardState(
     val complete: Boolean get() = total > 0 && mastered == total
 }
 
+/** The games on the shelf, so Home can return focus to the one a child left from. */
+enum class GameId { WHATS_THE_PLAY, COLOR_CALL }
+
+/** The Color Call card: the level the child last picked (or their starting level) and their best round there. */
+data class ColorCallCardState(
+    val level: CallLevel,
+    val best: Int?,
+) {
+    val line: String get() = (best?.let { "Best $it of $PITCHES_PER_ROUND" } ?: "New") + " · Level ${level.number}"
+}
+
 /**
  * One child's home: [rows] holds the content of [selectedTab]; [focus] is set after returning from a video.
- * [game] is null when no play suits the child, which hides the section row.
+ * [game] is null when no play suits the child, which hides the section row; [colorCall] follows it.
+ * [lastGame] is the game opened last, whose card takes focus on the shelf.
  */
 data class HomeUiState(
     val profileName: String,
@@ -83,4 +97,6 @@ data class HomeUiState(
     val focus: FocusTarget?,
     val section: HomeSection = HomeSection.VIDEOS,
     val game: GameCardState? = null,
+    val colorCall: ColorCallCardState? = null,
+    val lastGame: GameId = GameId.WHATS_THE_PLAY,
 )

@@ -22,6 +22,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import tv.dugout.colorcall.CallLevel
 import tv.dugout.library.Skill
 import tv.dugout.testVideo
 import tv.dugout.ui.theme.DugoutTheme
@@ -35,7 +36,7 @@ class HomeScreenTest {
     private val selectedTabs = mutableListOf<HomeTab>()
     private val selectedVideos = mutableListOf<Triple<HomeTab, RowKey, String>>()
     private val selectedSections = mutableListOf<HomeSection>()
-    private var gamesOpened = 0
+    private val gamesOpened = mutableListOf<GameId>()
 
     private fun card(
         id: String,
@@ -59,6 +60,8 @@ class HomeScreenTest {
         focus: FocusTarget? = null,
         section: HomeSection = HomeSection.VIDEOS,
         game: GameCardState? = GameCardState(bestRuns = 4, mastered = 12, total = 30),
+        colorCall: ColorCallCardState? = ColorCallCardState(CallLevel.TWO, 8),
+        lastGame: GameId = GameId.WHATS_THE_PLAY,
     ) = HomeUiState(
         profileName = "Sam",
         avatarColor = 0xFFE63946,
@@ -69,6 +72,8 @@ class HomeScreenTest {
         focus = focus,
         section = section,
         game = game,
+        colorCall = colorCall,
+        lastGame = lastGame,
     )
 
     private fun show(state: HomeUiState) {
@@ -79,7 +84,7 @@ class HomeScreenTest {
                     onTabSelected = { selectedTabs += it },
                     onVideoSelected = { tab, row, id -> selectedVideos += Triple(tab, row, id) },
                     onSectionSelected = { selectedSections += it },
-                    onGameSelected = { gamesOpened++ },
+                    onGameSelected = { gamesOpened += it },
                 )
             }
         }
@@ -329,7 +334,7 @@ class HomeScreenTest {
 
         press(Key.DirectionCenter)
 
-        assertThat(gamesOpened).isEqualTo(1)
+        assertThat(gamesOpened).containsExactly(GameId.WHATS_THE_PLAY)
     }
 
     @Test
@@ -355,6 +360,61 @@ class HomeScreenTest {
     fun gamesFocusesTheCardEvenWithAVideoToReturnTo() {
         val watched = FocusTarget(HomeTab.Home, RowKey.SkillRow(Skill.HITTING), "h2")
         show(state(section = HomeSection.GAMES, focus = watched))
+
+        compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
+    }
+
+    @Test
+    fun shelfShowsBothCards() {
+        show(state(section = HomeSection.GAMES))
+
+        compose.onNodeWithTag("game_card_color_call").assertIsDisplayed()
+        compose.onNodeWithText("Color Call").assertIsDisplayed()
+        compose.onNodeWithText("Best 8 of 10 · Level 2").assertIsDisplayed()
+    }
+
+    @Test
+    fun colorCallCardBeforeAnyRound() {
+        show(state(section = HomeSection.GAMES, colorCall = ColorCallCardState(CallLevel.ONE, null)))
+
+        compose.onNodeWithText("New · Level 1").assertIsDisplayed()
+    }
+
+    @Test
+    fun rightMovesFromWhatsThePlayToColorCall() {
+        show(state(section = HomeSection.GAMES))
+
+        press(Key.DirectionRight)
+        compose.onNodeWithTag("game_card_color_call").assertIsFocused()
+        press(Key.DirectionCenter)
+
+        assertThat(gamesOpened).containsExactly(GameId.COLOR_CALL)
+    }
+
+    @Test
+    fun returningFocusesTheCardLeftFrom() {
+        show(state(section = HomeSection.GAMES, lastGame = GameId.COLOR_CALL))
+
+        compose.onNodeWithTag("game_card_color_call").assertIsFocused()
+    }
+
+    @Test
+    fun downIntoTheShelfLandsOnTheLastGame() {
+        show(state(section = HomeSection.GAMES, lastGame = GameId.COLOR_CALL))
+        press(Key.DirectionUp)
+        compose.onNodeWithTag("section_games").assertIsFocused()
+
+        press(Key.DirectionDown)
+
+        compose.onNodeWithTag("game_card_color_call").assertIsFocused()
+    }
+
+    @Test
+    fun downIntoTheShelfLandsOnWhatsThePlayByDefault() {
+        show(state(section = HomeSection.GAMES))
+        press(Key.DirectionUp)
+
+        press(Key.DirectionDown)
 
         compose.onNodeWithTag("game_card_whats_the_play").assertIsFocused()
     }

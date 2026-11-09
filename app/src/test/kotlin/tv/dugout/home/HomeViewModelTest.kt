@@ -6,6 +6,8 @@ import org.junit.Test
 import tv.dugout.FixedProfileVideos
 import tv.dugout.MainDispatcherRule
 import tv.dugout.SMALL_LIBRARY
+import tv.dugout.colorcall.CallLevel
+import tv.dugout.colorcall.InMemoryColorCallProgress
 import tv.dugout.game.InMemoryGameProgress
 import tv.dugout.history.InMemoryWatchHistory
 import tv.dugout.library.AgeRange
@@ -208,6 +210,7 @@ class HomeViewModelTest {
     }
 
     private val games = InMemoryGameProgress()
+    private val colorCall = InMemoryColorCallProgress()
 
     private fun aged(ageRange: AgeRange) =
         HomeViewModel(
@@ -217,6 +220,7 @@ class HomeViewModelTest {
                 profiles = InMemoryProfileRepository(listOf(Profile("sam", "Sam", 0xFFE63946, ageRange))),
                 history = history,
                 games = games,
+                colorCall = colorCall,
             ),
         )
 
@@ -253,5 +257,48 @@ class HomeViewModelTest {
         home.onSectionSelected(HomeSection.GAMES)
 
         assertThat(home.uiState.value.section).isEqualTo(HomeSection.GAMES)
+    }
+
+    @Test
+    fun colorCallCardStartsAtTheAgeLevel() {
+        assertThat(
+            aged(AgeRange.NINE_TO_TEN).uiState.value.colorCall,
+        ).isEqualTo(ColorCallCardState(CallLevel.ONE, null))
+        assertThat(
+            aged(AgeRange.ELEVEN_TO_TWELVE).uiState.value.colorCall,
+        ).isEqualTo(ColorCallCardState(CallLevel.TWO, null))
+    }
+
+    @Test
+    fun colorCallCardShowsTheLastLevelBest() {
+        val home = aged(AgeRange.NINE_TO_TEN)
+        colorCall.finishRound("sam", CallLevel.TWO, 8)
+        colorCall.startRound("sam", CallLevel.TWO)
+
+        assertThat(home.uiState.value.colorCall).isEqualTo(ColorCallCardState(CallLevel.TWO, 8))
+    }
+
+    @Test
+    fun colorCallCardIsNewAtALevelWithNoRound() {
+        val home = aged(AgeRange.NINE_TO_TEN)
+        colorCall.finishRound("sam", CallLevel.ONE, 6)
+        colorCall.startRound("sam", CallLevel.THREE)
+
+        assertThat(home.uiState.value.colorCall).isEqualTo(ColorCallCardState(CallLevel.THREE, null))
+    }
+
+    @Test
+    fun noColorCallCardForFourToSix() {
+        assertThat(aged(AgeRange.FOUR_TO_SIX).uiState.value.colorCall).isNull()
+    }
+
+    @Test
+    fun selectingAGameRemembersIt() {
+        val home = viewModel()
+        assertThat(home.uiState.value.lastGame).isEqualTo(GameId.WHATS_THE_PLAY)
+
+        home.onGameSelected(GameId.COLOR_CALL)
+
+        assertThat(home.uiState.value.lastGame).isEqualTo(GameId.COLOR_CALL)
     }
 }
