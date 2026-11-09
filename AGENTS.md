@@ -30,7 +30,7 @@ relevant part when a task touches it.
 app/                    the single Android module (package tv.dugout)
   src/main/kotlin/      MainActivity, StartupGate, AppGraph, DugoutApp (NavHost), library/,
                         history/, profile/, storage/, picker/, setup/, home/, player/,
-                        upnext/, parent/, ui/theme/
+                        upnext/, game/, colorcall/, parent/, ui/theme/
   schemas/              exported Room schemas, one JSON file per database version
   src/test/             JVM unit tests and Compose UI tests under Robolectric
   src/androidTest/      emulator acceptance tests (real D-pad key events)
@@ -52,13 +52,16 @@ screens   picker (start), parent PIN (first screen on a fresh install, then the 
           tabs with progress), player (full-screen YouTube embed with fading baseball
           controls), up next, What's the Play? game (drawn diamond with labeled
           fielders, D-pad answers, animated replays, 5-play rounds with a line-score
-          summary whose plays reopen, and a check before Back leaves a round), parent
+          summary whose plays reopen, and a check before Back leaves a round), Color Call
+          (pick a level, swing with Select only at the called ball color, 10-pitch rounds
+          with a line-score summary), parent
           settings (progress and reset, profile, videos with New marks, remove; add a
           player, change PIN)
 data      57-video bundled library (five body skills plus Baseball IQ) with age, level,
           and library-version tags; 36 bundled plays with age tiers and who covers each
           base; profiles (with age range, level, and offered version), each child's
-          video list, watch progress, best round and mastered plays, and the hashed
+          video list, watch progress, best round and mastered plays, Color Call best round
+          per level and last level picked, and the hashed
           parent PIN saved in Room; a fresh install has no children and no PIN
 recipes   build, clean, fmt, lint, lint-android, test, screenshots, check, hooks,
           acceptance, tv-pair, tv-connect, install

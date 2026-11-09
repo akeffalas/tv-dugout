@@ -17,6 +17,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import tv.dugout.colorcall.ColorCallScreen
+import tv.dugout.colorcall.ColorCallViewModel
 import tv.dugout.game.PlayGameScreen
 import tv.dugout.game.PlayGameViewModel
 import tv.dugout.home.GameId
@@ -64,6 +66,8 @@ const val RESULT_ADDED_PROFILE = "addedProfileId"
 fun homeRoute(profileId: String): String = "home/$profileId"
 
 fun gameRoute(profileId: String): String = "game/$profileId"
+
+fun colorCallRoute(profileId: String): String = "colorcall/$profileId"
 
 private const val PLAYER_ROUTE_PATTERN = "player/{$PROFILE_ID_ARG}/{$VIDEO_ID_ARG}"
 private const val UP_NEXT_ROUTE_PATTERN = "upnext/{$PROFILE_ID_ARG}/{$VIDEO_ID_ARG}"
@@ -161,6 +165,7 @@ fun DugoutApp(
         composable("home/{$PROFILE_ID_ARG}") { entry -> HomeDestination(graph, navController, entry) }
         composable(PLAYER_ROUTE_PATTERN) { entry -> PlayerDestination(graph, navController, entry) }
         composable("game/{$PROFILE_ID_ARG}") { entry -> GameDestination(graph, navController, entry) }
+        composable("colorcall/{$PROFILE_ID_ARG}") { entry -> ColorCallDestination(graph, navController, entry) }
         composable(UP_NEXT_ROUTE_PATTERN) { entry -> UpNextDestination(graph, navController, entry) }
         composable(FIRST_PIN_ROUTE) { entry ->
             PinDestination(graph, navController, entry, PinFlow.FIRST_RUN) {
@@ -414,7 +419,12 @@ private fun HomeDestination(
         onGameSelected = { game ->
             if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                 homeViewModel.onGameSelected(game)
-                if (game == GameId.WHATS_THE_PLAY) navController.navigate(gameRoute(profile.id))
+                val route =
+                    when (game) {
+                        GameId.WHATS_THE_PLAY -> gameRoute(profile.id)
+                        GameId.COLOR_CALL -> colorCallRoute(profile.id)
+                    }
+                navController.navigate(route)
             }
         },
     )
@@ -445,6 +455,33 @@ private fun GameDestination(
         onBack = { if (gameViewModel.onBack()) leave() },
         onKeepPlaying = gameViewModel::onKeepPlaying,
         onReview = gameViewModel::onReview,
+    )
+}
+
+@Composable
+private fun ColorCallDestination(
+    graph: AppGraph,
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+) {
+    val profile = entry.arguments?.getString(PROFILE_ID_ARG)?.let(graph.profiles::profile)
+    if (profile == null) {
+        LaunchedEffect(Unit) { navController.popBackStack(PICKER_ROUTE, inclusive = false) }
+        return
+    }
+    val colorCallViewModel = viewModel { ColorCallViewModel(profile.id, graph) }
+    val state by colorCallViewModel.uiState.collectAsStateWithLifecycle()
+    val leave = { if (navController.currentBackStackEntry == entry) navController.popBackStack() }
+    ColorCallScreen(
+        state = state,
+        onStart = colorCallViewModel::onStart,
+        onCallReached = colorCallViewModel::onCallReached,
+        onSwing = colorCallViewModel::onSwing,
+        onBeatFinished = colorCallViewModel::onBeatFinished,
+        onPlayAgain = colorCallViewModel::onPlayAgain,
+        onDone = { leave() },
+        onBack = { if (colorCallViewModel.onBack()) leave() },
+        onKeepPlaying = colorCallViewModel::onKeepPlaying,
     )
 }
 
