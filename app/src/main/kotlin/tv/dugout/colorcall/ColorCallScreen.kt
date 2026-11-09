@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -311,7 +312,7 @@ private fun Stamp(
     verdict: Verdict,
     modifier: Modifier,
 ) {
-    Column(modifier = modifier.width(330.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier =
                 Modifier
@@ -324,7 +325,7 @@ private fun Stamp(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(verdict.stamp, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = verdict.color())
+            Text(verdict.stamp, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = verdict.color())
             Text(
                 verdict.pointsLabel(),
                 fontSize = 20.sp,
@@ -332,6 +333,7 @@ private fun Stamp(
                 color = Navy,
                 modifier =
                     Modifier
+                        .testTag("cc_stamp_points")
                         .background(
                             verdict.color(),
                             RoundedCornerShape(16.dp),
@@ -344,6 +346,7 @@ private fun Stamp(
             fontWeight = FontWeight.Bold,
             modifier =
                 Modifier
+                    .widthIn(max = 380.dp)
                     .background(Navy.copy(alpha = 0.8f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 12.dp, vertical = 6.dp)
                     .testTag("cc_reason"),

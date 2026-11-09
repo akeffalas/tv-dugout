@@ -262,6 +262,21 @@ class ColorCallLayoutTest {
     }
 
     @Test
+    fun theLongestStampKeepsRoomForItsPoints() {
+        // THAT WAS YOURS is the longest stamp; its 0 badge was once squeezed to a blank sliver.
+        val round =
+            testRound()
+                .beatFinished(0, Beat.SET)
+                .beatFinished(0, Beat.WINDUP)
+                .beatFinished(0, Beat.FLIGHT)
+        show(ColorCallUiState(ColorCallScreenKind.PITCH, CallLevel.ONE, round, best = null))
+
+        val badge = compose.onNodeWithTag("cc_stamp_points", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertWithMessage("badge width").that(badge.right - badge.left).isAtLeast(30.dp)
+        assertOnScreen("cc_stamp_points")
+    }
+
+    @Test
     fun summaryFitsATv() {
         show(
             ColorCallUiState(ColorCallScreenKind.SUMMARY, CallLevel.THREE, testRound(chases = 3).playedOut(), best = 7),
