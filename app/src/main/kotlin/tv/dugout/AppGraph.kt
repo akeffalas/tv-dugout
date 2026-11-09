@@ -1,5 +1,7 @@
 package tv.dugout
 
+import tv.dugout.colorcall.ColorCallProgress
+import tv.dugout.colorcall.InMemoryColorCallProgress
 import tv.dugout.game.GameProgress
 import tv.dugout.game.InMemoryGameProgress
 import tv.dugout.history.WatchHistory
@@ -21,4 +23,5 @@ data class AppGraph(
     val lock: ParentLock,
     val games: GameProgress = InMemoryGameProgress(),
     val random: Random = Random.Default,
+    val colorCall: ColorCallProgress = InMemoryColorCallProgress(),
 )

@@ -1,5 +1,7 @@
 package tv.dugout
 
+import tv.dugout.colorcall.ColorCallProgress
+import tv.dugout.colorcall.InMemoryColorCallProgress
 import tv.dugout.game.GameProgress
 import tv.dugout.game.InMemoryGameProgress
 import tv.dugout.history.InMemoryWatchHistory
@@ -35,4 +37,5 @@ fun testGraph(
     lock: ParentLock = noPinLock(),
     games: GameProgress = InMemoryGameProgress(),
     random: Random = Random.Default,
-) = AppGraph(profiles, library, profileVideos, history, playerSurface, clock, lock, games, random)
+    colorCall: ColorCallProgress = InMemoryColorCallProgress(),
+) = AppGraph(profiles, library, profileVideos, history, playerSurface, clock, lock, games, random, colorCall)
