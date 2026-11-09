@@ -219,7 +219,9 @@ fun PlayGameScreen(
                     )
                 }
             }
-            if (state.leaving) LeaveQuestion(keepPlaying, onKeepPlaying, onDone)
+            if (state.leaving) {
+                LeaveQuestion("Your checks stay. This round's runs won't count.", keepPlaying, onKeepPlaying, onDone)
+            }
         }
     }
 }
@@ -228,9 +230,13 @@ fun PlayGameScreen(
 private val SAFE_SIDES = 48.dp
 private val SAFE_ENDS = 27.dp
 
-/** Asks before a Back mid-round drops the round, with Keep playing first so a stray press costs nothing. */
+/**
+ * Asks before a Back mid-round drops the round, with Keep playing first so a stray press costs nothing.
+ * [detail] says what leaving loses.
+ */
 @Composable
-private fun LeaveQuestion(
+internal fun LeaveQuestion(
+    detail: String,
     keepPlaying: FocusRequester,
     onKeepPlaying: () -> Unit,
     onLeave: () -> Unit,
@@ -241,7 +247,7 @@ private fun LeaveQuestion(
         verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
     ) {
         Text("Leave the round?", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold)
-        Text("Your checks stay. This round's runs won't count.", fontSize = 22.sp, color = Slate)
+        Text(detail, fontSize = 22.sp, color = Slate)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             GameButton(
                 "Keep playing",
