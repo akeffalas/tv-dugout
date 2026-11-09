@@ -147,8 +147,9 @@ flowchart LR
 - A new `colorcall/` package holds the pitch model, the round logic, the ViewModel, and
   the screens, following the `picker/` slice. Round logic is pure Kotlin that takes its
   random source as a parameter, so tests choose the pitches.
-- The ViewModel owns the beat timing, so tests can drive a pitch without waiting on real
-  time.
+- The screen times each beat with an animation and reports when it ends, as the replay
+  does in What's the Play?. The ViewModel decides what each report means, so tests can
+  drive a pitch by sending those reports instead of waiting on real time.
 - Saved progress is per child: the best round for each level and the last level played.
   It is a new Room entity, so the database moves to version 5 with a tested migration
   from 4 (ADR-0007). Removing a child removes their Color Call progress.
