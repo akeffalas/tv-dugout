@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color Call</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Graduate&family=Barlow:wght@400;600&family=Barlow+Condensed:wght@500;700&display=swap">
+<style>
+/* Layout: one TV set on a dark den wall; the rules and call levels sit below it in two columns. */
+:root {
+  --room: #070D18;
+  --screen: #0F1A2B;
+  --panel: #13213A;
+  --line: #24365A;
+  --chalk: #F3F1EA;
+  --slate: #9FB0C8;
+  --gold: #FFD23F;
+  --good: #3ECF8E;
+  --bad: #FF6B5E;
+  --ball-blue: #2F7DF6;
+  --ball-orange: #FF8A1F;
+  --ball-black: #14161B;
+  --display: "Graduate", "Rockwell", Georgia, serif;
+  --body: "Barlow", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--room);
+  color: var(--chalk);
+  font: 17px/1.55 var(--body);
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+.eyebrow { font: 600 13px/1 var(--label); letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+h1 { font: 400 clamp(40px, 7vw, 64px)/1 var(--display); margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.lede { color: var(--slate); max-width: 62ch; margin: 4px 0 0; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; padding: 5px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.seg span { font: 600 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--slate); align-self: center; padding: 0 8px 0 6px; }
+.seg button, .plain {
+  font: 600 15px/1 var(--label); letter-spacing: .04em; color: var(--chalk);
+  background: transparent; border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--gold); color: var(--screen); }
+.plain { border: 1px solid var(--line); }
+button:focus-visible, .tv:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+.tv {
+  background: linear-gradient(#1a2233, #0c111c);
+  padding: clamp(8px, 1.6vw, 18px);
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px #2a3550, 0 30px 80px -20px rgba(47,125,246,.25), 0 20px 50px rgba(0,0,0,.6);
+  cursor: pointer;
+}
+canvas { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; background: var(--screen); }
+.hint { font: 500 14px/1.4 var(--label); letter-spacing: .04em; color: var(--slate); text-align: center; margin: -12px 0 0; }
+kbd { font: 700 13px/1 var(--label); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 3px 7px; color: var(--chalk); }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; }
+h2 { font: 400 22px/1.2 var(--display); margin: 0; letter-spacing: .02em; }
+section p { margin: 0; color: var(--slate); font-size: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 16px; }
+th { font: 600 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--slate); text-align: left; padding: 0 8px 8px 0; }
+td { padding: 9px 8px 9px 0; border-top: 1px solid var(--line); vertical-align: top; }
+td.pts { font: 700 18px/1.2 var(--label); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.up { color: var(--good); } .down { color: var(--bad); } .zero { color: var(--slate); }
+.tag { font: 600 12px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; color: var(--slate); font-size: 16px; }
+ul b { color: var(--chalk); font-weight: 600; }
+.balls { display: flex; gap: 14px; flex-wrap: wrap; }
+.balls div { display: flex; align-items: center; gap: 8px; font: 600 14px/1 var(--label); letter-spacing: .08em; }
+.balls i { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(90deg, #fff 50%, var(--c) 50%); box-shadow: 0 0 0 1px rgba(255,255,255,.35); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (max-width: 520px) { .controls { flex-direction: column; align-items: stretch; } .hint { margin-top: -16px; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Dugout TV · game mockup</div>
+    <h1>Color Call</h1>
+    <p class="lede">Every pitch comes with a call. Swing only at the called color and let the other two go by. It's the color call drill from home practice, on the TV, with one button.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="When the color is called">
+      <span>Call it</span>
+      <button id="mode-before" data-mode="before" aria-pressed="true">Before the pitch</button>
+      <button id="mode-release" data-mode="release" aria-pressed="false">As it's thrown</button>
+      <button id="mode-mid" data-mode="mid" aria-pressed="false">Mid-flight</button>
+    </div>
+    <button class="plain" id="restart">Start a new round</button>
+  </div>
+
+  <div class="tv" id="tv" tabindex="0" aria-label="Color Call game screen. Press Space or Enter to swing.">
+    <canvas id="c" width="1920" height="1080"></canvas>
+  </div>
+  <p class="hint"><kbd>Space</kbd> or <kbd>Enter</kbd> (or a click) stands in for the remote's Select button. Do nothing to take the pitch.</p>
+  <div class="sr" aria-live="polite" id="live"></div>
+
+  <div class="cols">
+    <section>
+      <h2>How a pitch scores</h2>
+      <p>These are the plan's drill rules unchanged, so practice in the yard and on the TV count the same way.</p>
+      <table>
+        <thead><tr><th>Pitch</th><th>You</th><th>Stamp</th><th>Pts</th></tr></thead>
+        <tbody>
+          <tr><td>Called color</td><td>Swing</td><td>Nice swing</td><td class="pts up">+1</td></tr>
+          <tr><td>Other color</td><td>Take</td><td>Good take</td><td class="pts up">+1</td></tr>
+          <tr><td>Other color</td><td>Swing</td><td>Chased</td><td class="pts down">−1</td></tr>
+          <tr><td>Called color</td><td>Take</td><td>That was yours</td><td class="pts zero">0</td></tr>
+        </tbody>
+      </table>
+      <div class="balls">
+        <div><i style="--c: var(--ball-blue)"></i>Blue</div>
+        <div><i style="--c: var(--ball-orange)"></i>Orange</div>
+        <div><i style="--c: var(--ball-black)"></i>Black</div>
+      </div>
+      <p>Each ball is half white and half color, like the marked practice balls. There's no red or green, since about 1 in 12 boys can't tell those apart.</p>
+    </section>
+
+    <section>
+      <h2>Call levels</h2>
+      <p>The harder levels follow the plan's progression. Every level is open, and the child picks one on the start screen.</p>
+      <table>
+        <thead><tr><th>Level</th><th>The call comes</th><th>First pick</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Before the pitch, during the windup pause</td><td class="tag">7 to 10</td></tr>
+          <tr><td>2</td><td>As the ball leaves the hand</td><td class="tag">11 to 12</td></tr>
+          <tr><td>3</td><td>Mid-flight, a third of the way in</td><td class="tag">any age</td></tr>
+          <tr><td>4</td><td>Two colors to swing at</td><td class="tag">later</td></tr>
+          <tr><td>5</td><td>Called color, and only if it's a strike</td><td class="tag">later</td></tr>
+        </tbody>
+      </table>
+      <p>The first game plays levels 1 to 3. Levels 4 and 5 come later. Pitches get a little faster at each level.</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>Built for the remote</h2>
+    <ul>
+      <li><b>One button.</b> Select swings, and doing nothing is a take. There's no aiming and no D-pad during a pitch.</li>
+      <li><b>It tests the decision, not reflexes.</b> A press anywhere during the flight counts once the call shows, and the bat meets the ball on its own, so remote lag can't cost a point. A press before the call is ignored.</li>
+      <li><b>Ten pitches a round,</b> then a line score with Play again focused. Back opens the same "leave this round?" check the other game uses.</li>
+      <li><b>No streaks.</b> The card on Home shows the best round, the same way What's the Play? does.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  const W = 1280, H = 720, SC = cv.width / W;
+  const COLORS = {
+    blue:   { name: 'BLUE',   fill: '#2F7DF6' },
+    orange: { name: 'ORANGE', fill: '#FF8A1F' },
+    black:  { name: 'BLACK',  fill: '#14161B' },
+  };
+  const KEYS = Object.keys(COLORS);
+  const MODES = {
+    before:  { flight: 1.55, reveal: -1 },
+    release: { flight: 1.35, reveal: 0 },
+    mid:     { flight: 1.2,  reveal: 0.33 },
+  };
+  const PITCHES = 10;
+  const ZONE = { x: 565, y: 440, w: 150, h: 170 };
+  const DISPLAY = '"Graduate", Rockwell, Georgia, serif';
+  const LABEL = '"Barlow Condensed", "Arial Narrow", system-ui, sans-serif';
+  const PAL = { screen: '#0F1A2B', navy2: '#1D3557', card: '#1B2A44', badge: '#2B3F63', chalk: '#F3F1EA', slate: '#9FB0C8', gold: '#FFD23F', good: '#3ECF8E', bad: '#FF6B5E', grass: '#2E7D4F', dirt: '#B5793F' };
+
+  let mode = 'before';
+  let best = null;
+  let S;
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  function newRound() {
+    S = { idx: -1, points: 0, log: [], phase: 'ready', t: 0, clock: 0 };
+    nextPitch();
+  }
+  function nextPitch() {
+    S.idx++;
+    const call = pick(KEYS);
+    const ball = Math.random() < 0.45 ? call : pick(KEYS.filter(k => k !== call));
+    Object.assign(S, {
+      call, ball, phase: 'ready', t: 0, swung: false, swingAt: null, contactP: null,
+      tx: 640 + rand(-115, 115), ty: 525 + rand(-115, 105), dir: Math.random() < .5 ? -1 : 1,
+      verdict: null,
+    });
+  }
+  function go(phase) { S.phase = phase; S.t = 0; }
+  const F = () => MODES[mode].flight;
+
+  function judge() {
+    const match = S.ball === S.call;
+    const c = COLORS[S.ball].name.toLowerCase(), k = COLORS[S.call].name.toLowerCase();
+    let v;
+    if (S.swung && match) v = { word: 'NICE SWING', pts: 1, col: PAL.good, why: `It was ${c}. That's your pitch.` };
+    else if (!S.swung && !match) v = { word: 'GOOD TAKE', pts: 1, col: PAL.good, why: `It was ${c}. You let it go.` };
+    else if (S.swung) v = { word: 'CHASED', pts: -1, col: PAL.bad, why: `It was ${c}, not ${k}.` };
+    else v = { word: 'THAT WAS YOURS', pts: 0, col: PAL.slate, why: `It was ${k}. Swing next time.` };
+    S.verdict = v;
+    S.points += v.pts;
+    S.log.push({ call: S.call, ball: S.ball, swung: S.swung, pts: v.pts });
+    document.getElementById('live').textContent = `${v.word.toLowerCase()}. ${v.why}`;
+  }
+
+  function press() {
+    if (S.phase === 'summary') { newRound(); return; }
+    if (S.phase === 'flight' && !S.swung && callVisible()) {
+      S.swung = true;
+      const p = S.t / F();
+      S.swingAt = S.clock + Math.max(0, (0.8 - p) * F());
+    }
+  }
+
+  function update(dt) {
+    S.t += dt; S.clock += dt;
+    switch (S.phase) {
+      case 'ready': if (S.t >= 1.15) go('windup'); break;
+      case 'windup': if (S.t >= 0.55) go('flight'); break;
+      case 'flight': {
+        const p = S.t / F();
+        if (S.swung && S.clock >= S.swingAt + 0.07 && p >= 0.84) { S.contactP = Math.min(p, 1); go('after'); judge(); }
+        else if (p >= 1) { if (S.swung) S.contactP = 1; go('after'); judge(); }
+        break;
+      }
+      case 'after': if (S.t >= 0.55) go('verdict'); break;
+      case 'verdict':
+        if (S.t >= 1.3) {
+          if (S.idx >= PITCHES - 1) { best = best == null ? S.points : Math.max(best, S.points); go('summary'); }
+          else nextPitch();
+        }
+        break;
+    }
+  }
+
+  function callVisible() {
+    const r = MODES[mode].reveal;
+    if (r < 0) return true;
+    if (S.phase === 'ready' || S.phase === 'windup') return false;
+    if (S.phase === 'flight') return S.t / F() >= r;
+    return true;
+  }
+
+  // Ball path: perspective from the release point to the plate.
+  const SX = 672, SY = 300;
+  function ballAt(p) {
+    const z = Math.max(0.025, 1 - 0.94 * p);
+    const k = 0.06 / z;
+    const u = (k - 0.06) / 0.94;
+    return { x: SX + (S.tx - SX) * u, y: SY + (S.ty - SY) * u + Math.sin(Math.min(p, 1) * Math.PI) * -18, r: Math.max(4.5, 46 * k) };
+  }
+
+  /* drawing */
+  function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+
+  function drawField() {
+    const sky = ctx.createLinearGradient(0, 0, 0, 300);
+    sky.addColorStop(0, '#0A1322'); sky.addColorStop(1, PAL.navy2);
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, 300);
+    for (const [x, y] of [[150, 40], [1130, 40]]) {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 260);
+      g.addColorStop(0, 'rgba(255,240,200,.22)'); g.addColorStop(1, 'rgba(255,240,200,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - 260, 0, 520, 300);
+      ctx.fillStyle = '#FFF4D6';
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { ctx.beginPath(); ctx.arc(x - 24 + i * 16, y - 8 + j * 14, 4, 0, 7); ctx.fill(); }
+    }
+    ctx.fillStyle = '#0B1424'; ctx.fillRect(0, 262, W, 38);
+    ctx.fillStyle = PAL.gold; ctx.fillRect(0, 262, W, 3);
+    const gr = ctx.createLinearGradient(0, 300, 0, H);
+    gr.addColorStop(0, '#2A7449'); gr.addColorStop(1, '#1F5C3A');
+    ctx.fillStyle = gr; ctx.fillRect(0, 300, W, H - 300);
+    // mowing stripes, wider toward the viewer
+    let y = 300, h = 10, i = 0;
+    while (y < H) { if (i % 2) { ctx.fillStyle = 'rgba(255,255,255,.035)'; ctx.fillRect(0, y, W, h); } y += h; h *= 1.28; i++; }
+    // mound
+    ctx.fillStyle = PAL.dirt;
+    ctx.beginPath(); ctx.ellipse(640, 378, 150, 30, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.12)';
+    ctx.beginPath(); ctx.ellipse(640, 384, 150, 20, 0, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = PAL.chalk; ctx.fillRect(624, 368, 32, 5);
+    // home plate dirt
+    ctx.fillStyle = PAL.dirt;
+    ctx.beginPath(); ctx.ellipse(640, 800, 560, 170, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(243,241,234,.8)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(250, 720); ctx.lineTo(420, 655); ctx.lineTo(420, 720); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1030, 720); ctx.lineTo(860, 655); ctx.lineTo(860, 720); ctx.stroke();
+    ctx.fillStyle = PAL.chalk;
+    ctx.beginPath(); ctx.moveTo(580, 690); ctx.lineTo(700, 690); ctx.lineTo(712, 706); ctx.lineTo(640, 722); ctx.lineTo(568, 706); ctx.closePath(); ctx.fill();
+  }
+
+  function drawZone() {
+    ctx.save();
+    ctx.setLineDash([8, 8]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(243,241,234,.28)';
+    ctx.strokeRect(ZONE.x, ZONE.y, ZONE.w, ZONE.h);
+    ctx.restore();
+  }
+
+  function drawPitcher() {
+    const ph = S.phase;
+    let arm = 0; // 0 set, 1 top of windup, 2 release follow-through
+    if (ph === 'windup') arm = Math.min(1, S.t / 0.42) + Math.max(0, (S.t - 0.42) / 0.13);
+    else if (ph === 'flight' || ph === 'after') arm = 2;
+    const x = 640, foot = 372;
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath(); ctx.ellipse(x, foot + 2, 34, 6, 0, 0, 7); ctx.fill();
+    const lean = arm >= 2 ? 6 : arm > 1 ? 3 : 0;
+    // legs
+    ctx.fillStyle = '#D9D6CC';
+    ctx.fillRect(x - 15, foot - 46, 11, 46);
+    ctx.fillRect(x + 4, foot - 46, 11, 46);
+    ctx.fillStyle = PAL.screen;
+    ctx.fillRect(x - 17, foot - 6, 14, 6); ctx.fillRect(x + 3, foot - 6, 14, 6);
+    // torso
+    ctx.fillStyle = PAL.chalk;
+    rr(x - 20 + lean, foot - 92, 40, 50, 9); ctx.fill();
+    ctx.fillStyle = PAL.navy2; ctx.fillRect(x - 20 + lean, foot - 50, 40, 6);
+    // head and cap
+    ctx.fillStyle = '#E4B892';
+    ctx.beginPath(); ctx.arc(x + lean, foot - 104, 12, 0, 7); ctx.fill();
+    ctx.fillStyle = PAL.navy2;
+    ctx.beginPath(); ctx.arc(x + lean, foot - 108, 12.5, Math.PI, 0); ctx.fill();
+    ctx.fillRect(x + lean - 13, foot - 109, 26, 4);
+    // glove arm (left side of screen)
+    ctx.strokeStyle = PAL.chalk; ctx.lineWidth = 9; ctx.lineCap = 'round';
+    const gy = arm > 0.3 && arm < 2 ? foot - 96 : foot - 70;
+    ctx.beginPath(); ctx.moveTo(x - 16 + lean, foot - 84); ctx.lineTo(x - 30 + lean, gy); ctx.stroke();
+    ctx.fillStyle = '#7A4A22';
+    ctx.beginPath(); ctx.arc(x - 32 + lean, gy - 2, 10, 0, 7); ctx.fill();
+    // throwing arm (right side)
+    let hx, hy;
+    if (arm <= 1) { const a = arm; hx = x + 18 + a * 16; hy = foot - 66 - a * 48; }
+    else if (arm < 2) { const a = arm - 1; hx = x + 34 - a * 10; hy = foot - 114 + a * 38; }
+    else { hx = x + 26 + lean; hy = foot - 68; }
+    ctx.strokeStyle = PAL.chalk;
+    ctx.beginPath(); ctx.moveTo(x + 16 + lean, foot - 84); ctx.lineTo(hx, hy); ctx.stroke();
+    if (S.phase === 'ready' || S.phase === 'windup') {
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(hx, hy - 4, 4.5, 0, 7); ctx.fill();
+    }
+  }
+
+  function drawBall(x, y, r, key, spin, alpha = 1) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    ctx.beginPath(); ctx.ellipse(r * .15, r * 1.05, r * .9, r * .25, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.clip();
+    ctx.fillStyle = '#FBFAF6'; ctx.fillRect(-r, -r, 2 * r, 2 * r);
+    ctx.rotate(spin);
+    ctx.fillStyle = COLORS[key].fill; ctx.fillRect(0, -r * 1.5, r * 1.5, r * 3);
+    ctx.rotate(-spin);
+    ctx.strokeStyle = 'rgba(90,90,90,.55)'; ctx.lineWidth = Math.max(1, r * .07);
+    ctx.beginPath(); ctx.arc(-r * 1.25, 0, r * .85, -1, 1); ctx.stroke();
+    ctx.beginPath(); ctx.arc(r * 1.25, 0, r * .85, Math.PI - 1, Math.PI + 1); ctx.stroke();
+    const sh = ctx.createRadialGradient(-r * .35, -r * .4, r * .1, 0, 0, r);
+    sh.addColorStop(0, 'rgba(255,255,255,.35)'); sh.addColorStop(.6, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,.25)');
+    ctx.fillStyle = sh; ctx.fillRect(-r, -r, 2 * r, 2 * r);
+    ctx.restore();
+    ctx.save(); ctx.globalAlpha = alpha * .5;
+    ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.restore();
+  }
+
+  function drawFlyingBall() {
+    const spin = S.clock * 14;
+    if (S.phase === 'flight') {
+      const p = S.t / F();
+      // a faint trail
+      for (let i = 3; i >= 1; i--) {
+        const q = ballAt(Math.max(0, p - i * 0.035));
+        ctx.fillStyle = `rgba(255,255,255,${0.05 * (4 - i)})`;
+        ctx.beginPath(); ctx.arc(q.x, q.y, q.r * .8, 0, 7); ctx.fill();
+      }
+      const b = ballAt(p); drawBall(b.x, b.y, b.r, S.ball, spin);
+    } else if (S.phase === 'after') {
+      const a = Math.min(1, S.t / 0.5);
+      if (S.contactP != null) {
+        const c = ballAt(S.contactP);
+        const ex = 640 + S.dir * 330, ey = 210;
+        const e = 1 - Math.pow(1 - a, 2);
+        drawBall(c.x + (ex - c.x) * e, c.y + (ey - c.y) * e - Math.sin(e * Math.PI) * 60, c.r + (5 - c.r) * e, S.ball, spin, 1 - a * .3);
+        if (a < .35) { // contact flash
+          ctx.strokeStyle = `rgba(255,210,63,${.9 - a * 2.5})`; ctx.lineWidth = 5;
+          for (let i = 0; i < 8; i++) { const an = i / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(c.x + Math.cos(an) * (c.r + 10), c.y + Math.sin(an) * (c.r + 10)); ctx.lineTo(c.x + Math.cos(an) * (c.r + 30 + a * 60), c.y + Math.sin(an) * (c.r + 30 + a * 60)); ctx.stroke(); }
+        }
+      } else if (a < .45) {
+        const b = ballAt(1 + a * 0.07); drawBall(b.x, b.y + a * 120, b.r, S.ball, spin, 1 - a * 2);
+      }
+    }
+  }
+
+  function batAngle() {
+    const REST = -1.45, END = -3.39;
+    if (S.swingAt == null || S.phase === 'ready' || S.phase === 'windup') return REST;
+    const s = (S.clock - S.swingAt) / 0.16;
+    if (s <= 0) return REST;
+    const e = 1 - Math.pow(1 - Math.min(1, s), 3);
+    return REST + (END - REST) * e;
+  }
+  function drawBat() {
+    const a = batAngle(), px = 1010, py = 790, L = 540;
+    const cos = Math.cos(a), sin = Math.sin(a), nx = -sin, ny = cos;
+    const w0 = 9, w1 = 24;
+    const tipx = px + cos * L, tipy = py + sin * L;
+    const g = ctx.createLinearGradient(px, py, tipx, tipy);
+    g.addColorStop(0, '#8C5E33'); g.addColorStop(.5, '#C8955A'); g.addColorStop(1, '#D9A66A');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(px + nx * w0, py + ny * w0);
+    ctx.lineTo(px + cos * L * .55 + nx * w0 * 1.2, py + sin * L * .55 + ny * w0 * 1.2);
+    ctx.lineTo(tipx + nx * w1, tipy + ny * w1);
+    ctx.arc(tipx, tipy, w1, a + Math.PI / 2, a - Math.PI / 2, true);
+    ctx.lineTo(px + cos * L * .55 - nx * w0 * 1.2, py + sin * L * .55 - ny * w0 * 1.2);
+    ctx.lineTo(px - nx * w0, py - ny * w0);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(px + cos * L * .6 + nx * 4, py + sin * L * .6 + ny * 4); ctx.lineTo(tipx + nx * 10, tipy + ny * 10); ctx.stroke();
+    // grip tape and gloved hands
+    ctx.strokeStyle = PAL.screen; ctx.lineWidth = 22; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(px + cos * 60, py + sin * 60); ctx.lineTo(px + cos * 150, py + sin * 150); ctx.stroke();
+    ctx.fillStyle = PAL.chalk;
+    for (const d of [80, 125]) { ctx.beginPath(); ctx.arc(px + cos * d, py + sin * d, 24, 0, 7); ctx.fill(); }
+    ctx.fillStyle = PAL.navy2;
+    for (const d of [80, 125]) { ctx.beginPath(); ctx.arc(px + cos * d, py + sin * d, 24, a + .6, a + 2.6); ctx.fill(); }
+  }
+
+  function chip(x, y, w, h) { rr(x, y, w, h, 14); ctx.fillStyle = 'rgba(15,26,43,.92)'; ctx.fill(); ctx.strokeStyle = PAL.badge; ctx.lineWidth = 2; ctx.stroke(); }
+
+  function drawHud() {
+    chip(28, 24, 210, 74);
+    ctx.fillStyle = PAL.slate; ctx.font = `600 16px ${LABEL}`; ctx.textAlign = 'left';
+    ctx.fillText('PITCH', 48, 52);
+    ctx.fillStyle = PAL.chalk; ctx.font = `700 32px ${LABEL}`;
+    ctx.fillText(`${S.idx + 1}`, 48, 86);
+    const n = ctx.measureText(`${S.idx + 1}`).width;
+    ctx.fillStyle = PAL.slate; ctx.font = `600 22px ${LABEL}`; ctx.fillText(`OF ${PITCHES}`, 56 + n, 86);
+    // pitch pips
+    for (let i = 0; i < PITCHES; i++) {
+      const done = S.log[i];
+      ctx.beginPath(); ctx.arc(150 + (i % 5) * 16, 52 + Math.floor(i / 5) * 18, 5, 0, 7);
+      if (done) { ctx.fillStyle = done.pts > 0 ? PAL.good : done.pts < 0 ? PAL.bad : PAL.slate; ctx.fill(); }
+      else { ctx.strokeStyle = i === S.idx ? PAL.gold : PAL.badge; ctx.lineWidth = 2; ctx.stroke(); }
+    }
+    chip(W - 198, 24, 170, 74);
+    ctx.fillStyle = PAL.slate; ctx.font = `600 16px ${LABEL}`; ctx.fillText('POINTS', W - 178, 52);
+    ctx.fillStyle = PAL.gold; ctx.font = `700 36px ${LABEL}`; ctx.fillText(`${S.points}`, W - 178, 88);
+
+    // the call
+    const shown = callVisible();
+    const fresh = shown && MODES[mode].reveal >= 0 && S.phase === 'flight' ? Math.max(0, 1 - (S.t - MODES[mode].reveal * F()) / 0.25) : 0;
+    const cw = 400, cx = 640 - cw / 2, cy = 22, ch = 82;
+    ctx.save();
+    ctx.translate(640, cy + ch / 2); ctx.scale(1 + fresh * .12, 1 + fresh * .12); ctx.translate(-640, -(cy + ch / 2));
+    rr(cx, cy, cw, ch, 16); ctx.fillStyle = PAL.chalk; ctx.fill();
+    if (fresh > 0) { ctx.strokeStyle = PAL.gold; ctx.lineWidth = 6 * fresh; ctx.stroke(); }
+    ctx.fillStyle = PAL.screen; ctx.font = `700 18px ${LABEL}`; ctx.textAlign = 'left';
+    ctx.fillText('SWING AT', cx + 24, cy + 50);
+    if (shown) {
+      const c = COLORS[S.call];
+      drawBall(cx + 152, cy + ch / 2, 22, S.call, -Math.PI / 2 + 0.0001);
+      ctx.fillStyle = c.fill === '#14161B' ? '#14161B' : c.fill;
+      ctx.font = `400 40px ${DISPLAY}`; ctx.fillText(c.name, cx + 188, cy + 56);
+    } else {
+      const pulse = .5 + .5 * Math.sin(S.clock * 6);
+      ctx.fillStyle = `rgba(15,26,43,${.35 + pulse * .4})`;
+      ctx.font = `400 40px ${DISPLAY}`; ctx.fillText('? ? ?', cx + 150, cy + 56);
+      ctx.fillStyle = PAL.slate; ctx.font = `600 15px ${LABEL}`; ctx.textAlign = 'right';
+      ctx.fillText(MODES[mode].reveal === 0 ? 'ON THE THROW' : 'IN FLIGHT', cx + cw - 22, cy + 50);
+    }
+    ctx.restore();
+
+    // remote hint bar
+    const hy = H - 50;
+    rr(28, hy - 6, 380, 40, 20); ctx.fillStyle = 'rgba(15,26,43,.8)'; ctx.fill();
+    ctx.fillStyle = PAL.gold; ctx.beginPath(); ctx.arc(52, hy + 14, 9, 0, 7); ctx.fill();
+    ctx.fillStyle = PAL.chalk; ctx.font = `700 18px ${LABEL}`; ctx.textAlign = 'left';
+    ctx.fillText('SELECT', 70, hy + 20);
+    ctx.fillStyle = PAL.slate; ctx.font = `500 18px ${LABEL}`; ctx.fillText('swing', 132, hy + 20);
+    ctx.fillStyle = PAL.chalk; ctx.font = `700 18px ${LABEL}`; ctx.fillText('NOTHING', 210, hy + 20);
+    ctx.fillStyle = PAL.slate; ctx.font = `500 18px ${LABEL}`; ctx.fillText('take', 286, hy + 20);
+  }
+
+  function drawVerdict() {
+    if (!S.verdict || (S.phase !== 'after' && S.phase !== 'verdict')) return;
+    const v = S.verdict;
+    const age = S.phase === 'after' ? S.t : 0.55 + S.t;
+    const pop = Math.min(1, age / 0.18);
+    const s = 1.5 - 0.5 * (1 - Math.pow(1 - pop, 3));
+    ctx.save();
+    ctx.translate(250, 400); ctx.rotate(-0.07); ctx.scale(s, s);
+    ctx.globalAlpha = pop;
+    ctx.font = `400 ${v.word.length > 10 ? 40 : 50}px ${DISPLAY}`; ctx.textAlign = 'center';
+    const tw = ctx.measureText(v.word).width;
+    rr(-tw / 2 - 26, -54, tw + 52, 84, 12);
+    ctx.fillStyle = 'rgba(15,26,43,.9)'; ctx.fill();
+    ctx.strokeStyle = v.col; ctx.lineWidth = 5; ctx.stroke();
+    ctx.fillStyle = v.col; ctx.fillText(v.word, 0, 4);
+    ctx.font = `700 26px ${LABEL}`; ctx.fillStyle = v.col;
+    const pts = v.pts > 0 ? '+1' : v.pts < 0 ? '−1' : '0';
+    rr(tw / 2 + 4, -76, 54, 40, 20); ctx.fill();
+    ctx.fillStyle = PAL.screen; ctx.fillText(pts, tw / 2 + 31, -47);
+    ctx.restore();
+    ctx.save(); ctx.globalAlpha = pop;
+    ctx.fillStyle = PAL.chalk; ctx.font = `600 22px ${LABEL}`; ctx.textAlign = 'center';
+    ctx.fillText(v.why, 255, 476);
+    ctx.restore();
+  }
+
+  function drawSummary() {
+    ctx.fillStyle = 'rgba(7,13,24,.72)'; ctx.fillRect(0, 0, W, H);
+    const px = 120, py = 70, pw = 1040, ph = 580;
+    rr(px, py, pw, ph, 22); ctx.fillStyle = PAL.screen; ctx.fill();
+    ctx.strokeStyle = PAL.badge; ctx.lineWidth = 2; ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = PAL.slate; ctx.font = `600 18px ${LABEL}`; ctx.fillText('ROUND OVER', px + 56, py + 64);
+    ctx.fillStyle = PAL.gold; ctx.font = `400 64px ${DISPLAY}`;
+    const big = `${S.points} points`; ctx.fillText(big, px + 56, py + 134);
+    const bw = ctx.measureText(big).width;
+    ctx.fillStyle = PAL.chalk; ctx.font = `600 30px ${LABEL}`; ctx.fillText(`out of ${PITCHES}`, px + 74 + bw, py + 132);
+    ctx.fillStyle = PAL.slate; ctx.font = `500 20px ${LABEL}`; ctx.textAlign = 'right';
+    ctx.fillText(`BEST ROUND  ${best}`, px + pw - 56, py + 64);
+
+    // line score
+    const gx = px + 56, gy = py + 180, lw = 110, cw = 81.4, rh = 52;
+    const rows = ['CALL', 'PITCH', 'YOU', 'PTS'];
+    rr(gx - 12, gy - 40, pw - 88, rh * 4 + 52, 12); ctx.fillStyle = PAL.card; ctx.fill();
+    ctx.font = `600 16px ${LABEL}`; ctx.fillStyle = PAL.slate; ctx.textAlign = 'center';
+    for (let i = 0; i < PITCHES; i++) ctx.fillText(`${i + 1}`, gx + lw + cw * i + cw / 2, gy - 12);
+    rows.forEach((r, j) => {
+      const y = gy + rh * j;
+      ctx.fillStyle = PAL.badge; ctx.fillRect(gx, y, pw - 112, 1);
+      ctx.fillStyle = PAL.slate; ctx.textAlign = 'left'; ctx.font = `600 16px ${LABEL}`;
+      ctx.fillText(r, gx + 4, y + 32);
+    });
+    S.log.forEach((e, i) => {
+      const x = gx + lw + cw * i + cw / 2;
+      drawBall(x, gy + rh * 0 + 26, 13, e.call, -Math.PI / 2 + 0.0001);
+      drawBall(x, gy + rh * 1 + 26, 13, e.ball, -Math.PI / 2 + 0.0001);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = PAL.chalk; ctx.font = `600 17px ${LABEL}`;
+      ctx.fillText(e.swung ? 'SWING' : 'TAKE', x, gy + rh * 2 + 32);
+      ctx.fillStyle = e.pts > 0 ? PAL.good : e.pts < 0 ? PAL.bad : PAL.slate;
+      ctx.font = `700 22px ${LABEL}`;
+      ctx.fillText(e.pts > 0 ? '+1' : e.pts < 0 ? '−1' : '0', x, gy + rh * 3 + 34);
+    });
+
+    // buttons
+    const by = py + ph - 108;
+    rr(px + 56, by, 240, 64, 14); ctx.fillStyle = PAL.chalk; ctx.fill();
+    ctx.strokeStyle = PAL.gold; ctx.lineWidth = 5; rr(px + 50, by - 6, 252, 76, 18); ctx.stroke();
+    ctx.fillStyle = PAL.screen; ctx.font = `700 26px ${LABEL}`; ctx.textAlign = 'center';
+    ctx.fillText('PLAY AGAIN', px + 176, by + 41);
+    rr(px + 324, by, 180, 64, 14); ctx.fillStyle = PAL.card; ctx.fill();
+    ctx.fillStyle = PAL.chalk; ctx.fillText('DONE', px + 414, by + 41);
+    ctx.textAlign = 'left'; ctx.fillStyle = PAL.slate; ctx.font = `500 20px ${LABEL}`;
+    ctx.fillText('Play again is focused. Press Select.', px + 540, by + 40);
+  }
+
+  function draw() {
+    ctx.setTransform(SC, 0, 0, SC, 0, 0);
+    drawField();
+    drawZone();
+    drawPitcher();
+    drawFlyingBall();
+    drawBat();
+    drawHud();
+    drawVerdict();
+    if (S.phase === 'summary') drawSummary();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    update(dt); draw();
+    requestAnimationFrame(frame);
+  }
+
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+    mode = b.dataset.mode;
+    document.querySelectorAll('[data-mode]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+    newRound();
+  }));
+  document.getElementById('restart').addEventListener('click', newRound);
+  document.getElementById('tv').addEventListener('click', press);
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('button')) return;
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); press(); }
+  });
+
+  newRound();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
