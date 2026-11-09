@@ -16,8 +16,10 @@ const val DATABASE_NAME = "dugout.db"
         ParentLockEntity::class,
         GameBestEntity::class,
         MasteredPlayEntity::class,
+        ColorCallBestEntity::class,
+        ColorCallLevelEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class DugoutDatabase : RoomDatabase() {
@@ -36,5 +38,12 @@ fun dugoutDatabase(
         } else {
             Room.databaseBuilder(context, DugoutDatabase::class.java, name)
         }
-    return builder.addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).addCallback(SeedCallback(seed)).build()
+    return builder
+        .addMigrations(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+        ).addCallback(SeedCallback(seed))
+        .build()
 }

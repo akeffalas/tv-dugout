@@ -229,4 +229,34 @@ class DugoutDaoTest {
             assertThat(dao.gameBests()).isEmpty()
             assertThat(dao.masteredPlays()).containsExactly(MasteredPlayEntity("b", "p01"))
         }
+
+    @Test
+    fun colorCallRowsGoWithTheChild() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", 0), profile("b", 1)))
+            dao.saveColorCallBest(ColorCallBestEntity("b", 1, 6))
+            dao.saveColorCallLevel(ColorCallLevelEntity("b", 1))
+            dao.saveColorCallLevel(ColorCallLevelEntity("a", 2))
+
+            dao.removeProfile("b")
+
+            assertThat(dao.colorCallBests()).isEmpty()
+            assertThat(dao.colorCallLevels()).containsExactly(ColorCallLevelEntity("a", 2))
+        }
+
+    @Test
+    fun colorCallBestUpsertsPerLevel() =
+        runTest {
+            dao.insertProfiles(listOf(profile("a", 0)))
+            dao.saveColorCallBest(ColorCallBestEntity("a", 1, 4))
+            dao.saveColorCallBest(ColorCallBestEntity("a", 2, 5))
+            dao.saveColorCallBest(ColorCallBestEntity("a", 1, 8))
+            dao.saveColorCallLevel(ColorCallLevelEntity("a", 1))
+            dao.saveColorCallLevel(ColorCallLevelEntity("a", 3))
+
+            assertThat(
+                dao.colorCallBests(),
+            ).containsExactly(ColorCallBestEntity("a", 1, 8), ColorCallBestEntity("a", 2, 5))
+            assertThat(dao.colorCallLevels()).containsExactly(ColorCallLevelEntity("a", 3))
+        }
 }

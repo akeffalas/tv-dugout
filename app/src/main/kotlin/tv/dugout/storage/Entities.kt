@@ -139,3 +139,39 @@ data class ParentLockEntity(
             lockBoot,
         ).hashCode()
 }
+
+/** One child's best Color Call round at one level, in points out of ten. [level] is the level's number. */
+@Entity(
+    tableName = "color_call_best",
+    primaryKeys = ["profile_id", "level"],
+    foreignKeys = [
+        ForeignKey(
+            entity = ProfileEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["profile_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ColorCallBestEntity(
+    @ColumnInfo(name = "profile_id") val profileId: String,
+    val level: Int,
+    @ColumnInfo(name = "best_points") val bestPoints: Int,
+)
+
+/** The Color Call level one child last picked, by number. */
+@Entity(
+    tableName = "color_call_level",
+    foreignKeys = [
+        ForeignKey(
+            entity = ProfileEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["profile_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ColorCallLevelEntity(
+    @PrimaryKey @ColumnInfo(name = "profile_id") val profileId: String,
+    @ColumnInfo(name = "last_level") val lastLevel: Int,
+)

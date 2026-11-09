@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tv.dugout.AppGraph
+import tv.dugout.colorcall.CallLevel
+import tv.dugout.colorcall.ColorCallRecord
+import tv.dugout.colorcall.ColorCallSink
+import tv.dugout.colorcall.InMemoryColorCallProgress
 import tv.dugout.game.GameRecord
 import tv.dugout.game.GameSink
 import tv.dugout.game.InMemoryGameProgress
@@ -153,6 +157,7 @@ class SavedStore(
                     },
                 sink = GameSink { profileId, record -> scope.launch { saveGame(dao, profileId, record) } },
             )
+        val colorCall = loadColorCall(dao, scope)
         return AppGraph(
             profiles = InMemoryProfileRepository(profiles, profileVideos, saver),
             library = library,
@@ -162,7 +167,43 @@ class SavedStore(
             clock = clock,
             lock = lock,
             games = games,
+            colorCall = colorCall,
         )
+    }
+}
+
+private suspend fun loadColorCall(
+    dao: DugoutDao,
+    scope: CoroutineScope,
+): InMemoryColorCallProgress {
+    val bests =
+        dao
+            .colorCallBests()
+            .mapNotNull { row -> CallLevel.of(row.level)?.let { Triple(row.profileId, it, row.bestPoints) } }
+            .groupBy({ it.first }, { it.second to it.third })
+    val levels =
+        dao
+            .colorCallLevels()
+            .mapNotNull { row ->
+                CallLevel.of(row.lastLevel)?.let { row.profileId to it }
+            }.toMap()
+    return InMemoryColorCallProgress(
+        initial =
+            (bests.keys + levels.keys).associateWith { id ->
+                ColorCallRecord(bests[id].orEmpty().toMap(), levels[id])
+            },
+        sink = ColorCallSink { profileId, record -> scope.launch { saveColorCall(dao, profileId, record) } },
+    )
+}
+
+private suspend fun saveColorCall(
+    dao: DugoutDao,
+    profileId: String,
+    record: ColorCallRecord,
+) {
+    record.lastLevel?.let { dao.saveColorCallLevel(ColorCallLevelEntity(profileId, it.number)) }
+    record.best.forEach { (level, points) ->
+        dao.saveColorCallBest(ColorCallBestEntity(profileId, level.number, points))
     }
 }
 

@@ -13,6 +13,8 @@ import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import tv.dugout.SAMPLE_PROFILES
+import tv.dugout.colorcall.CallLevel
+import tv.dugout.colorcall.ColorCallRecord
 import tv.dugout.eventually
 import tv.dugout.game.GameRecord
 import tv.dugout.library.AgeRange
@@ -243,5 +245,43 @@ class SavedStoreTest {
                     .record("sam")
                     .value.mastered,
             ).containsExactly("p02")
+        }
+
+    @Test
+    fun colorCallProgressSurvivesARestart() =
+        runBlocking<Unit> {
+            val name = "color-call-test.db"
+            context.deleteDatabase(name)
+            val open = { dugoutDatabase(context, name, seed) }
+            val colorCall = store(open = open).apply { start() }.ready().colorCall
+            colorCall.finishRound("sam", CallLevel.TWO, 7)
+            colorCall.startRound("sam", CallLevel.THREE)
+
+            val expected = ColorCallRecord(best = mapOf(CallLevel.TWO to 7), lastLevel = CallLevel.THREE)
+            val reopened =
+                eventually {
+                    store(open = open)
+                        .apply { start() }
+                        .ready()
+                        .colorCall
+                        .record("sam")
+                        .value
+                        .takeIf { it == expected }
+                }
+            assertThat(reopened).isEqualTo(expected)
+        }
+
+    @Test
+    fun unknownColorCallLevelsAreDropped() =
+        runBlocking<Unit> {
+            val database = dugoutDatabase(context, name = null, seed)
+            database.dao().saveColorCallBest(ColorCallBestEntity("sam", 9, 5))
+            database.dao().saveColorCallBest(ColorCallBestEntity("sam", 1, 6))
+            database.dao().saveColorCallLevel(ColorCallLevelEntity("jack", 9))
+
+            val graph = store(open = { database }).apply { start() }.ready()
+
+            assertThat(graph.colorCall.record("sam").value).isEqualTo(ColorCallRecord(mapOf(CallLevel.ONE to 6)))
+            assertThat(graph.colorCall.record("jack").value).isEqualTo(ColorCallRecord())
         }
 }

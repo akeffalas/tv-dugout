@@ -160,4 +160,42 @@ class MigrationTest {
             assertThat(dao.gameBests()).containsExactly(GameBestEntity("a", 4))
             database.close()
         }
+
+    @Test
+    fun upgradeFromFourKeepsGameProgressAndAddsColorCallTables() =
+        runBlocking<Unit> {
+            createAt(4) {
+                add("profile") {
+                    put("id", "a")
+                    put("name", "a")
+                    put("avatar_color", 0xFFE63946)
+                    put("position", 0)
+                    put("age_range", "ELEVEN_TO_TWELVE")
+                    put("level", "KID_PITCH")
+                    put("offered_library_version", 3)
+                }
+                add("game_best") {
+                    put("profile_id", "a")
+                    put("best_runs", 4)
+                }
+                add("mastered_play") {
+                    put("profile_id", "a")
+                    put("play_id", "p01")
+                }
+            }
+
+            val database = dugoutDatabase(context, name)
+            val dao = database.dao()
+
+            assertThat(dao.profiles().map { it.id }).containsExactly("a")
+            assertThat(dao.gameBests()).containsExactly(GameBestEntity("a", 4))
+            assertThat(dao.masteredPlays()).containsExactly(MasteredPlayEntity("a", "p01"))
+            assertThat(dao.colorCallBests()).isEmpty()
+            assertThat(dao.colorCallLevels()).isEmpty()
+            dao.saveColorCallBest(ColorCallBestEntity("a", 2, 7))
+            dao.saveColorCallLevel(ColorCallLevelEntity("a", 3))
+            assertThat(dao.colorCallBests()).containsExactly(ColorCallBestEntity("a", 2, 7))
+            assertThat(dao.colorCallLevels()).containsExactly(ColorCallLevelEntity("a", 3))
+            database.close()
+        }
 }

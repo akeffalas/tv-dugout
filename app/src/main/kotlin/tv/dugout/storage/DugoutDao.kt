@@ -102,4 +102,16 @@ interface DugoutDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun saveMasteredPlay(row: MasteredPlayEntity)
+
+    @Query("SELECT * FROM color_call_best")
+    suspend fun colorCallBests(): List<ColorCallBestEntity>
+
+    @Query("SELECT * FROM color_call_level")
+    suspend fun colorCallLevels(): List<ColorCallLevelEntity>
+
+    @Upsert
+    suspend fun saveColorCallBest(row: ColorCallBestEntity)
+
+    @Upsert
+    suspend fun saveColorCallLevel(row: ColorCallLevelEntity)
 }

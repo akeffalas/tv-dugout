@@ -42,3 +42,20 @@ val MIGRATION_3_4 =
             )
         }
     }
+
+/** Version 5 adds each child's best Color Call round per level and the level they last picked (spec 0011). */
+val MIGRATION_4_5 =
+    object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `color_call_best` (`profile_id` TEXT NOT NULL, `level` INTEGER NOT NULL, " +
+                    "`best_points` INTEGER NOT NULL, PRIMARY KEY(`profile_id`, `level`), FOREIGN KEY(`profile_id`) " +
+                    "REFERENCES `profile`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `color_call_level` (`profile_id` TEXT NOT NULL, " +
+                    "`last_level` INTEGER NOT NULL, PRIMARY KEY(`profile_id`), FOREIGN KEY(`profile_id`) " +
+                    "REFERENCES `profile`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+        }
+    }
