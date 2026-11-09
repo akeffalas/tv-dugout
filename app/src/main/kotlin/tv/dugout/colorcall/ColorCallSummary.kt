@@ -1,5 +1,8 @@
 package tv.dugout.colorcall
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -20,10 +25,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
+import kotlinx.coroutines.withContext
 import tv.dugout.game.GameButton
+import tv.dugout.game.OwnPace
 import tv.dugout.ui.theme.CardNavy
 import tv.dugout.ui.theme.FocusGold
 import tv.dugout.ui.theme.Slate
+
+/** How long the summary ignores presses, so a child still pressing Select from the last pitch sees it first. */
+const val SUMMARY_HOLD_MS = 1000
 
 private val LABEL_WIDTH = 72.dp
 private val CELL_WIDTH = 60.dp
@@ -39,6 +49,12 @@ internal fun Summary(
     onDone: () -> Unit,
 ) {
     val level = round.level.number
+    // Timed at its own pace, so a TV with animations turned off still holds the buttons.
+    val opened = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        withContext(OwnPace) { opened.animateTo(1f, tween(SUMMARY_HOLD_MS, easing = LinearEasing)) }
+    }
+    val ready = { opened.value >= 1f }
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = SAFE_SIDES, vertical = SAFE_ENDS),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -91,10 +107,10 @@ internal fun Summary(
             GameButton(
                 "Play again",
                 Modifier.focusRequester(playAgain).testTag("cc_summary_play_again"),
-                onPlayAgain,
+                { if (ready()) onPlayAgain() },
                 primary = true,
             )
-            GameButton("Done", Modifier.testTag("cc_summary_done"), onDone)
+            GameButton("Done", Modifier.testTag("cc_summary_done"), { if (ready()) onDone() })
         }
     }
 }

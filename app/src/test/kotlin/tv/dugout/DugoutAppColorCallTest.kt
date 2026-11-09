@@ -5,7 +5,9 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -110,5 +112,47 @@ class DugoutAppColorCallTest {
 
         compose.onNodeWithTag("game_card_color_call").assertIsFocused()
         assertThat(colorCall.record("sam").value.best).isEmpty()
+    }
+
+    /** Steps the held clock until [tag] shows. */
+    private fun advanceUntil(tag: String) {
+        var waited = 0L
+        while (compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()) {
+            compose.mainClock.advanceTimeBy(50)
+            waited += 50
+            check(waited < 10_000) { "$tag never showed" }
+        }
+    }
+
+    @Test
+    fun keepPlayingReturnsToThePitchAndASwingStillCounts() {
+        openColorCall()
+        compose.mainClock.autoAdvance = false
+        press(Key.DirectionCenter)
+        advanceUntil("cc_swing_open")
+
+        Espresso.pressBack()
+        advanceUntil("leave_keep_playing")
+        press(Key.DirectionCenter)
+        compose.mainClock.advanceTimeBy(100)
+
+        compose.onNodeWithTag("cc_scene").assertIsFocused()
+        advanceUntil("cc_swing_open")
+        press(Key.DirectionCenter)
+        advanceUntil("cc_stamp")
+        val first = pickPitches(Random(1)).first()
+        compose
+            .onNodeWithTag("cc_stamp")
+            .assertTextEquals(
+                if (first.ball ==
+                    first.call
+                ) {
+                    "NICE SWING"
+                } else {
+                    "CHASED"
+                },
+                if (first.ball == first.call) "+1" else "−1",
+            )
+        compose.onNodeWithText("PITCH 1 OF 10").assertIsDisplayed()
     }
 }

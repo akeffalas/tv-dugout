@@ -171,6 +171,23 @@ class ColorCallScreenTest {
     }
 
     @Test
+    fun aSelectAsTheSummaryOpensDoesNotStartAnotherRound() {
+        compose.mainClock.autoAdvance = false
+        show(ColorCallUiState(ColorCallScreenKind.SUMMARY, CallLevel.ONE, testRound().playedOut(), best = 10))
+        compose.mainClock.advanceTimeBy(100)
+
+        // A child still pressing Select from the last pitch must see the summary first.
+        compose.onNodeWithTag("cc_summary_play_again").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.mainClock.advanceTimeBy(100)
+        assertThat(playAgains).isEqualTo(0)
+
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithTag("cc_summary_play_again").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.mainClock.advanceTimeBy(100)
+        assertThat(playAgains).isEqualTo(1)
+    }
+
+    @Test
     fun summaryLineScoreShowsMinusOneForAChaseAtZero() {
         val done = testRound(chases = 1).playedOut()
         show(ColorCallUiState(ColorCallScreenKind.SUMMARY, CallLevel.ONE, done, best = 9))
