@@ -14,3 +14,8 @@ val WatchedGreen = Color(0xFF3ECF8E)
 val ProgressRed = Color(0xFFE63946)
 val Grass = Color(0xFF2E7D4F)
 val InfieldDirt = Color(0xFFB5793F)
+
+// The marked practice balls of Color Call (spec 0011): never red or green.
+val BallBlue = Color(0xFF2F7DF6)
+val BallOrange = Color(0xFFFF8A1F)
+val BallBlack = Color(0xFF14161B)
